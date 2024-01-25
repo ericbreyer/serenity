@@ -1,0 +1,21 @@
+// working cumtrapz in serenity
+
+fun cumtrapz(f : fun(float) -> float, start:float, num_steps: int, step : float, buf: float*) {
+  buf[0] = 0.0;
+  for(var i = 0; i <= num_steps; i = i + 1) {
+    var x = start + i * step;
+    buf[i + 1] = buf[i] + ((f(x) + f(x + step)) / 2.0) * step;
+  }
+}
+
+var buf : float[21];
+
+cumtrapz(lambda(x : float) -> float {return 2 * x;}, 0.0, 20, 0.1, buf);
+
+for (var i = 0; i < 21; i = i + 1) {
+  print buf[i];
+}
+
+if ( 2.0 != 2) {
+  print "good";
+}

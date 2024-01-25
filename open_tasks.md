@@ -1,0 +1,8 @@
+- Implicit return nil type is interesting, how to know if all code paths return?
+  - requiring a return runs into the same issue
+  - unless you require a return in the outer scope which is easy but dumb
+- ternary typing is wrong
+- array upvalue capturing is probably fucked but idk if we really want to capture stack arrays anyway
+- pool opcodes long and short versions
+- **casts**
+- expressions in array initializers (vlas)
