@@ -54,7 +54,7 @@ impl Precedence {
     }
 }
 
-type ParseFn = fn(&mut Parser, bool) -> ValueType;
+type ParseFn = fn(&mut Parser, bool) -> (ValueType, ASTNode);
 struct ParseRule {
     prefix: Option<ParseFn>,
     infix: Option<ParseFn>,
@@ -159,7 +159,7 @@ impl Parser {
         true
     }
 
-    fn expression(&mut self) -> ValueType {
+    fn expression(&mut self) -> (ValueType, ASTNode) {
         return self.parse_precedence(Precedence::Assignment);
     }
 
@@ -2383,12 +2383,12 @@ impl Parser {
         return (None, true);
     }
 
-    fn parse_precedence(&mut self, precedence: Precedence) -> ValueType {
+    fn parse_precedence(&mut self, precedence: Precedence) -> (ValueType, ASTNode) {
         self.advance();
         let prefix_rule = &self.parse_table[self.previous.token_type as usize].prefix;
         if prefix_rule.is_none() {
             self.error("Expect expression.");
-            return ValueTypeK::Err.intern();
+            return (ValueTypeK::Err.intern(), ASTNode::Empty);
         }
 
         let can_assign = precedence <= Precedence::Assignment;
@@ -2400,14 +2400,14 @@ impl Parser {
             self.advance();
             let infix_rule = &self.parse_table[self.previous.token_type as usize].infix;
             let infix_type = &self.parse_table[self.previous.token_type as usize].left_type;
-            if !infix_type.contains(t) {
+            if !infix_type.contains(t.0) {
                 self.error(&format!(
                     "Type mismatch in operator {:?}, expected one of {:?} got {:?}",
-                    self.previous.token_type, infix_type, t
+                    self.previous.token_type, infix_type, t.0
                 ));
             }
 
-            self.last_pushed_type = (t, prev);
+            self.last_pushed_type = (t.0, prev);
             t = infix_rule.unwrap()(self, can_assign);
         }
 
