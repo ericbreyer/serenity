@@ -1,4 +1,5 @@
 mod parse_table;
+mod ast;
 
 use crate::value::object::{Function, Object};
 use crate::value::pointer::Pointer;
@@ -22,6 +23,8 @@ use crate::{
     chunk::Opcode,
     scanner::{Scanner, Token, TokenType},
 };
+
+use self::ast::ASTNode;
 
 #[derive(Debug, PartialEq, PartialOrd, FromPrimitive, Copy, Clone)]
 #[repr(u8)]
@@ -2482,6 +2485,7 @@ enum FunctionType {
 }
 
 struct Compiler {
+    ast : ASTNode,
     func: Box<Function>,
     function_type: FunctionType,
     upvalues: [Upvalue; u8::MAX as usize],
@@ -2519,6 +2523,7 @@ impl Default for Compiler {
 impl Compiler {
     fn new(function_type: FunctionType, current: Option<Compiler>, func_name: &str) -> Compiler {
         let mut c = Compiler {
+            ast: ASTNode::new(),
             locals: HashMap::new(),
             local_count: 0,
             scope_depth: 0,
