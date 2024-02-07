@@ -1,0 +1,20 @@
+var closures: (fun() -> float)[2];
+
+fun outer(x: float) {
+  const y = x;
+  fun inner() -> float {
+    return y;
+  }
+  fun inner2() -> float {
+    return inner();
+  }
+  closures[0] = inner;
+  closures[1] = inner2;
+}
+
+  outer(0.0);
+  print(closures[1]());
+  print(closures[1]());
+  print(closures[1]());
+  print(closures[1]());
+  

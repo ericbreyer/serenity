@@ -35,7 +35,7 @@ pub enum TokenType {
     String,
     Number,
     And,
-    Class,
+    Struct,
     Else,
     False,
     Fun,
@@ -62,6 +62,7 @@ pub enum TokenType {
     RightArrow,
     SimpleType,
     Cast,
+    Char,
     EOF,
     #[default]
     Error,
@@ -69,7 +70,7 @@ pub enum TokenType {
 
 const KEYWORDS: [(&str, TokenType); 25] = [
     ("and", TokenType::And),
-    ("class", TokenType::Class),
+    ("struct", TokenType::Struct),
     ("else", TokenType::Else),
     ("false", TokenType::False),
     ("for", TokenType::For),
@@ -210,6 +211,17 @@ impl Scanner {
                 }
                 self.advance();
                 return self.make_token(TokenType::String);
+            }
+            '\'' => {
+                if self.peek() == '\\' {
+                    self.advance();
+                }
+                self.advance();
+                if self.peek() != '\'' {
+                    return self.error_token("Unterminated char.");
+                }
+                self.advance();
+                return self.make_token(TokenType::Char);
             }
 
             _ => return self.error_token("Unexpected character."),

@@ -2,18 +2,18 @@ mod parse_table;
 
 use crate::value::object::{Function, Object};
 use crate::value::pointer::Pointer;
-use crate::value::value_type::ValueType;
-use crate::value::Value::{self, Number};
-use crate::value::{
-    number,
-    value_type::{ValueTypeK, ValueTypeSet},
-};
+use crate::value::value_type::{CustomStruct, StructEntry, ValueType};
+use crate::value::value_type::{ValueTypeK, ValueTypeSet};
+use crate::value::Value::{self};
+use crate::value::Word;
 use num_enum::FromPrimitive;
+
 use std::array;
 use std::cell::Cell;
 
 use std::collections::HashMap;
 
+use std::env::var;
 use std::num::ParseIntError;
 
 use std::rc::Rc;
@@ -65,13 +65,15 @@ struct Parser {
     scanner: Scanner,
     had_error: Cell<bool>,
     panic_mode: Cell<bool>,
-    last_pushed_type: ValueType,
+    last_pushed_type: (ValueType, String),
     compiler: Box<Compiler>,
-    parse_table: [ParseRule; 52],
-    static_data_segment: Vec<Value>,
-    num_globals: usize,
+    parse_table: [ParseRule; 53],
+    static_data_segment: Vec<Word>,
+    function_segment: Vec<Object>,
+    num_functions: usize,
     gloabls: HashMap<String, usize>,
-    global_types: HashMap<usize, ValueType>,
+    global_types: HashMap<usize, (ValueType, bool, bool)>,
+    custom_types: HashMap<String, CustomStruct>,
 }
 
 impl Parser {
@@ -95,7 +97,7 @@ impl Parser {
             had_error: false.into(),
             panic_mode: false.into(),
             compiler: compiler,
-            last_pushed_type: ValueTypeK::Nil.intern(),
+            last_pushed_type: (ValueTypeK::Nil.intern(), "".to_string()),
             parse_table: array::from_fn(|_| ParseRule {
                 prefix: None,
                 infix: None,
@@ -105,11 +107,21 @@ impl Parser {
             static_data_segment: Vec::new(),
             gloabls: HashMap::new(),
             global_types: HashMap::new(),
-            num_globals: native_functions.len(),
+            function_segment: Vec::new(),
+            num_functions: 0,
+            custom_types: HashMap::new(),
         };
         for (name, (id, t)) in native_functions.iter() {
-            p.gloabls.insert(name.clone(), *id);
-            p.global_types.insert(*id, *t);
+            p.static_data_segment
+                .extend(Value::Pointer(Pointer::Function(*id)).to_words());
+            p.static_data_segment.push(0.into());
+            p.static_data_segment
+                .push((Box::into_raw(Box::new(Vec::<Upvalue>::new())) as u64).into());
+            p.gloabls
+                .insert(name.clone(), p.static_data_segment.len() - 3);
+            p.global_types
+                .insert(p.static_data_segment.len() - 3, (*t, false, true));
+            p.num_functions += 1;
         }
         p.init_parse_table();
         p
@@ -152,12 +164,11 @@ impl Parser {
         if self.match_token(TokenType::Var) {
             self.var_declaration(true);
         } else if self.match_token(TokenType::Const) {
-            if self.compiler.scope_depth == 0 {
-                self.warn("Const has no effect in global scope")
-            }
             self.var_declaration(false);
         } else if self.match_token(TokenType::Fun) {
             self.fun_declaration();
+        } else if self.match_token(TokenType::Struct) {
+            self.struct_declaration();
         } else {
             self.statement();
         }
@@ -175,7 +186,7 @@ impl Parser {
             }
 
             match self.current.token_type {
-                TokenType::Class
+                TokenType::Struct
                 | TokenType::Fun
                 | TokenType::Var
                 | TokenType::For
@@ -241,7 +252,27 @@ impl Parser {
                 }
                 self.consume(TokenType::Semicolon, "Expect ';' after return value.");
                 let line = self.previous.line;
-                self.compiler.func.chunk.write(Opcode::Return.into(), line);
+
+                if et == ValueTypeK::AnyFunction.intern() {
+                    self.compiler
+                        .func
+                        .chunk
+                        .write(Opcode::CopyClosure.into(), line);
+
+                    // check if any of the captured locals are mutable
+                    for (i, l) in self.compiler.locals.iter() {
+                        if l.captured && l.mutable {
+                            self.error("Cannot close over mutable variables.");
+                        }
+                    }
+                }
+
+                self.compiler.func.chunk.write_pool_opcode(
+                    Opcode::Return.into(),
+                    self.compiler.func.return_size as u32,
+                    line,
+                );
+                self.compiler.func.return_type = et;
             }
         } else {
             self.expression_statement();
@@ -262,26 +293,45 @@ impl Parser {
             }
 
             if self.compiler.locals.get(&last_local).unwrap().captured {
-                self.compiler
-                    .func
-                    .chunk
-                    .write(Opcode::CloseUpvalue.into(), line);
+                if self.compiler.locals.get(&last_local).unwrap().mutable {
+                    self.error("Cannot capture mutable variables.");
+                }
+                self.compiler.func.chunk.write_pool_opcode(
+                    Opcode::CloseUpvalue.into(),
+                    self.compiler
+                        .locals
+                        .get(&last_local)
+                        .unwrap()
+                        .local_type
+                        .num_words() as u32,
+                    line,
+                );
             } else {
-                self.compiler.func.chunk.write(Opcode::Pop.into(), line);
+                self.compiler.func.chunk.write_pop(
+                    self.compiler.locals.get(&last_local).unwrap().local_type,
+                    line,
+                );
             }
 
             // if its an array, we need to pop the array off the stack
-            if let ValueTypeK::Array(_, n) =
+            if let ValueTypeK::Array(t, n) =
                 self.compiler.locals.get(&last_local).unwrap().local_type
             {
+                let words = t.num_words();
                 for _ in 0..*n {
-                    self.compiler.func.chunk.write(Opcode::Pop.into(), line);
-                    self.compiler.local_count -= 1;
+                    self.compiler.func.chunk.write_pop(t, line);
+                    self.compiler.local_count -= words;
                 }
             }
+            self.compiler.local_count -= self
+                .compiler
+                .locals
+                .get(&last_local)
+                .unwrap()
+                .local_type
+                .num_words();
 
             self.compiler.locals.remove(&last_local);
-            self.compiler.local_count -= 1;
         }
     }
 
@@ -300,28 +350,58 @@ impl Parser {
         self.consume(TokenType::Semicolon, "Expect ';' after value.");
         match t {
             ValueTypeK::Float => {
-                self.compiler.func.chunk.write(Opcode::PrintFloat.into(), line);
+                self.compiler
+                    .func
+                    .chunk
+                    .write(Opcode::PrintFloat.into(), line);
             }
             ValueTypeK::Integer => {
-                self.compiler.func.chunk.write(Opcode::PrintInt.into(), line);
+                self.compiler
+                    .func
+                    .chunk
+                    .write(Opcode::PrintInt.into(), line);
             }
             ValueTypeK::Bool => {
-                self.compiler.func.chunk.write(Opcode::PrintBool.into(), line);
+                self.compiler
+                    .func
+                    .chunk
+                    .write(Opcode::PrintBool.into(), line);
             }
             ValueTypeK::String => {
-                self.compiler.func.chunk.write(Opcode::PrintString.into(), line);
+                self.compiler
+                    .func
+                    .chunk
+                    .write(Opcode::PrintString.into(), line);
             }
             ValueTypeK::Nil => {
-                self.compiler.func.chunk.write(Opcode::PrintNil.into(), line);
+                self.compiler
+                    .func
+                    .chunk
+                    .write(Opcode::PrintNil.into(), line);
             }
-            ValueTypeK::Pointer(_) => {
-                self.compiler.func.chunk.write(Opcode::PrintPointer.into(), line);
+            ValueTypeK::Pointer(_, _) => {
+                self.compiler
+                    .func
+                    .chunk
+                    .write(Opcode::PrintPointer.into(), line);
             }
             ValueTypeK::Array(_, _) => {
-                self.compiler.func.chunk.write(Opcode::PrintPointer.into(), line);
+                self.compiler
+                    .func
+                    .chunk
+                    .write(Opcode::PrintPointer.into(), line);
             }
-            ValueTypeK::Function(_) => {
-                self.compiler.func.chunk.write(Opcode::PrintPointer.into(), line);
+            ValueTypeK::Closure(_) => {
+                self.compiler
+                    .func
+                    .chunk
+                    .write(Opcode::PrintPointer.into(), line);
+            }
+            ValueTypeK::Char => {
+                self.compiler
+                    .func
+                    .chunk
+                    .write(Opcode::PrintChar.into(), line);
             }
             _ => {
                 self.error(format!("Cannot print this type. {:?}", t).as_str());
@@ -330,25 +410,25 @@ impl Parser {
     }
 
     fn expression_statement(&mut self) {
-        self.expression();
+        let t = self.expression();
         self.consume(TokenType::Semicolon, "Expect ';' after expression.");
         let line = self.previous.line;
-        self.compiler.func.chunk.write(Opcode::Pop.into(), line);
+        self.compiler.func.chunk.write_pop(t, line);
     }
 
     fn if_statement(&mut self) {
         self.consume(TokenType::LeftParen, "Expect '(' after 'if'.");
-        self.expression();
+        let t = self.expression();
         self.consume(TokenType::RightParen, "Expect ')' after condition.");
 
         let then_jump = self.emit_jump(Opcode::JumpIfFalse.into());
         let mut line = self.previous.line;
-        self.compiler.func.chunk.write(Opcode::Pop.into(), line);
+        self.compiler.func.chunk.write_pop(t, line);
         self.statement();
         let else_jump = self.emit_jump(Opcode::Jump.into());
         self.patch_jump(then_jump);
         line = self.previous.line;
-        self.compiler.func.chunk.write(Opcode::Pop.into(), line);
+        self.compiler.func.chunk.write_pop(t, line);
 
         if self.match_token(TokenType::Else) {
             self.statement();
@@ -359,18 +439,18 @@ impl Parser {
     fn while_statement(&mut self) {
         let loop_start = self.compiler.func.chunk.code.len();
         self.consume(TokenType::LeftParen, "Expect '(' after 'while'.");
-        self.expression();
+        let t = self.expression();
         self.consume(TokenType::RightParen, "Expect ')' after condition.");
 
         let exit_jump = self.emit_jump(Opcode::JumpIfFalse.into());
         let mut line = self.previous.line;
-        self.compiler.func.chunk.write(Opcode::Pop.into(), line);
+        self.compiler.func.chunk.write_pop(t, line);
         self.statement();
         self.emit_loop(loop_start);
 
         self.patch_jump(exit_jump);
         line = self.previous.line;
-        self.compiler.func.chunk.write(Opcode::Pop.into(), line);
+        self.compiler.func.chunk.write_pop(t, line);
         self.fill_break_continue(loop_start);
     }
 
@@ -389,20 +469,20 @@ impl Parser {
         let mut exit_jump = None;
         let mut line = self.previous.line;
         if !self.match_token(TokenType::Semicolon) {
-            self.expression();
+            let t = self.expression();
             self.consume(TokenType::Semicolon, "Expect ';' after loop condition.");
 
             // Jump out of the loop if the condition is false.
             exit_jump = Some(self.emit_jump(Opcode::JumpIfFalse.into()));
-            self.compiler.func.chunk.write(Opcode::Pop.into(), line); // Condition.
+            self.compiler.func.chunk.write_pop(t, line);
         }
         line = self.previous.line;
         let mut increment_start = loop_start;
         if !self.match_token(TokenType::RightParen) {
             let body_jump = self.emit_jump(Opcode::Jump.into());
             increment_start = self.compiler.func.chunk.code.len();
-            self.expression();
-            self.compiler.func.chunk.write(Opcode::Pop.into(), line);
+            let t = self.expression();
+            self.compiler.func.chunk.write_pop(t, line);
             self.consume(TokenType::RightParen, "Expect ')' after for clauses.");
 
             self.emit_loop(loop_start);
@@ -414,7 +494,10 @@ impl Parser {
         self.emit_loop(increment_start);
         if let Some(exit_jump) = exit_jump {
             self.patch_jump(exit_jump);
-            self.compiler.func.chunk.write(Opcode::Pop.into(), line); // condition.
+            self.compiler
+                .func
+                .chunk
+                .write_pop(ValueTypeK::Bool.intern(), line);
         }
         self.fill_break_continue(increment_start);
 
@@ -427,10 +510,10 @@ impl Parser {
         self.consume(TokenType::LeftParen, "Expect '(' after 'cast'.");
         let t = self.expression();
         self.consume(TokenType::Comma, "Expect ',' after value.");
-        let cast_type = self.parse_complex_type();
+        let cast_type = self.parse_complex_type(false);
         self.consume(TokenType::RightParen, "Expect ')' after type.");
 
-        match (t, cast_type) {
+        match (t.decay(), cast_type) {
             (x, y) if x == y => x,
             (ValueTypeK::Integer, ValueTypeK::Float) => {
                 self.compiler
@@ -488,10 +571,10 @@ impl Parser {
                     .write(Opcode::CastBoolToString.into(), line);
                 ValueTypeK::String.intern()
             }
-            (ValueTypeK::Array(x, _), ValueTypeK::Pointer(y)) if x == y => {
-                ValueTypeK::Pointer(x).intern()
+            (ValueTypeK::Array(x, _), ValueTypeK::Pointer(y, _)) if x == y => {
+                ValueTypeK::Pointer(x, false).intern()
             }
-            (ValueTypeK::Pointer(_), ValueTypeK::Pointer(_)) => cast_type,
+            (ValueTypeK::Pointer(_, _), ValueTypeK::Pointer(_, _)) => cast_type,
             _ => {
                 self.error(&format!("Cannot cast {:?} to {:?}", t, cast_type));
                 ValueTypeK::Err.intern()
@@ -499,10 +582,42 @@ impl Parser {
         }
     }
 
-    fn parse_complex_type(&mut self) -> ValueType {
+    fn struct_declaration(&mut self) {
+        self.consume(TokenType::Identifier, "Expect struct name.");
+        let name = self.previous.clone();
+        let mut fields = HashMap::new();
+        self.consume(TokenType::LeftBrace, "Expect '{' after struct name.");
+        let mut offset = 0;
+        while self.current.token_type != TokenType::RightBrace {
+            self.consume(TokenType::Identifier, "Expect field name.");
+            let field_name = self.previous.clone();
+            self.consume(TokenType::Colon, "Expect ':' after field name.");
+            let field_type = self.parse_complex_type(false);
+            fields.insert(
+                field_name.lexeme.clone(),
+                StructEntry {
+                    value: field_type,
+                    offset: offset,
+                },
+            );
+            offset += field_type.num_words();
+            if !self.match_token(TokenType::Comma) {
+                break;
+            }
+        }
+        self.consume(
+            TokenType::RightBrace,
+            "Expect '}' after struct declaration.",
+        );
+        self.consume(TokenType::Semicolon, "Expect ';' after struct declaration.");
+        self.custom_types
+            .insert(name.lexeme.clone(), CustomStruct { name: name.lexeme.clone(), fields: fields });
+    }
+
+    fn parse_complex_type(&mut self, isConst: bool) -> ValueType {
         let parset_type = 'a: {
             if self.match_token(TokenType::LeftParen) {
-                let t = self.parse_complex_type();
+                let t = self.parse_complex_type(isConst);
                 self.consume(TokenType::RightParen, "Expect ')' after type.");
                 break 'a t;
             }
@@ -524,7 +639,7 @@ impl Parser {
                 let mut _arg_count = 0;
                 if self.current.token_type != TokenType::RightParen {
                     loop {
-                        let p_type = self.parse_complex_type();
+                        let p_type = self.parse_complex_type(isConst);
                         param_types.push(p_type);
                         _arg_count += 1;
                         if !self.match_token(TokenType::Comma) {
@@ -535,19 +650,141 @@ impl Parser {
                 self.consume(TokenType::RightParen, "Expect ')' after arguments.");
                 let mut return_type = ValueTypeK::Nil.intern();
                 if self.match_token(TokenType::RightArrow) {
-                    return_type = self.parse_complex_type();
+                    return_type = self.parse_complex_type(isConst);
                 }
                 param_types.push(return_type);
-                break 'a ValueTypeK::Function(param_types.as_slice().into()).intern();
+                break 'a ValueTypeK::Closure(param_types.as_slice().into()).intern();
             }
 
-            // self.error("Expect type.");
+            if self.match_token(TokenType::Struct) {
+            self.consume(TokenType::Identifier, "Expect struct name.");
+                let name = self.previous.lexeme.clone();
+                if let Some(s) = self.custom_types.get(&name) {
+                    break 'a ValueTypeK::Struct(s.clone()).intern();
+                }
+                if let Some(id) = self.gloabls.get(&name) {
+                    if let Some((t, _, _)) = self.global_types.get(&id) {
+                        break 'a t;
+                    }
+                }
+            }
+
+            self.error("Expect type.");
             ValueTypeK::Err.intern()
         };
         if self.match_token(TokenType::Star) {
-            return ValueTypeK::Pointer(parset_type).intern();
+            return ValueTypeK::Pointer(parset_type, isConst).intern();
         }
         parset_type
+    }
+
+    fn dot(&mut self, _can_assign: bool) -> ValueType {
+        let (t, struct_name) = self.last_pushed_type.clone();
+        self.consume(TokenType::Identifier, "Expect property name after '.'.");
+        let name = self.previous.clone();
+        let line = self.previous.line;
+
+        if !self.match_token(TokenType::Equal) {
+            match t {
+                ValueTypeK::Struct(s) => {
+                    if let Some(f) = s.fields.get(&name.lexeme) {
+                        self.compiler
+                            .func
+                            .chunk
+                            .write(Opcode::GetField.into(), line);
+                        self.compiler.func.chunk.write(t.num_words() as u8, line);
+                        self.compiler.func.chunk.write(f.offset as u8, line);
+                        self.compiler
+                            .func
+                            .chunk
+                            .write(f.value.num_words() as u8, line);
+                        return f.value;
+                    }
+                    self.error("Unknown field.");
+                }
+                _ => {
+                    self.error("Only structs have fields.");
+                }
+            }
+        } else {
+            let value_type = self.expression();
+            match t {
+                ValueTypeK::Struct(s) => {
+                    if let Some(f) = s.fields.get(&name.lexeme) {
+                        if f.value != value_type {
+                            self.error("Type mismatch.");
+                        }
+                        self.compiler
+                            .func
+                            .chunk
+                            .write(Opcode::SetField.into(), line);
+                        self.compiler.func.chunk.write(t.num_words() as u8, line);
+                        self.compiler.func.chunk.write(f.offset as u8, line);
+                        self.compiler
+                            .func
+                            .chunk
+                            .write(f.value.num_words() as u8, line);
+
+                            self.previous = Token {
+                                token_type: TokenType::Identifier,
+                                lexeme: struct_name.clone(),
+                                line: line,
+                            };
+                            // must put the mutated value back into it's location
+                        if let (Some(id), _) = self.resolve_local(0) {
+                            self.compiler.func.chunk.write(Opcode::SetLocal.into(), line);
+                            self.compiler.func.chunk.write(id as u8, line);
+                        } else if let Some(id) = self.resolve_upvalue(0) {
+                            self.compiler.func.chunk.write(Opcode::SetUpvalue.into(), line);
+                            self.compiler.func.chunk.write(id as u8, line);
+                        } else {
+                            println!("Error: {}", self.previous.lexeme);
+                            let glob_id = self.gloabls.get(&struct_name).unwrap();
+                            self.compiler.func.chunk.write(Opcode::SetGlobal.into(), line);
+                            self.compiler.func.chunk.write(*glob_id as u8, line);
+                        }
+                        self.compiler.func.chunk.write(t.num_words() as u8, line);
+                        self.compiler.func.chunk.write_pop(t, line);
+
+                        return f.value;
+                    }
+                    self.error("Unknown field.");
+                }
+                _ => {
+                    self.error("Only structs have fields.");
+                }
+            }
+        }
+        ValueTypeK::Err.intern()
+    }
+
+    fn deref_dot(&mut self, _can_assign: bool) -> ValueType {
+        let t = self.expression();
+        self.consume(TokenType::Identifier, "Expect property name after '.'.");
+        let name = self.previous.clone();
+        let line = self.previous.line;
+
+        if !self.match_token(TokenType::Equal) {
+            let ValueTypeK::Pointer(s, _) = self.last_pushed_type.0.decay() else {
+                self.error("Only pointers have fields.");
+                return ValueTypeK::Err.intern();
+            };
+            let ValueTypeK::Struct(s) = s.decay() else {
+                self.error("Only pointers to structs have fields.");
+                return ValueTypeK::Err.intern();
+            };
+
+            if let Some(f) = s.fields.get(&name.lexeme) {
+                self.compiler.func.chunk.write_constant(Value::Integer(f.offset as i64), line);
+                self.compiler.func.chunk.write(Opcode::PointerAdd.into(), line);
+                self.compiler.func.chunk.write_pool_opcode(Opcode::DerefGet, f.value.num_words() as u32, line);
+                return f.value;
+            }
+            
+        } else {
+            
+        }
+        &ValueTypeK::Err.intern()
     }
 
     fn fill_break_continue(&mut self, loop_start: usize) {
@@ -591,7 +828,10 @@ impl Parser {
     fn and_(&mut self, _can_assign: bool) -> ValueType {
         let line = self.previous.line;
         let end_jump = self.emit_jump(Opcode::JumpIfFalse.into());
-        self.compiler.func.chunk.write(Opcode::Pop.into(), line);
+        self.compiler
+            .func
+            .chunk
+            .write_pop(ValueTypeK::Bool.intern(), line);
         self.parse_precedence(Precedence::And);
         self.patch_jump(end_jump);
         ValueTypeK::Bool.intern()
@@ -602,7 +842,10 @@ impl Parser {
         let else_jump = self.emit_jump(Opcode::JumpIfFalse.into());
         let end_jump = self.emit_jump(Opcode::Jump.into());
         self.patch_jump(else_jump);
-        self.compiler.func.chunk.write(Opcode::Pop.into(), line);
+        self.compiler
+            .func
+            .chunk
+            .write_pop(ValueTypeK::Bool.intern(), line);
         self.parse_precedence(Precedence::Or);
         self.patch_jump(end_jump);
         ValueTypeK::Bool.intern()
@@ -638,10 +881,16 @@ impl Parser {
                         .get_mut(&last_local)
                         .unwrap()
                         .local_type = ValueTypeK::Array(var_type, n as usize).intern();
+                    self.compiler.locals.get_mut(&last_local).unwrap().mutable = false;
+                    self.compiler.locals.get_mut(&last_local).unwrap().assigned = true;
                 } else {
                     self.global_types.insert(
                         global_id as usize,
-                        ValueTypeK::Array(var_type, n as usize).intern(),
+                        (
+                            ValueTypeK::Array(var_type, n as usize).intern(),
+                            false,
+                            true,
+                        ),
                     );
                 }
 
@@ -656,7 +905,7 @@ impl Parser {
     }
 
     fn define_array(&mut self, global_id: i64, mut size: Option<u32>) {
-        let mut line = self.previous.line;
+        let line = self.previous.line;
         self.match_token(TokenType::Equal);
 
         if global_id == -1 {
@@ -666,23 +915,27 @@ impl Parser {
                 .write(Opcode::DefineStackArray as u8, line);
 
             let last_local = self.last_local();
-            let mut elem_type = self.compiler.locals.get(&last_local).unwrap().local_type;
+            let elem_type = self.compiler.locals.get(&last_local).unwrap().local_type;
+            let mut pointee_type = match elem_type.decay() {
+                ValueTypeK::Pointer(t, _) => t,
+                _ => ValueTypeK::Undef.intern(),
+            };
 
             if self.match_token(TokenType::LeftBrace) {
                 let mut arg_count = 0;
                 loop {
                     if self.current.token_type != TokenType::RightBrace {
                         let pt = self.expression();
-                        if elem_type == ValueTypeK::Undef.intern() {
-                            elem_type = pt;
+                        if pointee_type == ValueTypeK::Undef.intern() {
+                            pointee_type = pt;
                         }
-                        self.compiler.local_count += 1;
+                        self.compiler.local_count += pointee_type.num_words() as usize;
 
-                        if pt != elem_type {
+                        if pt != pointee_type {
                             self.error(
                                 format!(
                                     "Element must have type {:?}, got {:?} instead",
-                                    elem_type, pt
+                                    pointee_type, pt
                                 )
                                 .as_str(),
                             );
@@ -698,8 +951,8 @@ impl Parser {
                 }
 
                 self.consume(TokenType::RightBrace, "Expect '}' after arguments.");
-                if let &ValueTypeK::Array(_, n) =
-                    self.global_types.get(&(global_id as usize)).unwrap()
+                if let ValueTypeK::Array(_, n) =
+                    self.compiler.locals.get(&last_local).unwrap().local_type
                 {
                     if arg_count != *n {
                         self.error(&format!(
@@ -708,38 +961,44 @@ impl Parser {
                         ));
                     }
                 }
-                size = Some(arg_count as u32);
 
                 self.compiler
                     .locals
                     .get_mut(&last_local)
                     .unwrap()
-                    .local_type = ValueTypeK::Array(elem_type, arg_count as usize).intern();
+                    .local_type = ValueTypeK::Array(pointee_type, arg_count as usize).intern();
+                self.compiler.local_count += 1;
             } else {
                 let n = size.expect("size is none");
                 for _ in 0..n {
-                    self.compiler.func.chunk.write(Opcode::Nil.into(), line);
-                    self.compiler.local_count += 1;
+                    for _ in 0..elem_type.num_words() {
+                        self.compiler.func.chunk.write(Opcode::Nil.into(), line);
+                        self.compiler.local_count += 1;
+                    }
                 }
             }
         } else {
             // global array
-            let mut elem_type = *self.global_types.get(&(global_id as usize)).unwrap();
+            let mut elem_type = self.global_types.get(&(global_id as usize)).unwrap().0;
+            let mut pointee_type = match elem_type.decay() {
+                ValueTypeK::Pointer(t, _) => t,
+                _ => ValueTypeK::Undef.intern(),
+            };
 
             if self.match_token(TokenType::LeftBrace) {
                 let mut arg_count = 0;
                 loop {
                     if self.current.token_type != TokenType::RightBrace {
                         let pt = self.expression();
-                        if elem_type == ValueTypeK::Undef.intern() {
-                            elem_type = pt;
+                        if pointee_type == ValueTypeK::Undef.intern() {
+                            pointee_type = pt;
                         }
 
-                        if pt != elem_type {
+                        if pt != pointee_type {
                             self.error(
                                 format!(
                                     "Element must have type {:?}, got {:?} instead",
-                                    elem_type, pt
+                                    pointee_type, pt
                                 )
                                 .as_str(),
                             );
@@ -755,7 +1014,7 @@ impl Parser {
                 }
 
                 self.consume(TokenType::RightBrace, "Expect '}' after arguments.");
-                if let &ValueTypeK::Array(_, n) =
+                if let (ValueTypeK::Array(_, n), _, _) =
                     self.global_types.get(&(global_id as usize)).unwrap()
                 {
                     if arg_count != *n {
@@ -769,23 +1028,46 @@ impl Parser {
 
                 self.global_types.insert(
                     global_id as usize,
-                    ValueTypeK::Array(elem_type, arg_count).intern(),
+                    (
+                        ValueTypeK::Array(pointee_type, arg_count).intern(),
+                        false,
+                        true,
+                    ),
                 );
+                // for _ in 0..arg_count {
+                //     for _ in 0..pointee_type.num_words() {
+                //         self.compiler.func.chunk.write(Opcode::Nil.into(), line);
+                //     }
+                // }
             } else {
                 let n = size.expect("size is none");
+                size = Some(n);
                 for _ in 0..n {
-                    self.compiler.func.chunk.write(Opcode::Nil.into(), line);
+                    for _ in 0..pointee_type.num_words() {
+                        self.compiler.func.chunk.write(Opcode::Nil.into(), line);
+                    }
+                }
+            }
+            self.static_data_segment.extend(Value::Nil.to_words());
+
+            let words = Value::Pointer(Pointer::Static(self.static_data_segment.len())).to_words();
+
+            for word in 0..words.len() {
+                self.static_data_segment[global_id as usize + word] = words[word];
+            }
+            for _ in 0..size.unwrap() {
+                for _ in 0..pointee_type.num_words() {
+                    self.static_data_segment.extend(Value::Nil.to_words());
                 }
             }
 
-            *self.static_data_segment.last_mut().unwrap() =
-                Value::Pointer(Pointer::Static(self.num_globals));
             // self.num_globals += 1;
 
-            for _ in 0..size.unwrap() {
-                self.static_data_segment.push(Value::Nil);
-                self.num_globals += 1;
-            }
+            // for _ in 0..size.unwrap() {
+            //     for _ in 0..pointee_type.num_words() {
+            //     self.static_data_segment.extend(Value::Nil.to_words());
+            //     }
+            // }
 
             self.compiler.func.chunk.write_pool_opcode(
                 Opcode::DefineGlobalArray,
@@ -793,20 +1075,37 @@ impl Parser {
                 line,
             );
             self.compiler.func.chunk.write(size.unwrap() as u8, line);
+            self.compiler
+                .func
+                .chunk
+                .write(pointee_type.num_words() as u8, line);
         }
     }
 
     fn var_declaration(&mut self, mutable: bool) {
         let line = self.previous.line;
 
-        let global_id = self.parse_variable("Expect variable name.", mutable);
+        let mut global_id = self.parse_variable("Expect variable name.", mutable);
+        let name = self.previous.lexeme.clone();
 
         let mut var_type: ValueType = ValueTypeK::Undef.intern();
         if self.match_token(TokenType::Colon) {
-            var_type = self.parse_complex_type();
+            var_type = self.parse_complex_type(!mutable);
             if self.match_token(TokenType::LeftBracket) {
                 self.array_declaration(global_id, var_type);
                 return;
+            }
+            if global_id == -1 {
+                let last_local = self.last_local();
+                self.compiler
+                    .locals
+                    .get_mut(&last_local)
+                    .unwrap()
+                    .local_type = var_type;
+            } else {
+                self.gloabls.insert(name.clone(), global_id as usize);
+                self.global_types
+                    .insert(global_id as usize, (var_type, mutable, true));
             }
         }
         if self.match_token(TokenType::Equal) {
@@ -815,6 +1114,7 @@ impl Parser {
                 return;
             }
             let expr_type = self.expression();
+            global_id = self.static_data_segment.len() as i64;
 
             if var_type == ValueTypeK::Undef.intern() {
                 var_type = expr_type;
@@ -825,6 +1125,7 @@ impl Parser {
                     var_type, expr_type
                 ));
             }
+            var_type = expr_type;
             if global_id == -1 {
                 let last_local = self.last_local();
                 self.compiler.locals.get_mut(&last_local).unwrap().assigned = true;
@@ -834,18 +1135,25 @@ impl Parser {
                     .unwrap()
                     .local_type = var_type;
             } else {
-                self.gloabls
-                    .insert(self.previous.lexeme.clone(), global_id as usize);
-                self.global_types.insert(global_id as usize, var_type);
+                self.gloabls.insert(name, global_id as usize);
+                self.global_types
+                    .insert(global_id as usize, (var_type, mutable, true));
             }
         } else {
-            self.compiler.func.chunk.write(Opcode::Nil.into(), line);
+            for _ in 0..var_type.num_words() {
+                self.compiler.func.chunk.write(Opcode::Nil.into(), line);
+            }
         }
         self.consume(
             TokenType::Semicolon,
             "Expect ';' after variable declaration.",
         );
 
+        if global_id != -1 {
+            for _ in 0..var_type.num_words() {
+                self.static_data_segment.push(Value::Nil.to_word());
+            }
+        }
         self.define_variable(global_id as u32, var_type);
     }
 
@@ -858,13 +1166,24 @@ impl Parser {
                 .get_mut(&last_local)
                 .unwrap()
                 .local_type = local_type;
+            self.compiler.local_count += local_type.num_words();
             return;
         }
+
+        // for _ in 0..local_type.num_words() {
+        //     self.static_data_segment.push(Value::Nil.to_word());
+        // }
 
         self.compiler
             .func
             .chunk
-            .define_global(global_id, self.previous.line);
+            .define_global(global_id, self.previous.line, local_type);
+        if local_type == ValueTypeK::AnyFunction.intern() {
+            self.compiler
+                .func
+                .chunk
+                .write(Opcode::CopyClosure.into(), self.previous.line);
+        }
     }
 
     fn last_local(&mut self) -> usize {
@@ -888,11 +1207,12 @@ impl Parser {
             return -1;
         }
         let name = self.previous.lexeme.clone();
-        self.gloabls.insert(name.clone(), self.num_globals);
-        self.global_types
-            .insert(self.num_globals, ValueTypeK::Undef.intern());
-        self.static_data_segment.push(Value::Nil);
-        self.num_globals += 1;
+        self.gloabls
+            .insert(name.clone(), self.static_data_segment.len());
+        self.global_types.insert(
+            self.static_data_segment.len(),
+            (ValueTypeK::Undef.intern(), mutable, false),
+        );
         return *self.gloabls.get(&name).unwrap() as i64;
     }
 
@@ -924,6 +1244,12 @@ impl Parser {
             self.compiler.locals.get_mut(&last_local).unwrap().depth = self.compiler.scope_depth;
         }
         let name = self.previous.lexeme.clone();
+        if global_id != -1 {
+
+        for _ in 0..3 {
+            self.static_data_segment.push(Value::Nil.to_word());
+        }
+    }
         let t = self.function(FunctionType::Function, &name);
 
         if global_id == -1 {
@@ -935,9 +1261,9 @@ impl Parser {
                 .local_type = t;
         } else {
             self.gloabls.insert(name.clone(), global_id as usize);
-            self.global_types.insert(global_id as usize, t);
+            self.global_types
+                .insert(global_id as usize, (t, false, true));
         }
-
         self.define_variable(global_id as u32, t);
     }
 
@@ -970,13 +1296,17 @@ impl Parser {
                     self.error_at_current("Cannot have more than 255 parameters.");
                 }
 
-                let constant = self.parse_variable("Expect parameter name.", false);
+                let mut mutable = true;
+                if self.match_token(TokenType::Const) {
+                    mutable = false;
+                }
+                let id = self.parse_variable("Expect parameter name.", mutable);
                 self.consume(TokenType::Colon, "Expect ':' after parameter name.");
 
-                let p_type = self.parse_complex_type();
+                let p_type = self.parse_complex_type(!mutable);
                 param_types.push(p_type);
 
-                self.define_variable(constant as u32, p_type);
+                self.define_variable(id as u32, p_type);
 
                 if !self.match_token(TokenType::Comma) {
                     break;
@@ -986,11 +1316,13 @@ impl Parser {
         self.consume(TokenType::RightParen, "Expect ')' after parameters.");
         let mut return_type = ValueTypeK::Nil.intern();
         if self.match_token(TokenType::RightArrow) {
-            return_type = self.parse_complex_type();
+            return_type = self.parse_complex_type(false);
         }
         param_types.push(return_type);
         self.compiler.func.return_type = return_type.into();
-        let ft = ValueTypeK::Function(param_types.clone().as_slice().into()).intern();
+        self.compiler.func.return_size = return_type.num_words() as usize;
+
+        let ft = ValueTypeK::Closure(param_types.clone().as_slice().into()).intern();
         self.compiler.locals.insert(
             0,
             Local {
@@ -1006,11 +1338,12 @@ impl Parser {
                 local_type: ft,
             },
         );
+        // self.compiler.local_count += ft.num_words() as usize;
 
         self.consume(TokenType::LeftBrace, "Expect '{' before function body.");
         self.block();
         self.emit_return();
-
+        *param_types.last_mut().unwrap() = self.compiler.func.return_type;
         let c = std::mem::take(&mut self.compiler);
         let name = c.func.name.clone();
         if self.had_error.get() {
@@ -1026,43 +1359,43 @@ impl Parser {
 
         self.compiler = enclosing;
 
-        if func.upvalue_count > 0 {
-            // let f_id = self
-            //     .compiler
-            //     .func
-            //     .chunk
-            //     .add_constant(Value::Object(Object::Function(func.clone())));
-            self.static_data_segment
-                .push(Value::Object(Object::Function(func.clone())));
-            self.num_globals += 1;
-            let f_id = self.num_globals - 1;
-            self.compiler.func.chunk.write_pool_opcode(
-                Opcode::Closure,
-                f_id as u32,
-                self.previous.line,
-            );
+        // if func.upvalue_count > 0 {
+        // let f_id = self
+        //     .compiler
+        //     .func
+        //     .chunk
+        //     .add_constant(Value::Object(Object::Function(func.clone())));
+        self.function_segment.push(Object::Function(func.clone()));
+        self.num_functions += 1;
+        let f_id = self.num_functions - 1;
 
-            for i in 0..func.upvalue_count {
-                self.compiler
-                    .func
-                    .chunk
-                    .write(upvalues[i].is_local as u8, self.previous.line);
-                self.compiler
-                    .func
-                    .chunk
-                    .write(upvalues[i].index as u8, self.previous.line);
-            }
-        } else {
-            self.static_data_segment
-                .push(Value::Object(Object::Function(func.clone())));
-            self.num_globals += 1;
-            let f_id = self.num_globals - 1;
-            self.compiler.func.chunk.write_constant(
-                Value::Pointer(crate::value::pointer::Pointer::Static(f_id)),
-                self.previous.line,
-            );
+        self.compiler.func.chunk.write_pool_opcode(
+            Opcode::Closure,
+            f_id as u32,
+            self.previous.line,
+        );
+
+        for i in 0..func.upvalue_count {
+            self.compiler
+                .func
+                .chunk
+                .write(upvalues[i].is_local as u8, self.previous.line);
+            self.compiler
+                .func
+                .chunk
+                .write(upvalues[i].index as u8, self.previous.line);
         }
 
+        // } else {
+        //     self.function_segment.push(Object::Function(func.clone()));
+        //     self.num_functions += 1;
+        //     let f_id = self.num_functions - 1;
+        //     self.compiler.func.chunk.write_constant(
+        //         Value::Pointer(crate::value::pointer::Pointer::Function(f_id)),
+        //         self.previous.line,
+        //     );
+        // }
+        // self.compiler.locals.get_mut(&0).unwrap().local_type = ValueTypeK::Closure(param_types.as_slice().into(), func.upvalue_count).intern();
         ft
     }
 
@@ -1074,7 +1407,7 @@ impl Parser {
         self.compiler
             .func
             .chunk
-            .write(Opcode::Return.into(), self.previous.line);
+            .write_pool_opcode(Opcode::Return.into(), 1, self.previous.line);
     }
 
     fn add_local(&mut self, name: Token, mutable: bool) {
@@ -1089,7 +1422,6 @@ impl Parser {
         self.compiler
             .locals
             .insert(self.compiler.local_count, local);
-        self.compiler.local_count += 1;
     }
 
     fn number(&mut self, _can_assign: bool) -> ValueType {
@@ -1099,7 +1431,7 @@ impl Parser {
                 self.compiler
                     .func
                     .chunk
-                    .write_constant(Number(number::Number::Integer(v)), line);
+                    .write_constant(Value::Integer(v), line);
                 ValueTypeK::Integer.intern()
             }
             Err(_) => {
@@ -1107,10 +1439,29 @@ impl Parser {
                 self.compiler
                     .func
                     .chunk
-                    .write_constant(Number(number::Number::Float(value)), line);
+                    .write_constant(Value::Float(value), line);
                 ValueTypeK::Float.intern()
             }
         }
+    }
+
+    fn char(&mut self, _can_assign: bool) -> ValueType {
+        let line = self.previous.line;
+        let mut value = std::mem::take(&mut self.previous.lexeme);
+        value = value.trim_matches('\'').to_string();
+        value = value.replace("\\n", "\n");
+        value = value.replace("\\r", "\r");
+        value = value.replace("\\t", "\t");
+        value = value.replace("\\\\", "\\");
+        value = value.replace("\\\"", "\"");
+        value = value.replace("\\{", "{");
+        value = value.replace("\\}", "}");
+        let c = value.as_bytes()[0] as u8;
+        self.compiler
+            .func
+            .chunk
+            .write_constant(Value::Char(c), line);
+        ValueTypeK::Char.intern()
     }
 
     fn grouping(&mut self, _can_assign: bool) -> ValueType {
@@ -1122,7 +1473,7 @@ impl Parser {
     fn ternary(&mut self, _can_assign: bool) -> ValueType {
         let t = self.parse_precedence(Precedence::Ternary.next());
         self.consume(TokenType::Colon, "Expect ':' after expression.");
-        self.last_pushed_type = t;
+        self.last_pushed_type.0 = t;
         self.binary(_can_assign);
         return t;
     }
@@ -1135,7 +1486,23 @@ impl Parser {
 
         // Emit the operator instruction.
         match operator_type {
-            TokenType::Minus => self.compiler.func.chunk.write(Opcode::Negate.into(), line),
+            TokenType::Minus => match t {
+                ValueTypeK::Integer => {
+                    self.compiler
+                        .func
+                        .chunk
+                        .write(Opcode::NegateInt.into(), line);
+                }
+                ValueTypeK::Float => {
+                    self.compiler
+                        .func
+                        .chunk
+                        .write(Opcode::NegateFloat.into(), line);
+                }
+                _ => {
+                    self.error("Operand must be a number.");
+                }
+            },
             TokenType::Bang => self.compiler.func.chunk.write(Opcode::Not.into(), line),
             _ => unreachable!(),
         }
@@ -1145,13 +1512,25 @@ impl Parser {
     fn deref(&mut self, _can_assign: bool) -> ValueType {
         let line = self.previous.line;
         // Compile the operand.
-        let t = match self.parse_precedence(Precedence::Unary).decay() {
-            &ValueTypeK::Pointer(pointee_type) => pointee_type,
+        let raw_t = self.parse_precedence(Precedence::Unary);
+        let (t, is_const) = match raw_t.decay() {
+            &ValueTypeK::Pointer(pointee_type, is_const) => (pointee_type, is_const),
             _ => {
                 self.error("Expected pointer type");
-                ValueTypeK::Err.intern()
+                (ValueTypeK::Err.intern(), false)
             }
         };
+
+        if raw_t == ValueTypeK::String.intern() {
+            self.compiler
+                .func
+                .chunk
+                .write_constant(Value::Integer(1), line);
+            self.compiler
+                .func
+                .chunk
+                .write(Opcode::PointerAdd as u8, line);
+        }
 
         self.match_token(TokenType::Equal);
         if self.previous.token_type == TokenType::Equal {
@@ -1159,16 +1538,27 @@ impl Parser {
             if expr_t != t {
                 self.error(&format!("Type mismatch, expected {:?} got {:?}", t, expr_t));
             }
+            if is_const {
+                self.error("Cannot assign to a pointer to a const type.");
+            }
             self.compiler
                 .func
                 .chunk
                 .write(Opcode::DerefAssign.into(), line);
+            self.compiler.func.chunk.write(t.num_words() as u8, line);
+            if t == ValueTypeK::AnyFunction.intern() {
+                self.compiler
+                    .func
+                    .chunk
+                    .write(Opcode::CopyClosure.into(), line);
+            }
             return expr_t;
         } else {
             self.compiler
                 .func
                 .chunk
                 .write(Opcode::DerefGet.into(), line);
+            self.compiler.func.chunk.write(t.num_words() as u8, line);
             t
         }
     }
@@ -1192,14 +1582,34 @@ impl Parser {
     fn index(&mut self, _can_assign: bool) -> ValueType {
         let line = self.previous.line;
 
-        let pointer_type = self.last_pushed_type.decay();
-        let &ValueTypeK::Pointer(pointee_type) = pointer_type else {
+        let (raw_t, _) = self.last_pushed_type;
+        let pointer_type = raw_t.decay();
+        let &ValueTypeK::Pointer(pointee_type, _) = pointer_type else {
             self.error("Expected pointer type");
             return ValueTypeK::Err.intern();
         };
 
+        if raw_t == ValueTypeK::String.intern() {
+            self.compiler
+                .func
+                .chunk
+                .write_constant(Value::Integer(1), line);
+            self.compiler
+                .func
+                .chunk
+                .write(Opcode::PointerAdd as u8, line);
+        }
+
         self.parse_expression_index();
         self.consume(TokenType::RightBracket, "brace");
+        self.compiler
+            .func
+            .chunk
+            .write_constant(Value::Integer(pointee_type.num_words() as i64), line);
+        self.compiler
+            .func
+            .chunk
+            .write(Opcode::MultiplyInt as u8, line);
         // self.compiler
         //     .func
         //     .chunk
@@ -1222,11 +1632,25 @@ impl Parser {
                 .func
                 .chunk
                 .write(Opcode::DerefAssign.into(), line);
+            self.compiler
+                .func
+                .chunk
+                .write(pointee_type.num_words() as u8, line);
+            if pointee_type == ValueTypeK::AnyFunction.intern() {
+                self.compiler
+                    .func
+                    .chunk
+                    .write(Opcode::CopyClosure.into(), line);
+            }
         } else {
             self.compiler
                 .func
                 .chunk
                 .write(Opcode::DerefGet.into(), line);
+            self.compiler
+                .func
+                .chunk
+                .write(pointee_type.num_words() as u8, line);
         }
 
         return pointee_type;
@@ -1245,13 +1669,16 @@ impl Parser {
             self.compiler
                 .func
                 .chunk
-                .write_constant(Number(number::Number::Integer(var_id as i64)), line);
+                .write_constant(Value::Integer(var_id as i64), line);
             self.compiler
                 .func
                 .chunk
                 .write(Opcode::RefLocal.into(), line);
-            return ValueTypeK::Pointer(self.compiler.locals.get(&var_id).unwrap().local_type)
-                .intern();
+            return ValueTypeK::Pointer(
+                self.compiler.locals.get(&var_id).unwrap().local_type,
+                !self.compiler.locals.get(&var_id).unwrap().mutable,
+            )
+            .intern();
         } else if let Some(_up_id) = self.resolve_upvalue(0) {
             unimplemented!("upvalue addr")
             // self.compiler
@@ -1273,7 +1700,11 @@ impl Parser {
                 *glob_id as u32,
                 line,
             );
-            return ValueTypeK::Pointer(self.global_types.get(&glob_id).unwrap()).intern();
+            return ValueTypeK::Pointer(
+                self.global_types.get(&glob_id).unwrap().0,
+                !self.global_types.get(&glob_id).unwrap().1,
+            )
+            .intern();
         }
 
         // } else {
@@ -1310,6 +1741,7 @@ impl Parser {
     fn binary(&mut self, _can_assign: bool) -> ValueType {
         let operator_type = self.previous.token_type;
         let line = self.previous.line;
+        let lpt = self.last_pushed_type.0;
 
         // Compile the right operand.
         let rule = &self.parse_table[operator_type as usize];
@@ -1318,8 +1750,8 @@ impl Parser {
         // Emit the operator instruction.
         match operator_type {
             TokenType::Plus => {
-                match self.last_pushed_type.decay() {
-                    ValueTypeK::Pointer(_)
+                match self.last_pushed_type.0.decay() {
+                    ValueTypeK::Pointer(_, _)
                         if match t {
                             ValueTypeK::Integer => true,
                             _ => false,
@@ -1329,7 +1761,7 @@ impl Parser {
                             .func
                             .chunk
                             .write(Opcode::PointerAdd as u8, line);
-                        return self.last_pushed_type;
+                        return self.last_pushed_type.0;
                     }
                     x if x == t => {}
                     _ => {
@@ -1338,10 +1770,10 @@ impl Parser {
                     }
                 }
 
-                if t != self.last_pushed_type {
+                if t != self.last_pushed_type.0 {
                     self.error(&format!(
                         "Cannot add {:?} to {:?}",
-                        self.last_pushed_type, t
+                        self.last_pushed_type.0, t
                     ));
                 }
 
@@ -1368,8 +1800,8 @@ impl Parser {
                 return t;
             }
             TokenType::Minus => {
-                match self.last_pushed_type.decay() {
-                    ValueTypeK::Pointer(_)
+                match self.last_pushed_type.0.decay() {
+                    ValueTypeK::Pointer(_, _)
                         if match t {
                             ValueTypeK::Integer => true,
                             _ => false,
@@ -1379,7 +1811,7 @@ impl Parser {
                             .func
                             .chunk
                             .write(Opcode::PointerSubtract as u8, line);
-                        return self.last_pushed_type;
+                        return self.last_pushed_type.0;
                     }
                     x if x == t => {}
                     _ => {
@@ -1388,16 +1820,19 @@ impl Parser {
                     }
                 }
 
-                if t != self.last_pushed_type {
+                if t != self.last_pushed_type.0 {
                     self.error(&format!(
                         "Cannot subtract {:?} from {:?}",
-                        self.last_pushed_type, t
+                        self.last_pushed_type.0, t
                     ));
                 }
 
                 match t {
                     ValueTypeK::Integer => {
-                        self.compiler.func.chunk.write(Opcode::SubtractInt.into(), line);
+                        self.compiler
+                            .func
+                            .chunk
+                            .write(Opcode::SubtractInt.into(), line);
                     }
                     ValueTypeK::Float => {
                         self.compiler
@@ -1415,15 +1850,15 @@ impl Parser {
                 return t;
             }
             TokenType::Star => {
-                if t != self.last_pushed_type {
-                    self.error(&format!(
-                        "Cannot multiply {:?} by {:?}",
-                        self.last_pushed_type, t
-                    ));
+                if t != lpt {
+                    self.error(&format!("Cannot multiply {:?} by {:?}", lpt, t));
                 }
                 match t {
                     ValueTypeK::Integer => {
-                        self.compiler.func.chunk.write(Opcode::MultiplyInt.into(), line);
+                        self.compiler
+                            .func
+                            .chunk
+                            .write(Opcode::MultiplyInt.into(), line);
                     }
                     ValueTypeK::Float => {
                         self.compiler
@@ -1432,24 +1867,21 @@ impl Parser {
                             .write(Opcode::MultiplyFloat.into(), line);
                     }
                     _ => {
-                        self.error(&format!(
-                            "Cannot multiply {:?} by {:?}",
-                            self.last_pushed_type, t
-                        ));
+                        self.error(&format!("Cannot multiply {:?} by {:?}", lpt, t));
                     }
                 }
                 t
             }
             TokenType::Slash => {
-                if t != self.last_pushed_type {
-                    self.error(&format!(
-                        "Cannot divide {:?} by {:?}",
-                        self.last_pushed_type, t
-                    ));
+                if t != lpt {
+                    self.error(&format!("Cannot divide {:?} by {:?}", lpt, t));
                 }
                 match t {
                     ValueTypeK::Integer => {
-                        self.compiler.func.chunk.write(Opcode::DivideInt.into(), line);
+                        self.compiler
+                            .func
+                            .chunk
+                            .write(Opcode::DivideInt.into(), line);
                     }
                     ValueTypeK::Float => {
                         self.compiler
@@ -1460,30 +1892,30 @@ impl Parser {
                     _ => {
                         self.error(&format!(
                             "Cannot divide {:?} by {:?}",
-                            self.last_pushed_type, t
+                            lpt, t
                         ));
                     }
                 }
                 t
             }
             TokenType::Colon => {
-                if t != self.last_pushed_type {
+                if t != lpt {
                     self.error(&format!(
                         "Both sides of ':' must have the same type, got {:?} and {:?}",
-                        self.last_pushed_type, t
+                        lpt, t
                     ));
                 }
                 self.compiler.func.chunk.write(Opcode::Ternary.into(), line);
                 return t;
             }
             TokenType::EqualEqual => {
-                if t != self.last_pushed_type {
+                if t != lpt {
                     self.warn(&format!(
                         "Comparison of different types ({:?} and {:?}) is always false, please cast to the same type",
-                        self.last_pushed_type, t
+                        lpt, t
                     ));
-                    self.compiler.func.chunk.write(Opcode::Pop.into(), line);
-                    self.compiler.func.chunk.write(Opcode::Pop.into(), line);
+                    self.compiler.func.chunk.write_pop(t, line);
+                    self.compiler.func.chunk.write_pop(t, line);
                     self.compiler.func.chunk.write(Opcode::False.into(), line);
                     return ValueTypeK::Bool.intern();
                 }
@@ -1491,13 +1923,13 @@ impl Parser {
                 return ValueTypeK::Bool.intern();
             }
             TokenType::BangEqual => {
-                if t != self.last_pushed_type {
+                if t != lpt {
                     self.warn(&format!(
                         "Comparison of different types ({:?} and {:?}) is always false (so != is always true), please cast to the same type",
-                        self.last_pushed_type, t
+                        lpt, t
                     ));
-                    self.compiler.func.chunk.write(Opcode::Pop.into(), line);
-                    self.compiler.func.chunk.write(Opcode::Pop.into(), line);
+                    self.compiler.func.chunk.write_pop(t, line);
+                    self.compiler.func.chunk.write_pop(t, line);
                     self.compiler.func.chunk.write(Opcode::True.into(), line);
                     return ValueTypeK::Bool.intern();
                 }
@@ -1506,15 +1938,18 @@ impl Parser {
                 return ValueTypeK::Bool.intern();
             }
             TokenType::Greater => {
-                if t != self.last_pushed_type {
+                if t != self.last_pushed_type.0 {
                     self.error(&format!(
                         "Cannot compare {:?} and {:?}",
-                        self.last_pushed_type, t
+                        self.last_pushed_type.0, t
                     ));
                 }
                 match t {
                     ValueTypeK::Integer => {
-                        self.compiler.func.chunk.write(Opcode::GreaterInt.into(), line);
+                        self.compiler
+                            .func
+                            .chunk
+                            .write(Opcode::GreaterInt.into(), line);
                     }
                     ValueTypeK::Float => {
                         self.compiler
@@ -1532,10 +1967,10 @@ impl Parser {
                 return ValueTypeK::Bool.intern();
             }
             TokenType::GreaterEqual => {
-                if t != self.last_pushed_type {
+                if t != lpt {
                     self.error(&format!(
                         "Cannot compare {:?} and {:?}",
-                        self.last_pushed_type, t
+                        self.last_pushed_type.0, t
                     ));
                 }
                 match t {
@@ -1560,11 +1995,8 @@ impl Parser {
                 return ValueTypeK::Bool.intern();
             }
             TokenType::Less => {
-                if t != self.last_pushed_type {
-                    self.error(&format!(
-                        "Cannot compare {:?} and {:?}",
-                        self.last_pushed_type, t
-                    ));
+                if t != lpt {
+                    self.error(&format!("Cannot compare {:?} and {:?}", lpt, t));
                 }
                 match t {
                     ValueTypeK::Integer => {
@@ -1586,15 +2018,15 @@ impl Parser {
                 return ValueTypeK::Bool.intern();
             }
             TokenType::LessEqual => {
-                if t != self.last_pushed_type {
-                    self.error(&format!(
-                        "Cannot compare {:?} and {:?}",
-                        self.last_pushed_type, t
-                    ));
+                if t != lpt {
+                    self.error(&format!("Cannot compare {:?} and {:?}", lpt, t));
                 }
                 match t {
                     ValueTypeK::Integer => {
-                        self.compiler.func.chunk.write(Opcode::GreaterInt.into(), line);
+                        self.compiler
+                            .func
+                            .chunk
+                            .write(Opcode::GreaterInt.into(), line);
                         self.compiler.func.chunk.write(Opcode::Not.into(), line);
                     }
                     ValueTypeK::Float => {
@@ -1605,10 +2037,7 @@ impl Parser {
                         self.compiler.func.chunk.write(Opcode::Not.into(), line);
                     }
                     _ => {
-                        self.error(&format!(
-                            "Cannot compare {:?} and {:?}",
-                            self.last_pushed_type, t
-                        ));
+                        self.error(&format!("Cannot compare {:?} and {:?}", lpt, t));
                     }
                 }
                 return ValueTypeK::Bool.intern();
@@ -1619,7 +2048,7 @@ impl Parser {
 
     fn call(&mut self, _can_assign: bool) -> ValueType {
         let line = self.previous.line;
-        if let ValueTypeK::Function(f) = self.last_pushed_type {
+        if let ValueTypeK::Closure(f) = self.last_pushed_type.0 {
             let arg_count = self.argument_list(f);
             self.compiler
                 .func
@@ -1642,6 +2071,7 @@ impl Parser {
 
     fn argument_list(&mut self, param_types: &[ValueType]) -> u8 {
         let mut arg_count = 0;
+        let mut arg_size = 0;
         if self.current.token_type != TokenType::RightParen {
             loop {
                 let t = self.expression().decay();
@@ -1655,6 +2085,7 @@ impl Parser {
                     self.error("Cannot have more than 255 arguments.");
                 }
                 arg_count += 1;
+                arg_size += t.num_words();
                 if !self.match_token(TokenType::Comma) {
                     break;
                 }
@@ -1668,7 +2099,7 @@ impl Parser {
             ));
         }
         self.consume(TokenType::RightParen, "Expect ')' after arguments.");
-        arg_count as u8
+        arg_size as u8
     }
 
     fn literal(&mut self, _can_assign: bool) -> ValueType {
@@ -1695,16 +2126,24 @@ impl Parser {
         let mut value = std::mem::take(&mut self.previous.lexeme);
         value = value.trim_matches('"').to_string();
         value = value.replace("\\n", "\n");
+        value = value.replace("\\a", "\x07");
         value = value.replace("\\r", "\r");
         value = value.replace("\\t", "\t");
         value = value.replace("\\\\", "\\");
         value = value.replace("\\\"", "\"");
         value = value.replace("\\{", "{");
         value = value.replace("\\}", "}");
+        let start = self.static_data_segment.len();
+        self.static_data_segment
+            .extend(Value::Integer(value.len() as i64).to_words());
+        for c in value.chars() {
+            self.static_data_segment
+                .extend(Value::Char(c as u8).to_words());
+        }
         self.compiler
             .func
             .chunk
-            .write_constant(Value::Object(Object::String(value.into())), line);
+            .write_constant(Value::Pointer(Pointer::Static(start)), line);
         return ValueTypeK::String.intern();
     }
 
@@ -1744,29 +2183,31 @@ impl Parser {
                 if self.compiler.locals.get(&varid).expect("local").local_type
                     == ValueTypeK::Undef.intern()
                 {
+                    panic!("local type not set");
                     self.compiler
                         .locals
                         .get_mut(&varid)
                         .expect("local")
                         .local_type = assign_type;
+                    // self.compiler.local_count += assign_type.num_words() as usize;
                 } else if assign_type != self.compiler.locals.get(&varid).expect("local").local_type
                 {
                     self.error(format!("Cannot assign to variable of different type. Variable {} has type {:?} got {:?}", self.compiler.locals.get(&varid).unwrap().name.lexeme ,self.compiler.locals.get(&varid).unwrap().local_type, assign_type).as_str());
                     return ValueTypeK::Err.intern();
                 }
 
-                if self.compiler.locals.get(&varid).expect("local").mutable == false {
+                if self.compiler.locals.get(&varid).expect("local").mutable == false
+                    && self.compiler.locals.get(&varid).expect("local").assigned == true
+                {
                     self.error("Cannot assign to const variable");
                     return ValueTypeK::Err.intern();
                 }
-
-                self.compiler
-                    .locals
-                    .get_mut(&varid)
-                    .expect("local")
-                    .assigned = true;
             }
             if set_op == Opcode::SetUpvalue {
+                // if self.compiler.locals.get(&varid).expect("local").mutable == false {
+                //     self.error("Cannot assign to captured const variable");
+                //     return ValueTypeK::Err.intern();
+                // }
                 if self.compiler.upvalues[varid].upvalue_type == ValueTypeK::Undef.intern() {
                     self.compiler.upvalues[varid].upvalue_type = assign_type;
                 } else if assign_type != self.compiler.upvalues[varid].upvalue_type {
@@ -1775,10 +2216,20 @@ impl Parser {
                 }
             }
             if set_op == Opcode::SetGlobal {
-                let global_type = *self.global_types.get(&varid).unwrap();
-                if global_type == ValueTypeK::Undef.intern() {
-                    self.global_types.insert(varid, assign_type);
-                } else if assign_type != global_type {
+                let global_type = self.global_types.get(&varid).unwrap();
+
+                if global_type.1 == false && global_type.2 == true {
+                    self.error("Cannot assign to const variable");
+                    return ValueTypeK::Err.intern();
+                }
+
+                if global_type.0 == ValueTypeK::Undef.intern() {
+                    self.global_types
+                        .insert(varid, (assign_type, global_type.1, true));
+                    for _ in 0..assign_type.num_words() {
+                        self.compiler.func.chunk.write(Opcode::Nil.into(), line);
+                    }
+                } else if assign_type != global_type.0 {
                     self.error(format!("Cannot assign to global variable of different type. Variable has type {:?} got {:?}", global_type, assign_type).as_str());
                     return ValueTypeK::Err.intern();
                 }
@@ -1789,25 +2240,44 @@ impl Parser {
                 .chunk
                 .write_pool_opcode(set_op, varid as u32, line);
 
+            self.compiler
+                .func
+                .chunk
+                .write(assign_type.num_words() as u8, line);
+
+            if assign_type == ValueTypeK::AnyFunction.intern() {
+                self.compiler
+                    .func
+                    .chunk
+                    .write(Opcode::CopyClosure.into(), line);
+            }
             return assign_type;
         } else {
             self.compiler
                 .func
                 .chunk
                 .write_pool_opcode(get_op, varid as u32, line);
+            let mut t = ValueTypeK::Err.intern();
             if get_op == Opcode::GetLocal {
-                self.last_pushed_type = self.compiler.locals.get(&varid).expect("local").local_type;
-                return self.last_pushed_type;
+                self.last_pushed_type.0 = self.compiler.locals.get(&varid).expect("local").local_type;
+                t = self.last_pushed_type.0;
             }
             if get_op == Opcode::GetUpvalue {
-                self.last_pushed_type = self.compiler.upvalues[varid].upvalue_type;
-                return self.compiler.upvalues[varid].upvalue_type;
+                self.last_pushed_type.0 = self.compiler.upvalues[varid].upvalue_type;
+                t = self.compiler.upvalues[varid].upvalue_type;
             }
             if get_op == Opcode::GetGlobal {
-                self.last_pushed_type = *self.global_types.get(&varid).unwrap();
-                return self.last_pushed_type;
+                self.last_pushed_type.0 = self.global_types.get(&varid).unwrap().0;
+                t = self.last_pushed_type.0;
             }
-            return ValueTypeK::Err.intern();
+            self.compiler.func.chunk.write(t.num_words() as u8, line);
+            if t == ValueTypeK::AnyFunction.intern() {
+                self.compiler
+                    .func
+                    .chunk
+                    .write(Opcode::CopyClosure.into(), line);
+            }
+            return t;
         }
     }
 
@@ -1831,6 +2301,14 @@ impl Parser {
             let Some(compiler) = Self::compiler_at(compiler_level + 1, &mut self.compiler) else {
                 return None;
             };
+            // if compiler
+            //     .locals
+            //     .get(&local)
+            //     .expect("Local not found")
+            //     .mutable
+            // {
+            //     panic!("Cannot capture mutable variable in closure");
+            // }
             compiler
                 .locals
                 .get_mut(&local)
@@ -1915,6 +2393,7 @@ impl Parser {
         let mut t = prefix_rule.unwrap()(self, can_assign);
 
         while precedence <= self.parse_table[self.current.token_type as usize].precedence {
+            let prev = self.previous.lexeme.clone();
             self.advance();
             let infix_rule = &self.parse_table[self.previous.token_type as usize].infix;
             let infix_type = &self.parse_table[self.previous.token_type as usize].left_type;
@@ -1924,7 +2403,8 @@ impl Parser {
                     self.previous.token_type, infix_type, t
                 ));
             }
-            self.last_pushed_type = t;
+
+            self.last_pushed_type = (t, prev);
             t = infix_rule.unwrap()(self, can_assign);
         }
 
@@ -2073,7 +2553,7 @@ impl Compiler {
                 local_type: ValueTypeK::Nil.intern(),
             },
         );
-        c.local_count += 1;
+        c.local_count += 3;
         c
     }
 
@@ -2089,12 +2569,13 @@ impl Compiler {
 pub fn compile(
     source: String,
     native_functions: &mut HashMap<String, (usize, ValueType)>,
-) -> (Option<Function>, Vec<Value>) {
+) -> (Option<Function>, Vec<Word>, Vec<Object>) {
     let lexer = Scanner::new(source);
     let compiler: Compiler;
     let end_line: usize;
     let had_err: bool;
-    let static_data_segment: Vec<Value>;
+    let static_data_segment: Vec<Word>;
+    let function_segment: Vec<Object>;
     {
         let mut parser = Parser::new(
             lexer,
@@ -2113,22 +2594,23 @@ pub fn compile(
         had_err = parser.had_error.get();
         compiler = *parser.compiler;
         static_data_segment = parser.static_data_segment;
+        function_segment = parser.function_segment;
     }
     let (mut func, _, _) = compiler.recover_values();
     let chunk = &mut func.chunk;
 
-    if had_err {
-        chunk.dissassemble(if func.name != "".into() {
-            &func.name
-        } else {
-            "script"
-        });
-    };
-    chunk.write(Opcode::Nil.into(), end_line);
-    chunk.write(Opcode::Return.into(), end_line);
-    if had_err {
-        (None, static_data_segment)
+    // if had_err {
+    chunk.dissassemble(if func.name != "".into() {
+        &func.name
     } else {
-        (Some(func), static_data_segment)
+        "script"
+    });
+    // };
+    chunk.write(Opcode::Nil.into(), end_line);
+    chunk.write_pool_opcode(Opcode::Return.into(), 1, end_line);
+    if had_err {
+        (None, static_data_segment, function_segment)
+    } else {
+        (Some(func), static_data_segment, function_segment)
     }
 }

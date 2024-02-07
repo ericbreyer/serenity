@@ -1,0 +1,12 @@
+var i = {7, 8, 9};
+print i;
+print i[0];
+print i[1];
+print i[2];
+
+{var i = {7, 8, 9};
+print i;
+print i[0];
+print i[1];
+print i[2];
+}

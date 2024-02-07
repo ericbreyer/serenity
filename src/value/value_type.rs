@@ -1,4 +1,4 @@
-use std::sync::Mutex;
+use std::{collections::HashMap, hash::Hash, rc::Rc, sync::Mutex};
 
 use pinvec::PinVec;
 use pow_of_2::PowOf2;
@@ -6,24 +6,66 @@ use radix_trie::Trie;
 
 pub type ValueType = &'static ValueTypeK;
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Clone, Debug)]
+pub struct CustomStruct {
+    pub name: String,
+    pub fields: HashMap<String, StructEntry>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct StructEntry {
+    pub value: ValueType,
+    pub offset: usize,
+}
+
+#[derive(Clone, Debug)]
 #[repr(usize)]
 pub enum ValueTypeK {
     Float,
     Integer,
+    Char,
     Bool,
     Nil,
     String,
-    Function(Box<[ValueType]>),
+    Closure(Box<[ValueType]>),
     AnyFunction,
-    Pointer(ValueType),
+    Pointer(ValueType, bool),
     Array(ValueType, usize),
+    Struct(CustomStruct),
+    AnyStruct,
     Undef,
     All,
     Err,
 }
 
 impl ValueTypeK {
+
+    pub fn num_words(&self) -> usize {
+        match self {
+            Self::Float => 1,
+            Self::Integer => 1,
+            Self::Char => 1,
+            Self::Bool => 1,
+            Self::Nil => 1,
+            Self::String => 1,
+            Self::Closure(_) => 3,
+            Self::AnyFunction => panic!("cannot convert anyfunction to word"),
+            Self::Pointer(_, _) => 1,
+            Self::Array(_, c) => 1,
+            Self::Struct(h) => {
+                let mut sum = 0;
+                for (_, v) in h.fields. iter() {
+                    sum += v.value.num_words();
+                }
+                sum
+            },
+            Self::AnyStruct => panic!("cannot convert anystruct to word"),
+            Self::Undef => 1,
+            Self::All => 1,
+            Self::Err => 1,
+        }
+    }
+
     fn to_trie_string(&self) -> String {
         match self {
             Self::Float => "1".into(),
@@ -31,13 +73,16 @@ impl ValueTypeK {
             Self::Bool => "3".into(),
             Self::Nil => "4".into(),
             Self::String => "5".into(),
-            Self::Function(b) => format!("6{:?}", b.iter().map(|t| t.to_trie_string()).fold("".to_string(), |a, s| {let mut r = a; r.push_str(&s); r})).into(),
+            Self::Closure(b) => format!("6{:?}", b.iter().map(|t| t.to_trie_string()).fold("".to_string(), |a, s| {let mut r = a; r.push_str(&s); r})).into(),
             Self::AnyFunction => "7".into(),
-            Self::Pointer(p) => format!("9{}", p.to_trie_string()),
+            Self::Pointer(p, s) => format!("9{}{}", p.to_trie_string(), s),
             Self::Array(p, c) => format!("10{};{}", p.to_trie_string(), c),
+            Self::Struct(h) => format!("E{:?}", h.fields.iter().map(|(k, v)| format!("{}:{}", k, v.value.to_trie_string())).fold("".to_string(), |a, s| {let mut r = a; r.push_str(&s); r})),
             Self::Undef => "A".into(),
             Self::All => "B".into(),
             Self::Err => "C".into(),
+            Self::Char => "D".into(),
+            Self::AnyStruct => "F".into(),
         }
     }
 
@@ -46,9 +91,19 @@ impl ValueTypeK {
             return true;
         }
         match (self, other) {
-            (Self::Function(_), Self::AnyFunction) => true,
-            (Self::AnyFunction, Self::Function(_)) => true,
-            (Self::Function(l0v), Self::Function(r0v)) => {
+            (Self::Closure(_), Self::AnyFunction) => true,
+            (Self::AnyFunction, Self::Closure(_)) => true,
+            (Self::Struct(_), Self::AnyStruct) => true,
+            (Self::AnyStruct, Self::Struct(_)) => true,
+            (Self::Struct(l0), Self::Struct(r0)) => {
+                l0.fields.len() == r0.fields.len()
+                    && l0
+                        .fields
+                        .iter()
+                        .zip(r0.fields.iter())
+                        .all(|((lk, lv), (rk, rv))| lk == rk && lv.value.soft_compare(&rv.value))
+            }
+            (Self::Closure(l0v), Self::Closure(r0v)) => {
                 l0v.len() == r0v.len()
                     && l0v
                         .iter()
@@ -59,12 +114,18 @@ impl ValueTypeK {
                 ([*l0, *r0].into_iter().any(Self::is_all) || l0 == r0)
                     && ([l0c, r0c].into_iter().any(|u| *u == usize::MAX) || l0c == r0c)
             }
-            (Self::Pointer(l0), Self::Pointer(r0)) => {
+            (Self::Pointer(l0, _), Self::Pointer(r0, _)) => {
                 [*l0, *r0].into_iter().any(Self::is_all) || l0 == r0
             }
 
             _ => core::mem::discriminant(self) == core::mem::discriminant(other),
         }
+    }
+}
+
+impl PartialEq for ValueTypeK{
+    fn eq(&self, other: &Self) -> bool {
+        self.soft_compare(other)
     }
 }
 
@@ -75,10 +136,10 @@ impl ValueTypeK {
         if [self, other].into_iter().any(Self::is_all) {
             return true;
         }
-        match (self, other) {
+        match (self.decay(), other) {
             (Self::Float, Self::Integer) => true,
             (Self::Integer, Self::Float) => true,
-            (Self::Pointer(l0), Self::Pointer(r0)) => {
+            (Self::Pointer(_l0, _), Self::Pointer(_r0, _)) => {
                 true
             }
             _ => core::mem::discriminant(self) == core::mem::discriminant(other),
@@ -91,7 +152,8 @@ impl ValueTypeK {
 
     pub fn decay(&self) -> ValueType {
         match self {
-            Self::Array(p, _) => &Self::Pointer(p).clone().intern(),
+            Self::Array(p, _) => &Self::Pointer(p, false).clone().intern(),
+            Self::String => &Self::Pointer(&Self::Char, true).clone().intern(),
             _ => self.clone().intern(),
         }
     }

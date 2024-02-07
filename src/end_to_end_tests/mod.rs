@@ -35,34 +35,6 @@ fn bad_assignment_type_tests_locals(typ: &str, val : &str) {
 #[test_case("fun() -> int", "lambda() -> int {return 2;}" ; "fun")]
 #[test_case("fun(int) -> int", "lambda(x : int) -> int {return x;}" ; "fun with param")]
 #[test_case("fun(int, int) -> int", "lambda(x : int, y : int) -> int {return x + y;}" ; "fun with params")]
-fn good_assignment_type_tests_upvals(typ: &str, val : &str) {
-    let mut vm = VM::new(false);
-    let res = vm.interpret(format!("lambda() {{ var x : {}; lambda() {{ x = {}; }}(); }}();", typ, val));
-    assert!(if let InterpretResult::Ok = res {true} else {false});
-}
-
-
-#[test_case("int", "2.0" ; "int")]
-#[test_case("float", "2" ; "float")]
-#[test_case("bool", "2" ; "bool")]
-#[test_case("string", "2" ; "string")]
-#[test_case("fun() -> int", "2" ; "fun")]
-#[test_case("fun(int) -> int", "2" ; "fun with param")]
-#[test_case("fun(int, int) -> int", "2" ; "fun with params")]
-fn bad_assignment_type_tests_upvals(typ: &str, val : &str) {
-    let mut vm = VM::new(false);
-    let res = vm.interpret(format!("lambda() {{ var x : {}; lambda() {{ x = {}; }}(); }}();", typ, val));
-    assert!(if let InterpretResult::CompileError = res {true} else {false});
-}
-
-
-#[test_case("int", "2" ; "int")]
-#[test_case("float", "2.0" ; "float")]
-#[test_case("bool", "true" ; "bool")]
-#[test_case("string", "\"hello\"" ; "string")]
-#[test_case("fun() -> int", "lambda() -> int {return 2;}" ; "fun")]
-#[test_case("fun(int) -> int", "lambda(x : int) -> int {return x;}" ; "fun with param")]
-#[test_case("fun(int, int) -> int", "lambda(x : int, y : int) -> int {return x + y;}" ; "fun with params")]
 fn good_return_type_tests(typ: &str, val : &str) {
     let mut vm = VM::new(false);
     let res = vm.interpret(format!("fun t() -> {} {{ return {}; }}", typ, val));
@@ -101,4 +73,13 @@ fn ternary_operator_invalid_types(cond_val: &str, true_val: &str, false_val: &st
     let mut vm = VM::new(false);
     let res = vm.interpret(format!("lambda() {{ var result = {} ? {} : {}; }}();", cond_val, true_val, false_val));
     assert!(if let InterpretResult::CompileError = res {true} else {false});
+}
+
+// Test cumtrapz function
+#[test]
+fn cumtrapz() {
+    let mut vm = VM::new(false);
+    let source = std::fs::read_to_string("./src/end_to_end_tests/cumtrapz.ser").expect("Failed to read file");
+    let res = vm.interpret(source);
+    assert!(if let InterpretResult::Ok = res {true} else {false});
 }

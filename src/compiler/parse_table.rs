@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use crate::value::value_type::{ValueTypeK, ValueTypeSet};
+use crate::value::value_type::{CustomStruct, ValueTypeK, ValueTypeSet};
 
 use super::{Parser, Precedence, ParseRule};
 
@@ -20,15 +20,24 @@ impl Parser {
         ValueTypeK::Float.intern(),
         ValueTypeK::Integer.intern(),
     ]));
+    let type_set_add: Rc<ValueTypeSet> = Rc::new(ValueTypeSet::new(vec![
+        ValueTypeK::Float.intern(),
+        ValueTypeK::Integer.intern(),
+        ValueTypeK::String.intern(),
+    ]));
     let type_set_bool: Rc<ValueTypeSet> = Rc::new(ValueTypeSet::new(vec![
         ValueTypeK::Bool.intern(),
     ]));
     let type_set_ptr: Rc<ValueTypeSet> = Rc::new(ValueTypeSet::new(vec![
-        ValueTypeK::Pointer(ValueTypeK::All.intern()).intern(),
+        ValueTypeK::Pointer(ValueTypeK::All.intern(), false).intern(),
         ValueTypeK::Array(ValueTypeK::All.intern(), usize::MAX).intern(),
+        ValueTypeK::String.intern(),
+    ]));
+    let type_set_struct: Rc<ValueTypeSet> = Rc::new(ValueTypeSet::new(vec![
+        ValueTypeK::AnyStruct.intern(),
     ]));
 
-    let type_set_rules: [ParseRule; 52] = [
+    let type_set_rules: [ParseRule; 53] = [
         ParseRule {
             prefix: Some(Parser::grouping),
             infix: Some(Parser::call),
@@ -61,9 +70,9 @@ impl Parser {
         }, // Comma
         ParseRule {
             prefix: None,
-            infix: None,
-            left_type: Rc::clone(&type_set_none),
-            precedence: Precedence::None,
+            infix: Some(Parser::dot),
+            left_type: Rc::clone(&type_set_struct),
+            precedence: Precedence::Call,
         }, // Dot
         ParseRule {
             prefix: Some(Parser::unary),
@@ -74,7 +83,7 @@ impl Parser {
         ParseRule {
             prefix: None,
             infix: Some(Parser::binary),
-            left_type: Rc::clone(&type_set_num),
+            left_type: Rc::clone(&type_set_add),
             precedence: Precedence::Term,
         }, // Plus
         ParseRule {
@@ -313,9 +322,9 @@ impl Parser {
         }, // RightBracket
         ParseRule {
             prefix: None,
-            infix: None,
-            left_type: Rc::clone(&type_set_none),
-            precedence: Precedence::None,
+            infix: Some(Parser::deref_dot),
+            left_type: Rc::clone(&type_set_ptr),
+            precedence: Precedence::Call,
         }, // RightArrow
         ParseRule {
             prefix: None,
@@ -329,6 +338,12 @@ impl Parser {
             left_type: Rc::clone(&type_set_none),
             precedence: Precedence::None,
         }, // Cast
+        ParseRule {
+            prefix: Some(Parser::char),
+            infix: None,
+            left_type: Rc::clone(&type_set_none),
+            precedence: Precedence::None,
+        }, // Char
         ParseRule {
             prefix: None,
             infix: None,

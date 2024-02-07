@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fmt::Debug};
 
-use crate::value::{object::Object, ConstantPool, Value};
+use crate::value::{object::Object, value_type::{ValueType, ValueTypeK}, ConstantPool, Value};
 
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -9,7 +9,8 @@ pub enum Opcode {
     Return,
     Constant,
     ConstantLong,
-    Negate,
+    NegateInt,
+    NegateFloat,
     AddInt,
     AddFloat,
     Concat,
@@ -17,6 +18,7 @@ pub enum Opcode {
     SubtractInt,
     SubtractFloat,
     PointerSubtract,
+    
     MultiplyInt,
     MultiplyFloat,
     DivideInt,
@@ -39,7 +41,9 @@ pub enum Opcode {
     PrintBool,
     PrintPointer,
     PrintNil,
+    PrintChar,
     Pop,
+    PopClosure,
     DefineGlobal,
     DefineGlobalLong,
     GetGlobal,
@@ -59,9 +63,12 @@ pub enum Opcode {
     DefineStackArray,
     DefineGlobalArray,
     Closure,
+    CopyClosure,
     GetUpvalue,
     SetUpvalue,
     CloseUpvalue,
+    GetField,
+    SetField,
 
     CastIntToFloat,
     CastFloatToInt,
@@ -136,7 +143,16 @@ impl Chunk {
         }
     }
 
-    pub fn define_global(&mut self, global_id: u32, line: usize) {
+    pub fn write_pop(&mut self, t: ValueType, line: usize) {
+        if t == ValueTypeK::AnyFunction.intern() {
+            self.write(Opcode::PopClosure.into(), line);
+        } else {
+            self.write(Opcode::Pop.into(), line);
+            self.write(t.num_words() as u8, line);
+        }
+    }
+
+    pub fn define_global(&mut self, global_id: u32, line: usize, t: ValueType) {
         if global_id > 255 {
             self.write(Opcode::DefineGlobalLong.into(), line);
             self.write(global_id as u8, line);
@@ -145,6 +161,7 @@ impl Chunk {
         } else {
             self.write(Opcode::DefineGlobal.into(), line);
             self.write(global_id as u8, line);
+            self.write(t.num_words() as u8, line);
         }
     }
 
@@ -181,10 +198,11 @@ impl Chunk {
         let (instruction, _) = self.code[offset];
         match Opcode::from(instruction) {
             Opcode::NoOp => return self.simple_instruction("OP_NOOP", offset),
-            Opcode::Return => return self.simple_instruction("OP_RETURN", offset),
+            Opcode::Return => return self.byte_instruction("OP_RETURN", offset),
             Opcode::Constant => return self.constant_instruction("OP_CONSTANT", offset),
             Opcode::ConstantLong => return self.constant_long_instruction("OP_CONSTANT_LONG", offset),
-            Opcode::Negate => return self.simple_instruction("OP_NEGATE", offset),
+            Opcode::NegateInt => return self.simple_instruction("OP_NEGATE", offset),
+            Opcode::NegateFloat => return self.simple_instruction("OP_NEGATE_FLOAT", offset),
             Opcode::AddInt => return self.simple_instruction("OP_ADD", offset),
             Opcode::AddFloat => return self.simple_instruction("OP_ADD_FLOAT", offset),
             Opcode::Concat => return self.simple_instruction("OP_CONCAT", offset),
@@ -204,6 +222,8 @@ impl Chunk {
             Opcode::Equal => return self.simple_instruction("OP_EQUAL", offset),
             Opcode::GreaterInt => return self.simple_instruction("OP_GREATER", offset),
             Opcode::GreaterFloat => return self.simple_instruction("OP_GREATER_FLOAT", offset),
+            Opcode::LessInt => return self.simple_instruction("OP_LESS", offset),
+            Opcode::LessFloat => return self.simple_instruction("OP_LESS_FLOAT", offset),
             Opcode::Or => return self.simple_instruction("OP_OR", offset),
             Opcode::And => return self.simple_instruction("OP_AND", offset),
             Opcode::PrintInt => return self.simple_instruction("OP_PRINT_INT", offset),
@@ -212,26 +232,29 @@ impl Chunk {
             Opcode::PrintBool => return self.simple_instruction("OP_PRINT_BOOL", offset),
             Opcode::PrintPointer => return self.simple_instruction("OP_PRINT_POINTER", offset),
             Opcode::PrintNil => return self.simple_instruction("OP_PRINT_NIL", offset),
+            Opcode::PrintChar => return self.simple_instruction("OP_PRINT_CHAR", offset),
+            Opcode::GetField => return self.three_byte_instruction("OP_GET_FIELD", offset),
+            Opcode::SetField => return self.three_byte_instruction("OP_SET_FIELD", offset),
 
-            Opcode::Pop => return self.simple_instruction("OP_POP", offset),
-            Opcode::DefineGlobal => return self.byte_instruction("OP_DEFINE_GLOBAL", offset),
+            Opcode::Pop => return self.byte_instruction("OP_POP", offset),
+            Opcode::DefineGlobal => return self.two_byte_instruction("OP_DEFINE_GLOBAL", offset),
             Opcode::DefineGlobalLong => return self.constant_long_instruction("OP_DEFINE_GLOBAL_LONG", offset),
-            Opcode::GetGlobal => return self.byte_instruction("OP_GET_GLOBAL", offset),
+            Opcode::GetGlobal => return self.two_byte_instruction("OP_GET_GLOBAL", offset),
             Opcode::GetGlobalLong => return self.constant_long_instruction("OP_GET_GLOBAL_LONG", offset),
-            Opcode::SetGlobal => return self.byte_instruction("OP_SET_GLOBAL", offset),
+            Opcode::SetGlobal => return self.two_byte_instruction("OP_SET_GLOBAL", offset),
             Opcode::SetGlobalLong => return self.constant_long_instruction("OP_SET_GLOBAL_LONG", offset),
-            Opcode::GetLocal => return self.byte_instruction("OP_GET_LOCAL", offset),
-            Opcode::SetLocal => return self.byte_instruction("OP_SET_LOCAL", offset),
+            Opcode::GetLocal => return self.two_byte_instruction("OP_GET_LOCAL", offset),
+            Opcode::SetLocal => return self.two_byte_instruction("OP_SET_LOCAL", offset),
             Opcode::JumpIfFalse => return self.jump_instruction("OP_JUMP_IF_FALSE", 1, offset),
             Opcode::Jump => return self.jump_instruction("OP_JUMP", 1, offset),
             Opcode::Loop => return self.jump_instruction("OP_LOOP", -1, offset),
             Opcode::Call => return self.byte_instruction("OP_CALL", offset),
             Opcode::RefLocal => return self.simple_instruction("OP_REF", offset),
             Opcode::RefGlobal => return self.byte_instruction("OP_REF_GLOBAL", offset),
-            Opcode::DerefGet => return self.simple_instruction("OP_DEREF_GET", offset),
-            Opcode::DerefAssign => return self.simple_instruction("OP_DEREF_ASSIGN", offset),
+            Opcode::DerefGet => return self.byte_instruction("OP_DEREF_GET", offset),
+            Opcode::DerefAssign => return self.byte_instruction("OP_DEREF_ASSIGN", offset),
             Opcode::DefineStackArray => return self.simple_instruction("OP_DefineStackArray", offset),
-            Opcode::DefineGlobalArray => return self.simple_instruction("OP_DefineGlobalArray", offset),
+            Opcode::DefineGlobalArray => return self.three_byte_instruction("OP_DefineGlobalArray", offset),
             Opcode::Closure => {
                 offset += 1;
                 let constant = self.code[offset].0;
@@ -253,8 +276,8 @@ impl Chunk {
 
                 return offset;
             }
-            Opcode::GetUpvalue => return self.byte_instruction("OP_GETUPVALUE", offset),
-            Opcode::SetUpvalue => return self.byte_instruction("OP_SETUPVALUE", offset),
+            Opcode::GetUpvalue => return self.two_byte_instruction("OP_GETUPVALUE", offset),
+            Opcode::SetUpvalue => return self.two_byte_instruction("OP_SETUPVALUE", offset),
             Opcode::CloseUpvalue => return self.simple_instruction("OP_CLOSEUPVSLUR", offset),
             Opcode::CastIntToFloat => return self.simple_instruction("OP_CAST_INT_TO_FLOAT", offset),
             Opcode::CastFloatToInt => return self.simple_instruction("OP_CAST_FLOAT_TO_INT", offset),
@@ -264,6 +287,8 @@ impl Chunk {
             Opcode::CastBoolToInt => return self.simple_instruction("OP_CAST_BOOL_TO_INT", offset),
             Opcode::CastBoolToString => return self.simple_instruction("OP_CAST_BOOL_TO_STRING", offset),
             Opcode::CastIntToBool => return self.simple_instruction("OP_CAST_INT_TO_BOOL", offset),
+            Opcode::CopyClosure => return self.simple_instruction("OP_COPY_CLOSURE", offset),
+            Opcode::PopClosure => return self.simple_instruction("OP_POP_CLOSURE", offset),
             
             _ => {
                 println!("Unknown opcode {}", instruction);
@@ -276,6 +301,21 @@ impl Chunk {
     fn simple_instruction(&self, name: &str, offset: usize) -> usize {
         println!("{}", name);
         offset + 1
+    }
+
+    fn two_byte_instruction(&self, name: &str, offset: usize) -> usize {
+        let (slot, _) = self.code[offset + 1];
+        let (slot2, _) = self.code[offset + 2];
+        println!("{:16} {} {}", name, slot, slot2);
+        offset + 3
+    }
+
+    fn three_byte_instruction(&self, name: &str, offset: usize) -> usize {
+        let (slot, _) = self.code[offset + 1];
+        let (slot2, _) = self.code[offset + 2];
+        let (slot3, _) = self.code[offset + 3];
+        println!("{:16} {} {} {}", name, slot, slot2, slot3);
+        offset + 4
     }
 
     fn constant_instruction(&self, name: &str, offset: usize) -> usize {

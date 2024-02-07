@@ -1,0 +1,10 @@
+struct test2 {
+    a : int,
+};
+
+struct test {
+    a : struct test2,
+};
+
+var x : struct test;
+x.a.a = 1;

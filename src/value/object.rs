@@ -2,7 +2,7 @@ use std::{rc::Rc, fmt::Debug, cell::RefCell};
 
 use crate::chunk::Chunk;
 
-use super::{pointer::Pointer, value_type::{ValueType, ValueTypeK}, Value};
+use super::{pointer::Pointer, value_type::{ValueType, ValueTypeK}, Value, Word};
 
 pub struct Function {
     pub arity: usize,
@@ -10,6 +10,7 @@ pub struct Function {
     pub name: Rc<str>,
     pub upvalue_count: usize,
     pub return_type: ValueType,
+    pub return_size: usize,
 }
 
 impl Default for Function {
@@ -19,7 +20,8 @@ impl Default for Function {
             chunk: Chunk::new(),
             name: Rc::from(""),
             upvalue_count: 0,
-            return_type: ValueTypeK::Nil.intern()
+            return_type: ValueTypeK::Nil.intern(),
+            return_size: 0
         }
     }
 }
@@ -46,27 +48,42 @@ impl Function {
             chunk: Chunk::new(),
             name,
             upvalue_count: 0,
-            return_type: ValueTypeK::Nil.intern()
+            return_type: ValueTypeK::Nil.intern(),
+            return_size: 0
         }
     }
 }
 
+#[derive(Clone, PartialEq, Debug)]
 pub struct Upvalue {
-    pub index: usize,
-    pub next: RefCell<Option<Rc<Upvalue>>>,
-    pub closed: RefCell<Option<Value>>
+    pub slize: usize,
+    pub closed: Vec<Word>,
+    pub idx: Option<usize>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct Closure {
     pub func : Pointer,
     pub upvalue_count: u32,
-    pub upvalues: Vec<Rc<Upvalue>>
+    pub upvalues: Option<Box<Vec<Rc<RefCell<Upvalue>>>>>,
 }
 
 impl Closure {
+    pub fn to_words(self) -> Vec<Word> {
+        let mut words = self.func.to_words();
+        words.push((self.upvalue_count as u64).into());
+        match self.upvalues {
+            Some(u) => words.push((Box::into_raw(u) as u64).into()),
+            None => words.push(0.into()),
+        }
+        words
+    }
     pub fn new(f: Pointer, upvalue_count : u32) -> Closure {
-        Closure { func: f.clone(), upvalue_count: upvalue_count, upvalues: Vec::new() }
+        if upvalue_count > 0 {
+            Closure { func: f.clone(), upvalue_count: upvalue_count, upvalues: Some(Box::new(vec![])) }
+        } else {
+            Closure { func: f.clone(), upvalue_count: upvalue_count, upvalues: None }
+        }
     }
 }
 
@@ -74,20 +91,8 @@ impl Closure {
 pub enum Object {
     String(Rc<str>),
     Function(Rc<Function>),
-    NativeFunction(fn(&[Value]) -> Value),
-    Closure(Closure),
-}
-
-impl Object {
-    pub fn to_word(&self) -> u64 {
-        match self {
-            Object::String(s) => unimplemented!("String to_word"),
-            Object::Function(f) => unimplemented!("Function to_word"),
-            Object::NativeFunction(_) => unimplemented!("NativeFunction to_word"),
-            Object::Closure(c) => unimplemented!("Closure to_word"),
-        }
-    }
-
+    NativeFunction(fn(&[Word]) -> Value),
+    // Upvalue(Rc<Upvalue>),
 }
 
 impl PartialEq for Object {
@@ -107,7 +112,6 @@ impl Debug for Object {
             Object::String(s) => write!(f, "{}", s),
             Object::Function(func) => write!(f, "{:?}", func),
             Object::NativeFunction(_) => write!(f, "<native fn>"),
-            Object::Closure(c) => write!(f, "{:?}", c.func),
         }
     }
 }
