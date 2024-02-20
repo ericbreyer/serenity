@@ -18,7 +18,7 @@ use std::collections::HashMap;
 use std::num::ParseIntError;
 use std::rc::Rc;
 
-use crate::lexer::{lexer, Token, TokenType};
+use crate::lexer::{Lexer, Token, TokenType};
 
 use self::ast::{
     ASTNode, Declaration, Expression, FunctionDeclaration, FunctionExpression, HalfExpression,
@@ -64,7 +64,7 @@ struct ParseRule {
 pub struct SerenityParser {
     current: Token,
     previous: Token,
-    lexer: lexer,
+    lexer: Lexer,
     had_error: Cell<bool>,
     panic_mode: Cell<bool>,
     parse_table: [ParseRule; 53],
@@ -72,7 +72,7 @@ pub struct SerenityParser {
 }
 
 impl SerenityParser {
-    pub fn new(lexer: lexer) -> SerenityParser {
+    pub fn new(lexer: Lexer) -> SerenityParser {
         let mut p = SerenityParser {
             current: Token {
                 token_type: TokenType::Error,
@@ -906,7 +906,7 @@ impl SerenityParser {
 
 impl Parser for SerenityParser {
     #[instrument(skip(lexer))]
-    fn parse(lexer: lexer) -> ParseResult {
+    fn parse(lexer: Lexer) -> ParseResult {
         
         let mut ret = ParseResult::default();
         {

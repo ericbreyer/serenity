@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Debug};
+use std::fmt::Debug;
 
 use tracing::{info, instrument, Level};
 
@@ -106,7 +106,6 @@ impl Opcode {
 pub struct Chunk {
     pub code: Vec<(u8, usize)>, // code, line
     pub constants: ConstantPool,
-    constant_pool_cache: HashMap<String, u32>,
 }
 
 impl Debug for Chunk {
@@ -121,7 +120,6 @@ impl Chunk {
         Chunk {
             code: Vec::new(),
             constants: ConstantPool::new(),
-            constant_pool_cache: HashMap::new(),
         }
     }
     pub fn write(&mut self, byte: u8, line: usize) {

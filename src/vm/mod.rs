@@ -7,9 +7,9 @@ use std::rc::Rc;
 use crate::chunk::Opcode;
 
 use crate::compiler::Compiler;
-use crate::parser::SerenityParser;
-use crate::lexer::lexer;
-use crate::{compiler, parser};
+
+use crate::lexer::Lexer;
+use crate::{parser};
 use crate::common::runnable::{Function, Runnable};
 
 use crate::value::pointer::Pointer;
@@ -113,7 +113,7 @@ impl VM {
     pub fn interpret<P>(&mut self, source: String) -> InterpretResult
     where P: parser::Parser {
         
-        let lexer = lexer::new(source);
+        let lexer = Lexer::new(source);
         let parsed = P::parse(lexer);
         let compiled = Compiler::compile(parsed, &self.natives);
 

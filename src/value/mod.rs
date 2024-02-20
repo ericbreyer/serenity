@@ -5,7 +5,7 @@ use core::fmt;
 use std::{cell::RefCell, fmt::Debug, ops::Index, rc::Rc};
 
 use self::pointer::Pointer;
-use crate::common::runnable::{Function, Runnable};
+use crate::common::runnable::{Runnable};
 
 #[derive(Clone, Copy, PartialEq)]
 pub struct Word(u64);

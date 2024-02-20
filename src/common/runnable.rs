@@ -1,8 +1,8 @@
-use std::{rc::Rc, fmt::Debug, cell::RefCell};
+use std::{rc::Rc, fmt::Debug};
 
 use crate::chunk::Chunk;
 
-use crate::value::{pointer::Pointer, Value, Word};
+use crate::value::{Value, Word};
 use crate::typing::{ValueType, ValueTypeK};
 
 pub struct Function {

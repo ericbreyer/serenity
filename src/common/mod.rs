@@ -1,4 +1,4 @@
-use crate::typing::{self, CustomStruct};
+use crate::typing::CustomStruct;
 
 pub mod ast;
 pub mod dyn_tracing;

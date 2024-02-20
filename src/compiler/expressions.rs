@@ -4,7 +4,7 @@ use tracing::{instrument, Level};
 
 use crate::{
     chunk::Opcode,
-    common::{ast::{Expression, FunctionExpression}, runnable::{Function, Runnable}},
+    common::{ast::{Expression, FunctionExpression}, runnable::Runnable},
     lexer::{Token, TokenType},
     value::{
         pointer::Pointer,
