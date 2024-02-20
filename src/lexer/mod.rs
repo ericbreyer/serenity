@@ -2,7 +2,7 @@ use std::default::Default;
 
 use trie_rs::{Trie, TrieBuilder};
 
-pub struct Scanner {
+pub struct lexer {
     source: String,
     lexeme_start: usize,
     lexeme_current: usize,
@@ -103,9 +103,9 @@ pub struct Token {
     pub line: usize,
 }
 
-impl Scanner {
-    pub fn new(source: String) -> Scanner {
-        Scanner {
+impl lexer {
+    pub fn new(source: String) -> lexer {
+        lexer {
             source: source,
             lexeme_start: 0,
             lexeme_current: 0,

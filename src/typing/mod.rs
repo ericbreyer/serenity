@@ -1,4 +1,4 @@
-use std::{collections::HashMap, hash::Hash, rc::Rc, sync::Mutex};
+use std::{cell::RefCell, collections::HashMap, rc::Rc, sync::Mutex};
 
 use pinvec::PinVec;
 use pow_of_2::PowOf2;
@@ -9,13 +9,19 @@ pub type ValueType = &'static ValueTypeK;
 #[derive(Clone, Debug)]
 pub struct CustomStruct {
     pub name: String,
-    pub fields: HashMap<String, StructEntry>,
+    pub fields: Rc<RefCell<HashMap<String, StructEntry>>>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct StructEntry {
     pub value: ValueType,
     pub offset: usize,
+}
+
+pub enum Assignable {
+    Const,
+    Uninit,
+    Mut,
 }
 
 #[derive(Clone, Debug)]
@@ -32,6 +38,7 @@ pub enum ValueTypeK {
     Pointer(ValueType, bool),
     Array(ValueType, usize),
     Struct(CustomStruct),
+    SelfStruct(String),
     AnyStruct,
     Undef,
     All,
@@ -51,15 +58,16 @@ impl ValueTypeK {
             Self::Closure(_) => 3,
             Self::AnyFunction => panic!("cannot convert anyfunction to word"),
             Self::Pointer(_, _) => 1,
-            Self::Array(_, c) => 1,
+            Self::Array(_, _c) => 1,
             Self::Struct(h) => {
                 let mut sum = 0;
-                for (_, v) in h.fields. iter() {
+                for (_, v) in h.fields.borrow().iter() {
                     sum += v.value.num_words();
                 }
                 sum
             },
             Self::AnyStruct => panic!("cannot convert anystruct to word"),
+            Self::SelfStruct(_) => panic!("cannot convert selfstruct to word"),
             Self::Undef => 1,
             Self::All => 1,
             Self::Err => 1,
@@ -77,12 +85,13 @@ impl ValueTypeK {
             Self::AnyFunction => "7".into(),
             Self::Pointer(p, s) => format!("9{}{}", p.to_trie_string(), s),
             Self::Array(p, c) => format!("10{};{}", p.to_trie_string(), c),
-            Self::Struct(h) => format!("E{:?}", h.fields.iter().map(|(k, v)| format!("{}:{}", k, v.value.to_trie_string())).fold("".to_string(), |a, s| {let mut r = a; r.push_str(&s); r})),
+            Self::Struct(h) => format!("E{:?}", h.fields.borrow().iter().map(|(k, v)| format!("{}:{}", k, v.value.to_trie_string())).fold("".to_string(), |a, s| {let mut r = a; r.push_str(&s); r})),
             Self::Undef => "A".into(),
             Self::All => "B".into(),
             Self::Err => "C".into(),
             Self::Char => "D".into(),
             Self::AnyStruct => "F".into(),
+            Self::SelfStruct(s) => format!("G{}", s),
         }
     }
 
@@ -96,12 +105,7 @@ impl ValueTypeK {
             (Self::Struct(_), Self::AnyStruct) => true,
             (Self::AnyStruct, Self::Struct(_)) => true,
             (Self::Struct(l0), Self::Struct(r0)) => {
-                l0.fields.len() == r0.fields.len()
-                    && l0
-                        .fields
-                        .iter()
-                        .zip(r0.fields.iter())
-                        .all(|((lk, lv), (rk, rv))| lk == rk && lv.value.soft_compare(&rv.value))
+                l0.name == r0.name
             }
             (Self::Closure(l0v), Self::Closure(r0v)) => {
                 l0v.len() == r0v.len()
@@ -117,6 +121,12 @@ impl ValueTypeK {
             (Self::Pointer(l0, _), Self::Pointer(r0, _)) => {
                 [*l0, *r0].into_iter().any(Self::is_all) || l0 == r0
             }
+            (Self::Pointer(_, _), Self::Nil) => true,
+            (Self::Nil, Self::Pointer(_, _)) => true,
+            (Self::SelfStruct(l0), Self::SelfStruct(r0)) => l0 == r0,
+            (Self::SelfStruct(l0), Self::Struct(r0)) => l0 == &r0.name,
+            (Self::Struct(l0), Self::SelfStruct(r0)) => &l0.name == r0,
+
 
             _ => core::mem::discriminant(self) == core::mem::discriminant(other),
         }
@@ -136,7 +146,7 @@ impl ValueTypeK {
         if [self, other].into_iter().any(Self::is_all) {
             return true;
         }
-        match (self.decay(), other) {
+        match (self.decay(None), other) {
             (Self::Float, Self::Integer) => true,
             (Self::Integer, Self::Float) => true,
             (Self::Pointer(_l0, _), Self::Pointer(_r0, _)) => {
@@ -150,10 +160,17 @@ impl ValueTypeK {
         core::mem::discriminant(self) == core::mem::discriminant(&Self::All)
     }
 
-    pub fn decay(&self) -> ValueType {
-        match self {
-            Self::Array(p, _) => &Self::Pointer(p, false).clone().intern(),
-            Self::String => &Self::Pointer(&Self::Char, true).clone().intern(),
+    pub fn decay(&self, custom_structs: Option<Rc<HashMap<String, CustomStruct>>>) -> ValueType {
+        match (self, custom_structs) {
+            (Self::Array(p, _), _) => &Self::Pointer(p, false).clone().intern(),
+            (Self::String, _) => &Self::Pointer(&Self::Char, true).clone().intern(),
+            (Self::Pointer(Self::SelfStruct(s), _), Some(cs))  => {
+                if let Some(s) = cs.get(s) {
+                    &Self::Pointer(Self::Struct(s.clone()).intern(), false).clone().intern()
+                } else {
+                    &Self::Err.intern()
+                }
+            }
             _ => self.clone().intern(),
         }
     }

@@ -1,12 +1,13 @@
-pub mod object;
+
 pub mod pointer;
-pub mod value_type;
 
-use std::{fmt::Debug, ops::Index};
+use core::fmt;
+use std::{cell::RefCell, fmt::Debug, ops::Index, rc::Rc};
 
-use self::{object::{Closure, Object}, pointer::Pointer};
+use self::pointer::Pointer;
+use crate::common::runnable::{Function, Runnable};
 
-#[derive(Clone, Copy, PartialEq, Debug)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct Word(u64);
 
 impl From<u64> for Word {
@@ -19,8 +20,21 @@ impl From<Word> for u64 {
 	fn from(word: Word) -> Self {
 		word.0
 	}
-    
 }
+
+impl Debug for Word {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		write!(f, "0x{:x}", self.0)
+	}
+}
+
+impl fmt::Display for Word {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+	write!(f, "0x{:x}", self.0)
+    }
+}
+
+
 
 impl Word {
 	pub fn new (word: u64) -> Word {
@@ -56,7 +70,7 @@ pub enum Value {
 	Char(u8),
 	Bool(bool),
 	Nil,
-	Object(Object),
+	Object(Runnable),
 	Pointer(Pointer),
 	Closure(Closure),
 }
@@ -114,13 +128,12 @@ impl Debug for Value {
 			Value::Bool(b) => write!(f, "{}", b),
 			Value::Nil => write!(f, "nil"),
 			Value::Object(o) => match o {
-				Object::String(s) => write!(f, "'{}'", s),
-				Object::Function(func) => write!(f, "{:?}", func),
-				Object::NativeFunction(_) => write!(f, "<native fn>"),
+				Runnable::Function(func) => write!(f, "{:?}", func),
+				Runnable::NativeFunction(_) => write!(f, "<native fn>"),
 				// Object::Upvalue(_) => write!(f, "<upvalue>"),
 			},
 			Value::Pointer(p) => write!(f, "{:?}", p),
-			Value::Closure(c) => write!(f, "{:?}", "closure"),
+			Value::Closure(_c) => write!(f, "{:?}", "closure"),
 		}
 	}
 }
@@ -144,4 +157,38 @@ impl Index<usize> for ConstantPool {
 	fn index(&self, index: usize) -> &Value {
 		&self.0[index]
 	}
+}
+
+
+#[derive(Clone, PartialEq, Debug)]
+pub struct Upvalue {
+    pub slize: usize,
+    pub closed: Vec<Word>,
+    pub idx: Option<usize>,
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub struct Closure {
+    pub func : Pointer,
+    pub upvalue_count: u32,
+    pub upvalues: Option<Box<Vec<Rc<RefCell<Upvalue>>>>>,
+}
+
+impl Closure {
+    pub fn to_words(self) -> Vec<Word> {
+        let mut words = self.func.to_words();
+        words.push((self.upvalue_count as u64).into());
+        match self.upvalues {
+            Some(u) => words.push((Box::into_raw(u) as u64).into()),
+            None => words.push(0.into()),
+        }
+        words
+    }
+    pub fn new(f: Pointer, upvalue_count : u32) -> Closure {
+        if upvalue_count > 0 {
+            Closure { func: f.clone(), upvalue_count: upvalue_count, upvalues: Some(Box::new(vec![])) }
+        } else {
+            Closure { func: f.clone(), upvalue_count: upvalue_count, upvalues: None }
+        }
+    }
 }

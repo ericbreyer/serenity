@@ -1,0 +1,17 @@
+struct inner {
+        a: int,
+        b: int,
+        };
+
+struct outer {
+        c: int,
+        d: struct inner,
+        };
+
+var e: struct outer;
+e.c = 1;
+e.d.a = 2;
+e.d.b = 3;
+print e.c;
+print e.d.a;
+print e.d.b;

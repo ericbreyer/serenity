@@ -32,3 +32,10 @@ s[0] = 'H';
 s[6] = 'W';
 print s;
 print 'F';
+
+var c = clock();
+for (var i = 0; i < 10; i = i + 1) {
+  print i;
+  while (clock() - c < 1.0) {}
+  c = clock();
+}
