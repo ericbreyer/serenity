@@ -1,28 +1,32 @@
-use std::borrow::BorrowMut;
-
 use std::cell::RefCell;
 use std::collections::HashMap;
+use tracing::{event, span, Level};
 
 use std::rc::Rc;
 
 use crate::chunk::Opcode;
-use crate::compiler::compile;
-use crate::value::object::{Closure, Function, Object, Upvalue};
+
+use crate::compiler::Compiler;
+
+use crate::lexer::Lexer;
+use crate::{parser};
+use crate::common::runnable::{Function, Runnable};
+
 use crate::value::pointer::Pointer;
-use crate::value::value_type::{ValueType, ValueTypeK};
+use crate::typing::{ValueType, ValueTypeK};
 use crate::value::Value::{self, Bool, Nil};
 use crate::value::Word;
+use crate::value::{Upvalue, Closure};
 
 const STACK_MAX: usize = 256;
 const HEAP_MAX: usize = 2048;
 pub struct VM {
-    debug_trace_execution: bool,
     stack: [Word; STACK_MAX],
     stack_top: usize,
     natives: HashMap<String, (usize, ValueType)>,
     heap: [Word; HEAP_MAX],
     static_segment: Vec<Word>,
-    function_segment: Vec<Object>,
+    function_segment: Vec<Runnable>,
     brk: usize,
     open_upvalues: Vec<Rc<RefCell<Upvalue>>>,
 
@@ -86,9 +90,8 @@ fn clock_native(_args: &[Word]) -> Value {
 
 
 impl VM {
-    pub fn new(debug_mode: bool) -> VM {
+    pub fn new() -> VM {
         let mut vm = VM {
-            debug_trace_execution: debug_mode,
             stack: std::array::from_fn(|_| Word::new(0)),
             stack_top: 0,
             natives: HashMap::new(),
@@ -107,15 +110,22 @@ impl VM {
         vm
     }
     
-    pub fn interpret(&mut self, source: String) -> InterpretResult {
-        let (maybe_func, static_segment, funtion_segment) = compile(source, &mut self.natives);
-        self.static_segment = static_segment;
-        self.function_segment.extend(funtion_segment);
-        let Some(func) = maybe_func else {
+    pub fn interpret<P>(&mut self, source: String) -> InterpretResult
+    where P: parser::Parser {
+        
+        let lexer = Lexer::new(source);
+        let parsed = P::parse(lexer);
+        let compiled = Compiler::compile(parsed, &self.natives);
+
+        let Some(func) = compiled.function else {
             return InterpretResult::CompileError;
         };
         let f = Rc::new(func);
-        self.function_segment.push(Object::Function(f.clone()));
+
+        self.static_segment = compiled.static_data_segment;
+        self.function_segment.extend(compiled.function_segment);
+        
+        self.function_segment.push(Runnable::Function(f.clone()));
         let c = Closure::new(Pointer::Function(self.function_segment.len() - 1), 0);
         // self.brk += 1;
         self.push_many(&c.clone().to_words());
@@ -127,22 +137,21 @@ impl VM {
 
     fn run(&mut self) -> InterpretResult {
         let mut frame_no = self.frames.len() - 1;
+        let lspan = span!(Level::TRACE, "vm::run");
         loop {
+            
+            let _guard = lspan.enter();
+
+            event!(Level::TRACE, "stack: {:?}", &self.stack[0..self.stack_top]);
+            
+
             let instruction = self.frames[frame_no].read_byte();
 
-            if self.debug_trace_execution {
-                // print!("          ");
-                // for i in 0..self.stack_top {
-                //     print!("[ {:?} ]", self.stack[i]);
-                // }
-                // println!();
-                // println!("static segment: {:?}", self.static_segment);
-                println!("stack: {:?}", &self.stack[0..self.stack_top]);
-                self.frames[frame_no]
-                    .function
-                    .chunk
-                    .dissassemble_instruction(self.frames[frame_no].ip - 1);
-            }
+            self.frames[frame_no]
+                .function
+                .chunk
+                .dissassemble_instruction(self.frames[frame_no].ip - 1, Level::DEBUG);
+            
 
             match Opcode::from(instruction) {
                 Opcode::NoOp => { // NoOp
@@ -384,12 +393,12 @@ impl VM {
                 }
                 Opcode::PopClosure => {
                     // PopClosure
-                    let c = self.pop_many(3);
-                    if c[1].to_u64() > 0 {
-                    let upvals =
-                        unsafe { Box::from_raw(c[2].to_u64() as *mut Vec<Rc<RefCell<Upvalue>>>) };
-                    drop(upvals);
-                }
+                    let _c = self.pop_many(3);
+                    // if c[1].to_u64() > 0 {
+                    // let upvals =
+                    //     unsafe { Box::from_raw(c[2].to_u64() as *mut Vec<Rc<RefCell<Upvalue>>>) };
+                    // drop(upvals);
+                // }
                 }
                 Opcode::DefineGlobal => {
                     // DefineGlobal
@@ -439,21 +448,7 @@ impl VM {
                 Opcode::GetGlobalLong => {
                     // GetGlobalLong
                 }
-                Opcode::SetGlobal => {
-                    // SetGlobal
-                    let global_id = self.frames[frame_no].read_byte() as u8;
-                    let slize = self.frames[frame_no].read_byte() as usize;
-                    let v = self.pop_many(slize);
-                    for i in 0..slize {
-                        self.static_segment[global_id as usize + i] = v[i];
-                        self.heap[self.brk] = v[i];
-                        self.brk += 1;
-                    }
-                    self.push_many(&v);
-                }
-                Opcode::SetGlobalLong => {
-                    // SetGlobalLong
-                }
+                
                 Opcode::GetLocal => {
                     // GetLocal
                     let slot = self.frames[frame_no].read_byte() as usize;
@@ -465,20 +460,18 @@ impl VM {
 
                     self.push_many(&v);
                 }
-                Opcode::SetLocal => {
-                    // SetLocal
-                    let slot = self.frames[frame_no].read_byte() as usize;
-                    let slize = self.frames[frame_no].read_byte() as usize;
-                    let v = self.pop_many(slize);
-                    for i in 0..slize {
-                        self.stack[self.frames[frame_no].frame_pointer + slot + i] = v[i];
-                    }
-                    self.push_many(&v);
-                }
+                
                 Opcode::JumpIfFalse => {
                     // JumpIfFalse
                     let offset = self.frames[frame_no].read_short() as usize;
                     if self.peek(0).is_falsy() {
+                        self.frames[frame_no].ip += offset;
+                    }
+                }
+                Opcode::JumpIfTrue => {
+                    // JumpIfFalse
+                    let offset = self.frames[frame_no].read_short() as usize;
+                    if !self.peek(0).is_falsy() {
                         self.frames[frame_no].ip += offset;
                     }
                 }
@@ -525,7 +518,7 @@ impl VM {
                     let slot = self.pop().to_i64() as usize;
                     self.push(
                         Value::Pointer(Pointer::Local(
-                            self.frames[frame_no].frame_pointer + slot as usize,
+                            slot as usize,
                         ))
                         .to_word(),
                     );
@@ -542,7 +535,8 @@ impl VM {
                     let p = tp.to_pointer();
                     match p {
                         Pointer::Local(slot) => {
-                            let v = self.stack[slot..slot + slize].to_vec();
+                            let base = self.frames[frame_no].frame_pointer;
+                            let v = self.stack[base+slot..base+slot + slize].to_vec();
                             self.push_many(&v);
                         }
                         Pointer::Heap(idx) => {
@@ -569,7 +563,8 @@ impl VM {
                     match p {
                         Pointer::Local(slot) => {
                             for i in 0..slize {
-                                self.stack[slot + i] = v[i];
+                                let base = self.frames[frame_no].frame_pointer;
+                                self.stack[base + slot + i] = v[i];
                             }
                         }
                         Pointer::Heap(idx) => {
@@ -607,12 +602,12 @@ impl VM {
                 Opcode::Closure => {
                     // closure
                     let p = self.frames[frame_no].read_byte();
-                    let Object::Function(f) = self.function_segment[p as usize].clone() else {
+                    let Runnable::Function(f) = self.function_segment[p as usize].clone() else {
                         runtime_error!(self, "Operand must be a pointer to a function");
                         return InterpretResult::RuntimeError;
                     };
 
-                    let start = self.function_segment.len();
+                    let _start = self.function_segment.len();
 
                     let mut closure =
                         Closure::new(Pointer::Function(p as usize), f.upvalue_count as u32);
@@ -751,19 +746,19 @@ impl VM {
                     let s = self.pop_many(slize);
                     self.push_many(&s[offset..offset + f_slize]);
                 }
-                Opcode::SetField => {
-                    // set field
-                    let slize = self.frames[frame_no].read_byte() as usize;
-                    let offset = self.frames[frame_no].read_byte() as usize;
-                    let f_slize = self.frames[frame_no].read_byte() as usize;
-                    let v = self.pop_many(f_slize);
-                    let mut s = self.pop_many(slize);
-                    for i in 0..f_slize {
-                        s[offset + i] = v[i];
-                    }
-                    self.push_many(&v);
-                    self.push_many(&s);
-                }
+                // Opcode::SetField => {
+                //     // set field
+                //     let slize = self.frames[frame_no].read_byte() as usize;
+                //     let offset = self.frames[frame_no].read_byte() as usize;
+                //     let f_slize = self.frames[frame_no].read_byte() as usize;
+                //     let v = self.pop_many(f_slize);
+                //     let mut s = self.pop_many(slize);
+                //     for i in 0..f_slize {
+                //         s[offset + i] = v[i];
+                //     }
+                //     self.push_many(&v);
+                //     self.push_many(&s);
+                // }
                 _ => {
                     println!("Unknown opcode {}", instruction);
                 }
@@ -804,8 +799,8 @@ impl VM {
             return false;
         };
 
-        let Object::Function(func) = self.function_segment[idx].clone() else {
-            if let Object::NativeFunction(f) = self.function_segment[idx].clone() {
+        let Runnable::Function(func) = self.function_segment[idx].clone() else {
+            if let Runnable::NativeFunction(f) = self.function_segment[idx].clone() {
                 let mut args = Vec::with_capacity(arg_count);
                 for i in 0..arg_count {
                     args.push(self.peek(i));
@@ -847,7 +842,7 @@ impl VM {
         function: fn(&[Word]) -> Value,
         function_type: ValueType,
     ) {
-        self.function_segment.push(Object::NativeFunction(function));
+        self.function_segment.push(Runnable::NativeFunction(function));
         self.natives.insert(
             name.to_string(),
             (self.function_segment.len() - 1, function_type),
@@ -855,6 +850,11 @@ impl VM {
     }
 
     fn push(&mut self, value: Word) {
+        if self.stack_top >= STACK_MAX {
+            runtime_error!(self, "Stack overflow.");
+            return;
+        }
+
         self.stack[self.stack_top] = value;
         self.stack_top += 1;
     }
@@ -883,7 +883,7 @@ impl VM {
         self.stack[self.stack_top - 1 - distance]
     }
 
-    fn peek_range(&self, range: std::ops::Range<usize>) -> Vec<Word> {
+    fn _peek_range(&self, range: std::ops::Range<usize>) -> Vec<Word> {
         let mut values = Vec::with_capacity(range.end - range.start);
         for i in range {
             values.push(self.stack[self.stack_top - 1 - i]);

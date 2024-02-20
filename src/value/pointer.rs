@@ -1,4 +1,4 @@
-use std::{fmt::Debug, ops::{self, Index}};
+use std::{fmt::Debug, ops::{self}};
 
 use super::Word;
 

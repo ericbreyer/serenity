@@ -1,12 +1,10 @@
-var i = {7, 8, 9};
-print i;
-print i[0];
-print i[1];
-print i[2];
+struct node {
+        data: int,
+        next: struct node *,
+};
 
-{var i = {7, 8, 9};
-print i;
-print i[0];
-print i[1];
-print i[2];
-}
+var a = struct node { data: 6, next: nil };
+var b = struct node { next: &a };
+print &a;
+print b.next;
+print b.next->data;

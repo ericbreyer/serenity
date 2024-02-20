@@ -1,5 +1,9 @@
 {
     "cSpell.words": [
         "rstest"
+    ],
+    "rust-analyzer.showUnlinkedFileNotification": false,
+    "rust-analyzer.linkedProjects": [
+        "./Cargo.toml"
     ]
 }

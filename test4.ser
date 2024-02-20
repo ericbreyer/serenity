@@ -1,10 +1,13 @@
-struct test2 {
-    a : int,
-};
+fun fib(x : int) -> int {
+  if (x <= 1) {
+    return x;
+  } else {
+  return fib(x - 1) + fib(x - 2);
+  }
+}
 
-struct test {
-    a : struct test2,
-};
-
-var x : struct test;
-x.a.a = 1;
+var i = 0;
+while(i < 10) {
+  print fib(i);
+  i = i + 1;
+}
