@@ -139,7 +139,6 @@ impl PartialEq for ValueTypeK{
     }
 }
 
-static LOCK: Mutex<()> = Mutex::new(());
 
 impl ValueTypeK {
     pub fn cast_to(&self, other: &Self) -> bool {
@@ -162,7 +161,7 @@ impl ValueTypeK {
 
     pub fn decay(&self, custom_structs: Option<Rc<HashMap<String, CustomStruct>>>) -> ValueType {
         match (self, custom_structs) {
-            (Self::Array(p, _), _) => &Self::Pointer(p, false).clone().intern(),
+            (Self::Array(p, _), _) => &Self::Pointer(p, true).clone().intern(),
             (Self::String, _) => &Self::Pointer(&Self::Char, true).clone().intern(),
             (Self::Pointer(Self::SelfStruct(s), _), Some(cs))  => {
                 if let Some(s) = cs.get(s) {
@@ -176,6 +175,8 @@ impl ValueTypeK {
     }
 
     pub fn intern(self) -> ValueType {
+        static LOCK: Mutex<()> = Mutex::new(());
+
         if let Ok(_lock) = LOCK.lock() {
             unsafe {
                 static mut USED_TYPES: Option<PinVec<ValueTypeK>> = None;

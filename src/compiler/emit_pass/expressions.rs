@@ -1,24 +1,25 @@
-use std::{collections::HashMap, rc::Rc};
+use std::{ collections::HashMap, rc::Rc };
 
-use tracing::{instrument, Level};
+use tracing::{ instrument, warn, Level };
 
 use crate::{
     chunk::Opcode,
-    common::{ast::{Expression, FunctionExpression}, runnable::Runnable},
-    lexer::{Token, TokenType},
-    value::{
-        pointer::Pointer,
-        
-        Value,
-    },
-    typing::{CustomStruct, ValueType, ValueTypeK},
+    common::{ ast::{ Expression, FunctionExpression }, runnable::Runnable },
+    lexer::{ Token, TokenType },
+    value::{ pointer::Pointer, Value },
+    typing::{ CustomStruct, ValueType, ValueTypeK },
 };
 
-use super::{Compiler, Local, FunctionCompiler};
+use super::{ EmitWalker, FunctionCompiler, Local, Upvalue };
 
 use crate::error;
 
-impl Compiler {
+enum UpvalueType {
+    Local(usize),
+    Upvalue(usize),
+}
+
+impl EmitWalker {
     #[instrument(level = "trace", skip_all)]
     pub fn literal(&mut self, v: Value) -> ValueType {
         let line = 0;
@@ -36,24 +37,15 @@ impl Compiler {
                 ValueTypeK::Bool.intern()
             }
             Value::Integer(i) => {
-                self.function_compiler
-                    .func
-                    .chunk
-                    .write_constant(Value::Integer(i), line);
+                self.function_compiler.func.chunk.write_constant(Value::Integer(i), line);
                 ValueTypeK::Integer.intern()
             }
             Value::Float(f) => {
-                self.function_compiler
-                    .func
-                    .chunk
-                    .write_constant(Value::Float(f), line);
+                self.function_compiler.func.chunk.write_constant(Value::Float(f), line);
                 ValueTypeK::Float.intern()
             }
             Value::Char(c) => {
-                self.function_compiler
-                    .func
-                    .chunk
-                    .write_constant(Value::Char(c), line);
+                self.function_compiler.func.chunk.write_constant(Value::Char(c), line);
                 ValueTypeK::Char.intern()
             }
             _ => {
@@ -77,16 +69,14 @@ impl Compiler {
         value = value.replace("\\{", "{");
         value = value.replace("\\}", "}");
         let start = self.static_data_segment.len();
-        self.static_data_segment
-            .extend(Value::Integer(value.len() as i64).to_words());
+        self.static_data_segment.extend(Value::Integer(value.len() as i64).to_words());
         for c in value.chars() {
-            self.static_data_segment
-                .extend(Value::Char(c as u8).to_words());
+            self.static_data_segment.extend(Value::Char(c as u8).to_words());
         }
-        self.function_compiler
-            .func
-            .chunk
-            .write_constant(Value::Pointer(Pointer::Static(start)), line);
+        self.function_compiler.func.chunk.write_constant(
+            Value::Pointer(Pointer::Static(start)),
+            line
+        );
         return ValueTypeK::String.intern();
     }
 
@@ -99,23 +89,18 @@ impl Compiler {
 
         // Emit the operator instruction.
         match operator_type {
-            TokenType::Minus => match t {
-                ValueTypeK::Integer => {
-                    self.function_compiler
-                        .func
-                        .chunk
-                        .write(Opcode::NegateInt.into(), line);
+            TokenType::Minus =>
+                match t {
+                    ValueTypeK::Integer => {
+                        self.function_compiler.func.chunk.write(Opcode::NegateInt.into(), line);
+                    }
+                    ValueTypeK::Float => {
+                        self.function_compiler.func.chunk.write(Opcode::NegateFloat.into(), line);
+                    }
+                    _ => {
+                        error!(self, "Operand must be a number.");
+                    }
                 }
-                ValueTypeK::Float => {
-                    self.function_compiler
-                        .func
-                        .chunk
-                        .write(Opcode::NegateFloat.into(), line);
-                }
-                _ => {
-                    error!(self, "Operand must be a number.");
-                }
-            },
             TokenType::Bang => self.function_compiler.func.chunk.write(Opcode::Not.into(), line),
             _ => unreachable!(),
         }
@@ -127,7 +112,7 @@ impl Compiler {
         let line = 0;
         // Compile the operand.
         let raw_t = self.visit_expression(e, false);
-        let (t, _is_const) = match raw_t.decay(self.custom_structs.clone().into()) {
+        let (t, _) = match raw_t.decay(self.custom_structs.clone().into()) {
             &ValueTypeK::Pointer(pointee_type, is_const) => (pointee_type, is_const),
             _ => {
                 error!(self, "Expected pointer type");
@@ -136,21 +121,12 @@ impl Compiler {
         };
 
         if raw_t == ValueTypeK::String.intern() {
-            self.function_compiler
-                .func
-                .chunk
-                .write_constant(Value::Integer(1), line);
-            self.function_compiler
-                .func
-                .chunk
-                .write(Opcode::PointerAdd as u8, line);
+            self.function_compiler.func.chunk.write_constant(Value::Integer(1), line);
+            self.function_compiler.func.chunk.write(Opcode::PointerAdd as u8, line);
         }
 
         if !at {
-            self.function_compiler
-                .func
-                .chunk
-                .write(Opcode::DerefGet.into(), line);
+            self.function_compiler.func.chunk.write(Opcode::DerefGet.into(), line);
             self.function_compiler.func.chunk.write(t.num_words() as u8, line);
             t
         } else {
@@ -162,6 +138,7 @@ impl Compiler {
     pub fn addr_of(&mut self, e: Expression) -> ValueType {
         // Compile the operand.
         let t = self.visit_expression(e, true);
+
         match t {
             ValueTypeK::Pointer(_, _) => t,
             _ => {
@@ -184,14 +161,8 @@ impl Compiler {
         };
 
         if raw_t == ValueTypeK::String.intern() {
-            self.function_compiler
-                .func
-                .chunk
-                .write_constant(Value::Integer(1), line);
-            self.function_compiler
-                .func
-                .chunk
-                .write(Opcode::PointerAdd as u8, line);
+            self.function_compiler.func.chunk.write_constant(Value::Integer(1), line);
+            self.function_compiler.func.chunk.write(Opcode::PointerAdd as u8, line);
         }
 
         let i_type = self.visit_expression(i, false);
@@ -199,28 +170,16 @@ impl Compiler {
             error!(self, "Index must be an integer");
         }
 
-        self.function_compiler
-            .func
-            .chunk
-            .write_constant(Value::Integer(pointee_type.num_words() as i64), line);
-        self.function_compiler
-            .func
-            .chunk
-            .write(Opcode::MultiplyInt as u8, line);
-        self.function_compiler
-            .func
-            .chunk
-            .write(Opcode::PointerAdd as u8, line);
+        self.function_compiler.func.chunk.write_constant(
+            Value::Integer(pointee_type.num_words() as i64),
+            line
+        );
+        self.function_compiler.func.chunk.write(Opcode::MultiplyInt as u8, line);
+        self.function_compiler.func.chunk.write(Opcode::PointerAdd as u8, line);
 
         if !at {
-            self.function_compiler
-                .func
-                .chunk
-                .write(Opcode::DerefGet.into(), line);
-            self.function_compiler
-                .func
-                .chunk
-                .write(pointee_type.num_words() as u8, line);
+            self.function_compiler.func.chunk.write(Opcode::DerefGet.into(), line);
+            self.function_compiler.func.chunk.write(pointee_type.num_words() as u8, line);
             pointee_type
         } else {
             raw_t
@@ -233,116 +192,93 @@ impl Compiler {
         let line = 0;
 
         // Compile the left operand.
-        let lt = self.visit_expression(l, false);
+        let lt = self.visit_expression(l, false).decay(self.custom_structs.clone().into());
 
         // Compile the right operand.
         let rt = self.visit_expression(r, false);
 
         // Emit the operator instruction.
         match operator_type {
-            TokenType::Plus => match (lt, rt) {
-                (ValueTypeK::Integer, ValueTypeK::Integer) => {
-                    self.function_compiler.func.chunk.write(Opcode::AddInt.into(), line);
-                    return ValueTypeK::Integer.intern();
+            TokenType::Plus =>
+                match (lt, rt) {
+                    (ValueTypeK::Integer, ValueTypeK::Integer) => {
+                        self.function_compiler.func.chunk.write(Opcode::AddInt.into(), line);
+                        return ValueTypeK::Integer.intern();
+                    }
+                    (ValueTypeK::Float, ValueTypeK::Float) => {
+                        self.function_compiler.func.chunk.write(Opcode::AddFloat.into(), line);
+                        return ValueTypeK::Float.intern();
+                    }
+                    (ValueTypeK::Pointer(_, _), ValueTypeK::Integer) => {
+                        self.function_compiler.func.chunk.write(Opcode::PointerAdd.into(), line);
+                        return lt;
+                    }
+                    _ => {
+                        error!(self, "Operands must be two numbers or a pointer and an integer.");
+                        return ValueTypeK::Err.intern();
+                    }
                 }
-                (ValueTypeK::Float, ValueTypeK::Float) => {
-                    self.function_compiler
-                        .func
-                        .chunk
-                        .write(Opcode::AddFloat.into(), line);
-                    return ValueTypeK::Float.intern();
+            TokenType::Minus =>
+                match (lt, rt) {
+                    (ValueTypeK::Integer, ValueTypeK::Integer) => {
+                        self.function_compiler.func.chunk.write(Opcode::SubtractInt.into(), line);
+                        return ValueTypeK::Integer.intern();
+                    }
+                    (ValueTypeK::Float, ValueTypeK::Float) => {
+                        self.function_compiler.func.chunk.write(Opcode::SubtractFloat.into(), line);
+                        return ValueTypeK::Float.intern();
+                    }
+                    (ValueTypeK::Pointer(_, _), ValueTypeK::Integer) => {
+                        self.function_compiler.func.chunk.write(
+                            Opcode::PointerSubtract.into(),
+                            line
+                        );
+                        return lt;
+                    }
+                    _ => {
+                        error!(self, "Operands must be two numbers or a pointer and an integer.");
+                        return ValueTypeK::Err.intern();
+                    }
                 }
-                (ValueTypeK::Pointer(_, _), ValueTypeK::Integer) => {
-                    self.function_compiler
-                        .func
-                        .chunk
-                        .write(Opcode::PointerAdd.into(), line);
-                    return lt;
+            TokenType::Star =>
+                match (lt, rt) {
+                    (ValueTypeK::Integer, ValueTypeK::Integer) => {
+                        self.function_compiler.func.chunk.write(Opcode::MultiplyInt.into(), line);
+                        return ValueTypeK::Integer.intern();
+                    }
+                    (ValueTypeK::Float, ValueTypeK::Float) => {
+                        self.function_compiler.func.chunk.write(Opcode::MultiplyFloat.into(), line);
+                        return ValueTypeK::Float.intern();
+                    }
+                    _ => {
+                        error!(self, "Operands must be two numbers.");
+                        return ValueTypeK::Err.intern();
+                    }
                 }
-                _ => {
-                    error!(
-                        self,
-                        "Operands must be two numbers or a pointer and an integer."
-                    );
-                    return ValueTypeK::Err.intern();
+            TokenType::Slash =>
+                match (lt, rt) {
+                    (ValueTypeK::Integer, ValueTypeK::Integer) => {
+                        self.function_compiler.func.chunk.write(Opcode::DivideInt.into(), line);
+                        return ValueTypeK::Integer.intern();
+                    }
+                    (ValueTypeK::Float, ValueTypeK::Float) => {
+                        self.function_compiler.func.chunk.write(Opcode::DivideFloat.into(), line);
+                        return ValueTypeK::Float.intern();
+                    }
+                    _ => {
+                        error!(self, "Operands must be two numbers.");
+                        return ValueTypeK::Err.intern();
+                    }
                 }
-            },
-            TokenType::Minus => match (lt, rt) {
-                (ValueTypeK::Integer, ValueTypeK::Integer) => {
-                    self.function_compiler
-                        .func
-                        .chunk
-                        .write(Opcode::SubtractInt.into(), line);
-                    return ValueTypeK::Integer.intern();
-                }
-                (ValueTypeK::Float, ValueTypeK::Float) => {
-                    self.function_compiler
-                        .func
-                        .chunk
-                        .write(Opcode::SubtractFloat.into(), line);
-                    return ValueTypeK::Float.intern();
-                }
-                (ValueTypeK::Pointer(_, _), ValueTypeK::Integer) => {
-                    self.function_compiler
-                        .func
-                        .chunk
-                        .write(Opcode::PointerSubtract.into(), line);
-                    return lt;
-                }
-                _ => {
-                    error!(
-                        self,
-                        "Operands must be two numbers or a pointer and an integer."
-                    );
-                    return ValueTypeK::Err.intern();
-                }
-            },
-            TokenType::Star => match (lt, rt) {
-                (ValueTypeK::Integer, ValueTypeK::Integer) => {
-                    self.function_compiler
-                        .func
-                        .chunk
-                        .write(Opcode::MultiplyInt.into(), line);
-                    return ValueTypeK::Integer.intern();
-                }
-                (ValueTypeK::Float, ValueTypeK::Float) => {
-                    self.function_compiler
-                        .func
-                        .chunk
-                        .write(Opcode::MultiplyFloat.into(), line);
-                    return ValueTypeK::Float.intern();
-                }
-                _ => {
-                    error!(self, "Operands must be two numbers.");
-                    return ValueTypeK::Err.intern();
-                }
-            },
-            TokenType::Slash => match (lt, rt) {
-                (ValueTypeK::Integer, ValueTypeK::Integer) => {
-                    self.function_compiler
-                        .func
-                        .chunk
-                        .write(Opcode::DivideInt.into(), line);
-                    return ValueTypeK::Integer.intern();
-                }
-                (ValueTypeK::Float, ValueTypeK::Float) => {
-                    self.function_compiler
-                        .func
-                        .chunk
-                        .write(Opcode::DivideFloat.into(), line);
-                    return ValueTypeK::Float.intern();
-                }
-                _ => {
-                    error!(self, "Operands must be two numbers.");
-                    return ValueTypeK::Err.intern();
-                }
-            },
             TokenType::EqualEqual => {
                 if rt != lt {
-                    self.warn(&format!(
-                        "Comparison of different types ({:?} and {:?}) is always false, please cast to the same type",
-                        lt, rt
-                    ));
+                    self.warn(
+                        &format!(
+                            "Comparison of different types ({:?} and {:?}) is always false, please cast to the same type",
+                            lt,
+                            rt
+                        )
+                    );
                     self.function_compiler.func.chunk.write_pop(rt, line);
                     self.function_compiler.func.chunk.write_pop(lt, line);
                     self.function_compiler.func.chunk.write(Opcode::False.into(), line);
@@ -353,10 +289,13 @@ impl Compiler {
             }
             TokenType::BangEqual => {
                 if rt != lt {
-                    self.warn(&format!(
-                        "Comparison of different types ({:?} and {:?}) is always true, please cast to the same type",
-                        lt, rt
-                    ));
+                    self.warn(
+                        &format!(
+                            "Comparison of different types ({:?} and {:?}) is always true, please cast to the same type",
+                            lt,
+                            rt
+                        )
+                    );
                     self.function_compiler.func.chunk.write_pop(rt, line);
                     self.function_compiler.func.chunk.write_pop(lt, line);
                     self.function_compiler.func.chunk.write(Opcode::True.into(), line);
@@ -369,22 +308,16 @@ impl Compiler {
             TokenType::Greater => {
                 match (lt, rt) {
                     (ValueTypeK::Integer, ValueTypeK::Integer) => {
-                        self.function_compiler
-                            .func
-                            .chunk
-                            .write(Opcode::GreaterInt.into(), line);
+                        self.function_compiler.func.chunk.write(Opcode::GreaterInt.into(), line);
                     }
                     (ValueTypeK::Float, ValueTypeK::Float) => {
-                        self.function_compiler
-                            .func
-                            .chunk
-                            .write(Opcode::GreaterFloat.into(), line);
+                        self.function_compiler.func.chunk.write(Opcode::GreaterFloat.into(), line);
                     }
                     _ => {
                         error!(self, "Operands must be two numbers.");
                         return ValueTypeK::Err.intern();
                     }
-                };
+                }
                 return ValueTypeK::Bool.intern();
             }
             TokenType::GreaterEqual => {
@@ -394,17 +327,14 @@ impl Compiler {
                         self.function_compiler.func.chunk.write(Opcode::Not.into(), line);
                     }
                     (ValueTypeK::Float, ValueTypeK::Float) => {
-                        self.function_compiler
-                            .func
-                            .chunk
-                            .write(Opcode::LessFloat.into(), line);
+                        self.function_compiler.func.chunk.write(Opcode::LessFloat.into(), line);
                         self.function_compiler.func.chunk.write(Opcode::Not.into(), line);
                     }
                     _ => {
                         error!(self, "Operands must be two numbers.");
                         return ValueTypeK::Err.intern();
                     }
-                };
+                }
                 return ValueTypeK::Bool.intern();
             }
             TokenType::Less => {
@@ -413,39 +343,30 @@ impl Compiler {
                         self.function_compiler.func.chunk.write(Opcode::LessInt.into(), line);
                     }
                     (ValueTypeK::Float, ValueTypeK::Float) => {
-                        self.function_compiler
-                            .func
-                            .chunk
-                            .write(Opcode::LessFloat.into(), line);
+                        self.function_compiler.func.chunk.write(Opcode::LessFloat.into(), line);
                     }
                     _ => {
                         error!(self, "Operands must be two numbers.");
                         return ValueTypeK::Err.intern();
                     }
-                };
+                }
                 return ValueTypeK::Bool.intern();
             }
             TokenType::LessEqual => {
                 match (lt, rt) {
                     (ValueTypeK::Integer, ValueTypeK::Integer) => {
-                        self.function_compiler
-                            .func
-                            .chunk
-                            .write(Opcode::GreaterInt.into(), line);
+                        self.function_compiler.func.chunk.write(Opcode::GreaterInt.into(), line);
                         self.function_compiler.func.chunk.write(Opcode::Not.into(), line);
                     }
                     (ValueTypeK::Float, ValueTypeK::Float) => {
-                        self.function_compiler
-                            .func
-                            .chunk
-                            .write(Opcode::GreaterFloat.into(), line);
+                        self.function_compiler.func.chunk.write(Opcode::GreaterFloat.into(), line);
                         self.function_compiler.func.chunk.write(Opcode::Not.into(), line);
                     }
                     _ => {
                         error!(self, "Operands must be two numbers.");
                         return ValueTypeK::Err.intern();
                     }
-                };
+                }
                 return ValueTypeK::Bool.intern();
             }
             _ => unreachable!(),
@@ -477,10 +398,7 @@ impl Compiler {
         self.patch_jump(jump_to_end);
 
         if t_type != f_type {
-            error!(
-                self,
-                "Both branches of the ternary operator must have the same type."
-            );
+            error!(self, "Both branches of the ternary operator must have the same type.");
         }
         t_type
     }
@@ -495,68 +413,70 @@ impl Compiler {
                 // if !assignable {
                 //     error!(self, "Can't assign to const variable");
                 // }
-                self.function_compiler
-                    .func
-                    .chunk
-                    .write_constant(Value::Pointer(Pointer::Local(i)), line);
-                return ValueTypeK::Pointer(self.function_compiler.locals[&i].local_type, !assignable)
-                    .intern();
+                self.function_compiler.func.chunk.write_local_ptr(i, line);
+
+                return ValueTypeK::Pointer(
+                    self.function_compiler.locals[&i].local_type,
+                    !assignable
+                ).intern();
             } else {
-                self.function_compiler
-                    .func
-                    .chunk
-                    .write_pool_opcode(Opcode::GetLocal, i as u32, line);
+                self.function_compiler.func.chunk.write_pool_opcode(
+                    Opcode::GetLocal,
+                    i as u32,
+                    line
+                );
                 let t = self.function_compiler.locals.get(&i).expect("local").local_type;
                 self.function_compiler.func.chunk.write(t.num_words() as u8, line);
                 return t;
             }
-        } else if let Some(i) = self.resolve_upvalue(0, &tok) {
+        } else if let Some((u, i)) = self.resolve_upvalue(0, &tok) {
+            let t = self.function_compiler.locals.get(&i).expect("local").local_type;
+            self.function_compiler.func.chunk.write(Opcode::GetUpvalue as u8, 0);
+            self.function_compiler.func.chunk.write(u as u8, 0);
+            self.function_compiler.func.chunk.write(i as u8, 0);
+            self.function_compiler.func.chunk.write(t.num_words() as u8, 0);
+
             if assignment_target {
                 // if !assignable {
                 //     error!(self, "Can't assign to const variable");
                 // }
-                self.function_compiler
-                    .func
-                    .chunk
-                    .write_constant(Value::Pointer(Pointer::Upvalue(i)), line);
-                return ValueTypeK::Pointer(self.function_compiler.upvalues[i].upvalue_type, !assignable)
-                    .intern();
+                self.function_compiler.func.chunk.write_local_ptr(i, line);
+                return ValueTypeK::Pointer(
+                    self.function_compiler.locals[&i].local_type,
+                    !assignable
+                ).intern();
             } else {
-                self.function_compiler
-                    .func
-                    .chunk
-                    .write_pool_opcode(Opcode::GetUpvalue, i as u32, line);
-                let t = self.function_compiler.upvalues[i].upvalue_type;
+                self.function_compiler.func.chunk.write_pool_opcode(
+                    Opcode::GetLocal,
+                    i as u32,
+                    line
+                );
+                let t = self.function_compiler.locals.get(&i).expect("local").local_type;
                 self.function_compiler.func.chunk.write(t.num_words() as u8, line);
                 return t;
             }
         } else if let Some(i) = self.gloabls.get(&tok.lexeme) {
             if assignment_target {
-                if self.global_types.get(i).unwrap().1 == false
-                    && self.global_types.get(&i).unwrap().2 == true
-                {
-                    error!(self, "Can't assign to const variable");
-                }
-                self.function_compiler
-                    .func
-                    .chunk
-                    .write_constant(Value::Pointer(Pointer::Static(*i)), line);
-                return ValueTypeK::Pointer(self.global_types.get(i).unwrap().0, !assignable)
-                    .intern();
+                self.function_compiler.func.chunk.write_constant(
+                    Value::Pointer(Pointer::Static(*i)),
+                    line
+                );
+                return ValueTypeK::Pointer(
+                    self.global_types.get(i).unwrap().0,
+                    self.global_types.get(i).unwrap().1
+                ).intern();
             } else {
-                self.function_compiler
-                    .func
-                    .chunk
-                    .write_pool_opcode(Opcode::GetGlobal, *i as u32, line);
+                self.function_compiler.func.chunk.write_pool_opcode(
+                    Opcode::GetGlobal,
+                    *i as u32,
+                    line
+                );
                 let t = self.global_types.get(i).unwrap().0;
                 self.function_compiler.func.chunk.write(t.num_words() as u8, line);
                 return t;
             }
         } else {
-            error!(
-                self,
-                format!("Undefined variable '{}'.", tok.lexeme).as_str()
-            );
+            error!(self, format!("Undefined variable '{}'.", tok.lexeme).as_str());
             ValueTypeK::Err.intern()
         }
     }
@@ -564,30 +484,14 @@ impl Compiler {
     #[instrument(level = "trace", skip_all)]
     pub fn assign(&mut self, l: Expression, r: Expression) -> ValueType {
         let line = 0;
-        let t = self.visit_expression(l, true);
+        let _t = self.visit_expression(l, true);
 
         let t2 = self.visit_expression(r, false);
-
-        let ValueTypeK::Pointer(s, _is_const) = t.decay(self.custom_structs.clone().into()) else {
-            error!(
-                self,
-                format!("Can only assign to a pointer type, got {:?}", t).as_str()
-            );
-            return ValueTypeK::Err.intern();
-        };
-
-        // if *is_const {
-        //     error!(self, "Can't assign to const variable");
-        // }
-
-        if t2 != *s {
-            error!(self, "Type mismatch");
-        }
 
         self.function_compiler.func.chunk.write_pool_opcode(
             Opcode::DerefAssign,
             t2.num_words() as u32,
-            line,
+            line
         );
         t2
     }
@@ -634,19 +538,16 @@ impl Compiler {
         if let ValueTypeK::Closure(f) = t {
             self.function_compiler.func.chunk.write_pool_opcode(
                 Opcode::Call,
-                ts.iter().fold(0, |a, b| a + b.num_words() as u32),
-                line,
+                ts.iter().fold(0, |a, b| a + (b.num_words() as u32)),
+                line
             );
 
             let return_type = f.last().unwrap();
             return return_type;
         } else {
-            error!(
-                self,
-                format!("Can only call function types, got {:?}", t).as_str()
-            );
+            error!(self, format!("Can only call function types, got {:?}", t).as_str());
             return ValueTypeK::Err.intern();
-        };
+        }
     }
 
     #[instrument(level = "trace", skip_all)]
@@ -654,48 +555,37 @@ impl Compiler {
         let line = 0;
         let t = self.visit_expression(e, true);
 
-        let ValueTypeK::Pointer(ValueTypeK::Struct(s), false) = t.decay(self.custom_structs.clone().into()) else {
-            error!(
-                self,
-                format!("Can only access fields of struct types, got {:?}", t).as_str()
-            );
+        let ValueTypeK::Pointer(ValueTypeK::Struct(s), _) = t.decay(
+            self.custom_structs.clone().into()
+        ) else {
+            error!(self, format!("Can only access fields of struct types, got {:?}", t).as_str());
             return ValueTypeK::Err.intern();
         };
 
         let temp = s.fields.borrow();
         let Some(field) = temp.get(&tok.lexeme) else {
-            error!(self, format!("Field '{}' not found have fields {:?}", tok.lexeme, s.fields).as_str());
+            error!(
+                self,
+                format!("Field '{}' not found have fields {:?}", tok.lexeme, s.fields).as_str()
+            );
             return ValueTypeK::Err.intern();
         };
 
-
         if !at {
-            self.function_compiler
-                .func
-                .chunk
-                .write_constant(Value::Integer(field.offset as i64), line);
-            self.function_compiler
-                .func
-                .chunk
-                .write(Opcode::PointerAdd.into(), line);
-            self.function_compiler
-                .func
-                .chunk
-                .write(Opcode::DerefGet.into(), line);
-            self.function_compiler
-                .func
-                .chunk
-                .write(field.value.num_words() as u8, line);
+            self.function_compiler.func.chunk.write_constant(
+                Value::Integer(field.offset as i64),
+                line
+            );
+            self.function_compiler.func.chunk.write(Opcode::PointerAdd.into(), line);
+            self.function_compiler.func.chunk.write(Opcode::DerefGet.into(), line);
+            self.function_compiler.func.chunk.write(field.value.num_words() as u8, line);
             return field.value;
         } else {
-            self.function_compiler
-                .func
-                .chunk
-                .write_constant(Value::Integer(field.offset as i64), line);
-            self.function_compiler
-                .func
-                .chunk
-                .write(Opcode::PointerAdd.into(), line);
+            self.function_compiler.func.chunk.write_constant(
+                Value::Integer(field.offset as i64),
+                line
+            );
+            self.function_compiler.func.chunk.write(Opcode::PointerAdd.into(), line);
             return ValueTypeK::Pointer(field.value, false).intern();
         }
     }
@@ -705,11 +595,10 @@ impl Compiler {
         let c = FunctionCompiler::new(
             super::FunctionType::Function,
             Some(std::mem::take(&mut self.function_compiler)),
-            &function_expr.name.clone(),
+            &function_expr.name.clone()
         );
         self.function_compiler = Box::new(c);
         self.function_compiler.scope_depth += 1;
-
         //     loop {
         //         self.compiler.func.arity += 1;
         //         if self.compiler.func.arity > 255 {
@@ -741,11 +630,7 @@ impl Compiler {
 
             self.parse_variable(param.0.clone(), _mutable);
             let last_local = self.last_local();
-            self.function_compiler
-                .locals
-                .get_mut(&last_local)
-                .unwrap()
-                .local_type = p_type;
+            self.function_compiler.locals.get_mut(&last_local).unwrap().local_type = p_type;
 
             self.define_variable(0, p_type);
         }
@@ -755,8 +640,7 @@ impl Compiler {
         self.function_compiler.func.return_type = return_type.into();
         self.function_compiler.func.return_size = return_type.num_words() as usize;
 
-        let mut param_types = function_expr
-            .params
+        let mut param_types = function_expr.params
             .iter()
             .map(|(_, t)| *t)
             .collect::<Vec<_>>();
@@ -765,24 +649,25 @@ impl Compiler {
         let func_name = function_expr.name.clone();
 
         let ft = ValueTypeK::Closure(param_types.clone().as_slice().into()).intern();
-        self.function_compiler.locals.insert(
-            0,
-            Local {
-                name: func_name,
-                depth: 0,
-                mutable: false,
-                assigned: false,
-                captured: false,
-                local_type: ft,
-            },
-        );
+        self.function_compiler.locals.insert(0, Local {
+            name: func_name,
+            depth: 0,
+            mutable: false,
+            assigned: false,
+            captured: false,
+            local_type: ft,
+        });
         // self.compiler.local_count += ft.num_words() as usize;
+        self.begin_scope();
 
         for d in &function_expr.body {
             self.visit(d.clone());
         }
 
-        self.emit_return();
+        if self.function_compiler.func.return_type == ValueTypeK::Nil.intern() {
+            self.emit_return(return_type);
+        }
+        self.end_scope();
         *param_types.last_mut().unwrap() = self.function_compiler.func.return_type;
         let c = std::mem::take(&mut self.function_compiler);
         let name = c.func.name.clone();
@@ -802,18 +687,15 @@ impl Compiler {
         self.num_functions += 1;
         let f_id = self.num_functions - 1;
 
-        self.function_compiler
-            .func
-            .chunk
-            .write_pool_opcode(Opcode::Closure, f_id as u32, 0);
+        self.function_compiler.func.chunk.write_pool_opcode(Opcode::Closure, f_id as u32, 0);
+        self.function_compiler.func.chunk.write(upvalues.len() as u8, 0);
 
-        for i in 0..func.upvalue_count {
-            self.function_compiler
-                .func
-                .chunk
-                .write(upvalues[i].is_local as u8, 0);
-            self.function_compiler.func.chunk.write(upvalues[i].index as u8, 0);
+        for i in 0..upvalues.len() {
+            self.function_compiler.func.chunk.write(upvalues[i].idx as u8, 0);
+            self.function_compiler.func.chunk.write(upvalues[i].is_local as u8, 0);
+            self.function_compiler.func.chunk.write(upvalues[i].upvalue_type.num_words() as u8, 0);
         }
+
         ft
     }
 
@@ -827,59 +709,35 @@ impl Compiler {
         match (t.decay(self.custom_structs.clone().into()), cast_type) {
             (x, y) if x == y => x,
             (ValueTypeK::Integer, ValueTypeK::Float) => {
-                self.function_compiler
-                    .func
-                    .chunk
-                    .write(Opcode::CastIntToFloat.into(), line);
+                self.function_compiler.func.chunk.write(Opcode::CastIntToFloat.into(), line);
                 ValueTypeK::Float.intern()
             }
             (ValueTypeK::Float, ValueTypeK::Integer) => {
-                self.function_compiler
-                    .func
-                    .chunk
-                    .write(Opcode::CastFloatToInt.into(), line);
+                self.function_compiler.func.chunk.write(Opcode::CastFloatToInt.into(), line);
                 ValueTypeK::Integer.intern()
             }
             (ValueTypeK::Integer, ValueTypeK::Bool) => {
-                self.function_compiler
-                    .func
-                    .chunk
-                    .write(Opcode::CastIntToBool.into(), line);
+                self.function_compiler.func.chunk.write(Opcode::CastIntToBool.into(), line);
                 ValueTypeK::Bool.intern()
             }
             (ValueTypeK::Bool, ValueTypeK::Integer) => {
-                self.function_compiler
-                    .func
-                    .chunk
-                    .write(Opcode::CastBoolToInt.into(), line);
+                self.function_compiler.func.chunk.write(Opcode::CastBoolToInt.into(), line);
                 ValueTypeK::Integer.intern()
             }
             (ValueTypeK::Bool, ValueTypeK::Float) => {
-                self.function_compiler
-                    .func
-                    .chunk
-                    .write(Opcode::CastBoolToFloat.into(), line);
+                self.function_compiler.func.chunk.write(Opcode::CastBoolToFloat.into(), line);
                 ValueTypeK::Float.intern()
             }
             (ValueTypeK::Integer, ValueTypeK::String) => {
-                self.function_compiler
-                    .func
-                    .chunk
-                    .write(Opcode::CastIntToString.into(), line);
+                self.function_compiler.func.chunk.write(Opcode::CastIntToString.into(), line);
                 ValueTypeK::String.intern()
             }
             (ValueTypeK::Float, ValueTypeK::String) => {
-                self.function_compiler
-                    .func
-                    .chunk
-                    .write(Opcode::CastFloatToString.into(), line);
+                self.function_compiler.func.chunk.write(Opcode::CastFloatToString.into(), line);
                 ValueTypeK::String.intern()
             }
             (ValueTypeK::Bool, ValueTypeK::String) => {
-                self.function_compiler
-                    .func
-                    .chunk
-                    .write(Opcode::CastBoolToString.into(), line);
+                self.function_compiler.func.chunk.write(Opcode::CastBoolToString.into(), line);
                 ValueTypeK::String.intern()
             }
             (ValueTypeK::Array(x, _), ValueTypeK::Pointer(y, _)) if x == y => {
@@ -914,9 +772,9 @@ impl Compiler {
     pub fn struct_literal(
         &mut self,
         t: CustomStruct,
-        fields: HashMap<String, Expression>,
+        fields: HashMap<String, Expression>
     ) -> ValueType {
-        let temp= t.fields.borrow();
+        let temp = t.fields.borrow();
         let mut orig_fields = temp.iter().collect::<Vec<_>>();
         orig_fields.sort_by(|a, b| a.1.offset.cmp(&b.1.offset));
         for (name, entry) in orig_fields.iter() {
@@ -928,51 +786,74 @@ impl Compiler {
             };
             let ft = self.visit_expression(exp.clone(), false);
             if ft != entry.value {
-                error!(self, format!("Field {} has type {:?}, expected {:?}", name, ft, entry.value).as_str());
+                error!(
+                    self,
+                    format!("Field {} has type {:?}, expected {:?}", name, ft, entry.value).as_str()
+                );
                 return ValueTypeK::Err.intern();
             }
-        };
+        }
         drop(temp);
         ValueTypeK::Struct(t).intern()
     }
 
-    fn emit_return(&mut self) {
-        self.function_compiler.func.chunk.write(Opcode::Nil.into(), 0);
-        self.function_compiler
-            .func
-            .chunk
-            .write_pool_opcode(Opcode::Return.into(), 1, 0);
+    fn emit_return(&mut self, t: ValueType) {
+        for _ in 0..t.num_words() {
+            self.function_compiler.func.chunk.write(Opcode::Nil.into(), 0);
+        }
+        self.function_compiler.func.chunk.write_pool_opcode(Opcode::Return.into(), 1, 0);
     }
 
-    fn resolve_upvalue(&mut self, compiler_level: u32, token: &Token) -> Option<usize> {
+    fn resolve_upvalue(&mut self, compiler_level: u32, token: &Token) -> Option<(usize, usize)> {
         if let None = Self::compiler_at(compiler_level + 1, &mut self.function_compiler) {
             return None;
-        };
+        }
 
         if let (Some(local), _) = self.resolve_local(compiler_level + 1, token) {
-            let Some(compiler) = Self::compiler_at(compiler_level + 1, &mut self.function_compiler) else {
+            let Some(compiler) = Self::compiler_at(
+                compiler_level + 1,
+                &mut self.function_compiler
+            ) else {
                 return None;
             };
 
-            compiler
-                .locals
-                .get_mut(&local)
-                .expect("Local not found")
-                .captured = true;
-            let t = compiler
-                .locals
-                .get(&local)
-                .expect("Local not found")
-                .local_type;
-            return Some(self.add_upvalue(local, true, compiler_level, t));
-        };
-        if let Some(upvalue) = self.resolve_upvalue(compiler_level + 1, token) {
-            let Some(compiler) = Self::compiler_at(compiler_level + 1, &mut self.function_compiler) else {
+            compiler.locals.get_mut(&local).expect("Local not found").captured = true;
+            let t = compiler.locals.get(&local).expect("Local not found").local_type;
+            let n = compiler.locals.get(&local).expect("Local not found").name.clone();
+            let Some((upval_place, local_place)) = Some(
+                self.add_upvalue(local, true, compiler_level, t, n)
+            ) else {
                 return None;
             };
-            let t = compiler.upvalues[upvalue].upvalue_type;
-            return Some(self.add_upvalue(upvalue, false, compiler_level, t));
-        };
+
+            return Some((upval_place, local_place));
+        }
+        if let Some((upvalue, local)) = self.resolve_upvalue(compiler_level + 1, token) {
+            let Some(compiler) = Self::compiler_at(
+                compiler_level + 1,
+                &mut self.function_compiler
+            ) else {
+                return None;
+            };
+
+            let t = compiler.locals.get(&local).expect("Local not found").local_type;
+            let n = compiler.locals.get(&local).expect("Local not found").name.clone();
+
+            let Some((upval_place, local_place)) = Some(
+                self.add_upvalue(upvalue, false, compiler_level, t, n)
+            ) else {
+                return None;
+            };
+
+            let Some(compiler) = Self::compiler_at(
+                compiler_level,
+                &mut self.function_compiler
+            ) else {
+                return None;
+            };
+
+            return Some((upval_place, local_place));
+        }
 
         None
     }
@@ -981,40 +862,69 @@ impl Compiler {
         if level == 0 {
             return Some(compiler);
         } else {
-            return compiler
-                .enclosing
-                .as_mut()
-                .and_then(|e| Self::compiler_at(level - 1, e));
+            return compiler.enclosing.as_mut().and_then(|e| Self::compiler_at(level - 1, e));
         }
     }
 
     fn add_upvalue(
         &mut self,
-        idx: usize,
+        up_idx: usize,
         is_local: bool,
         compiler_level: u32,
         upvalue_type: ValueType,
-    ) -> usize {
+        name: String
+    ) -> (usize, usize) {
         let compiler = Self::compiler_at(compiler_level, &mut self.function_compiler).unwrap();
         let upvalue_count = compiler.func.upvalue_count;
 
         for i in 0..upvalue_count {
             let upvalue = &compiler.upvalues[i];
-            if upvalue.index == idx && upvalue.is_local == is_local {
-                return i;
+            if upvalue.name == name {
+                return (i, upvalue.idx);
             }
         }
 
-        if upvalue_count == u8::MAX as usize {
+        if upvalue_count == (u8::MAX as usize) {
             error!(self, "Trying to capture too many variables in closure");
-            return 0;
+            return (0, 0);
         }
-        compiler.upvalues[upvalue_count].is_local = is_local;
-        compiler.upvalues[upvalue_count].index = idx;
-        compiler.upvalues[upvalue_count].upvalue_type = upvalue_type;
-        compiler.func.upvalue_count += 1;
 
-        return compiler.func.upvalue_count - 1;
+        if compiler.locals.contains_key(&compiler.local_count) {
+            compiler.locals.insert(
+                compiler.local_count + (upvalue_type.num_words() as usize),
+                compiler.locals.get(&compiler.local_count).unwrap().clone()
+            );
+        }
+
+        for _ in 0..upvalue_type.num_words() {
+            compiler.func.chunk.write(Opcode::Nil.into(), 0);
+        }
+
+        compiler.locals.insert(compiler.local_count, Local {
+            name: name.to_owned(),
+            depth: compiler.scope_depth,
+            mutable: false,
+            assigned: true,
+            captured: true,
+            local_type: upvalue_type,
+        });
+
+        compiler.upvalues.push(Upvalue {
+            idx: up_idx,
+            is_local: is_local,
+            upvalue_idx: compiler.func.upvalue_count,
+            upvalue_type: upvalue_type,
+            name: name.to_owned(),
+        });
+
+        compiler.local_count += upvalue_type.num_words() as usize;
+
+        compiler.func.upvalue_count += upvalue_type.num_words() as usize;
+
+        return (
+            compiler.func.upvalue_count - upvalue_type.num_words(),
+            compiler.local_count - (upvalue_type.num_words() as usize),
+        );
     }
 
     fn resolve_local(&mut self, compiler_level: u32, token: &Token) -> (Option<usize>, bool) {

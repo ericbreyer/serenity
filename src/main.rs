@@ -1,8 +1,8 @@
-use std::{env::args, io::Write};
+use std::{ env::args, io::Write };
 // extern crate getopts;
 use getopts::Options;
 use tracing;
-use tracing_subscriber;
+use tracing_subscriber::{ self, fmt::format::FmtSpan, layer::SubscriberExt, Layer };
 
 use crate::parser::SerenityParser;
 
@@ -22,9 +22,7 @@ fn repl(mut vm: vm::VM) {
         print!("> ");
         std::io::stdout().flush().unwrap();
         let mut line = String::new();
-        std::io::stdin()
-            .read_line(&mut line)
-            .expect("Failed to read line");
+        std::io::stdin().read_line(&mut line).expect("Failed to read line");
         vm.interpret::<SerenityParser>(line);
     }
 }
@@ -55,23 +53,33 @@ fn main() -> std::io::Result<()> {
     let verbose = matches.opt_present("v");
     let super_verbose = matches.opt_present("vv");
 
-    let outfile = std::fs::File::create("output.txt")?;
+    let outfile = std::fs::File::create("output.ansi")?;
 
     let (non_blocking, _guard) = tracing_appender::non_blocking(outfile);
 
-    let subscriber = tracing_subscriber::fmt()
-        .with_max_level(match (verbose, super_verbose) {
-            (true, _) => tracing::Level::DEBUG,
-            (_, true) => tracing::Level::TRACE,
-            _ => tracing::Level::INFO,
-        })
-        
-        .with_span_events(tracing_subscriber::fmt::format::FmtSpan::ACTIVE)
-        .without_time()
+    let file_trace = tracing_subscriber::fmt
+        ::layer()
+        .with_span_events(FmtSpan::ACTIVE)
+        .without_time().with_ansi(false)
         .with_writer(non_blocking)
-        .finish();
+        .with_filter(match (verbose, super_verbose) {
+            (true, _) => tracing_subscriber::filter::LevelFilter::DEBUG,
+            (_, true) => tracing_subscriber::filter::LevelFilter::TRACE,
+            _ => tracing_subscriber::filter::LevelFilter::INFO,
+        });
 
-    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+    let err_trace = tracing_subscriber::fmt
+        ::layer()
+        // .with_span_events(FmtSpan::ACTIVE)
+        .without_time()
+        .with_writer(std::io::stderr)
+        .with_filter(tracing_subscriber::filter::LevelFilter::INFO);
+
+    let subscriber = tracing_subscriber::registry().with(file_trace).with(err_trace);
+
+    // subscriber.downcast_ref().unwrap()
+
+    tracing::subscriber::set_global_default(subscriber).expect("Failed to set subscriber");
 
     let vm = vm::VM::new();
     if matches.free.len() == 0 {

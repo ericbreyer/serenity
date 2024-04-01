@@ -1,28 +1,29 @@
-use tracing::{instrument, span, Level};
+use tracing::instrument;
 
 use crate::{
-    chunk::Opcode,
     common::ast::{
         ArrayDeclaration, Expression, FunctionDeclaration, StructDeclaration, VarDeclaration
     },
-    value::{pointer::Pointer, Value},
     typing::ValueTypeK,
 };
 
-use super::{Compiler, Local};
+use super::{TypeCheckWalker, Local};
 
 use crate::error;
 
-impl Compiler {
+impl TypeCheckWalker {
 
     #[instrument(level = "trace", skip(self))]
     pub fn var_declaration(&mut self, mut v: VarDeclaration) {
-        let _guard = span!(Level::TRACE, "var_declaration");
-        let line = v.line;
+        let _line = v.line;
 
         let name = v.name.clone();
-        let mut global_id = self.parse_variable(v.name, v.mutable);
-        
+        let global_id = self.parse_variable(v.name, v.mutable);
+
+        if !v.mutable && v.initializer.is_none() {
+            error!(self, "Immutable variable must be initialized");
+            return;
+        }
 
         if let Some(var_type) = v.tipe {
             if global_id == -1 {
@@ -32,15 +33,15 @@ impl Compiler {
                     .get_mut(&last_local)
                     .unwrap()
                     .local_type = var_type;
+                // self.function_compiler.local_count += var_type.num_words() as usize;
             } else {
                 self.gloabls.insert(name.clone(), global_id as usize);
                 self.global_types
-                    .insert(global_id as usize, (var_type, v.mutable, true));
+                    .insert(global_id as usize, (var_type, v.mutable));
             }
         }
         if let Some(expr) = v.initializer {
             let expr_type = self.visit_expression(*expr, false);
-            global_id = self.static_data_segment.len() as i64;
 
             if let Some(var_type) = v.tipe {
                 if expr_type != var_type {
@@ -61,22 +62,14 @@ impl Compiler {
                     .get_mut(&last_local)
                     .unwrap()
                     .local_type = expr_type;
+                // self.function_compiler.local_count += expr_type.num_words() as usize;
             } else {
                 self.gloabls.insert(name, global_id as usize);
                 self.global_types
-                    .insert(global_id as usize, (expr_type, v.mutable, true));
-            }
-        } else {
-            for _ in 0..v.tipe.unwrap().num_words() {
-                self.function_compiler.func.chunk.write(Opcode::Nil.into(), line);
+                    .insert(global_id as usize, (expr_type, v.mutable));
             }
         }
 
-        if global_id != -1 {
-            for _ in 0..v.tipe.unwrap().num_words() {
-                self.static_data_segment.push(Value::Nil.to_word());
-            }
-        }
         self.define_variable(global_id as u32, v.tipe.unwrap());
     }
 
@@ -88,11 +81,12 @@ impl Compiler {
             return -1;
         }
 
+        let id = self.gloabls.len();
         self.gloabls
-            .insert(name.clone(), self.static_data_segment.len());
+            .insert(name.clone(), id);
         self.global_types.insert(
-            self.static_data_segment.len(),
-            (ValueTypeK::Undef.intern(), mutable, false),
+            id,
+            (ValueTypeK::Undef.intern(), mutable),
         );
         return *self.gloabls.get(&name).unwrap() as i64;
     }
@@ -128,6 +122,7 @@ impl Compiler {
         self.function_compiler
             .locals
             .insert(self.function_compiler.local_count, local);
+
     }
 
     #[instrument(level = "trace", skip(self))]
@@ -138,12 +133,6 @@ impl Compiler {
             // self.compiler.locals.last_mut().unwrap().depth = self.compiler.scope_depth;
             let last_local = self.last_local();
             self.function_compiler.locals.get_mut(&last_local).unwrap().depth = self.function_compiler.scope_depth;
-        }
-
-        if global_id != -1 {
-            for _ in 0..3 {
-                self.static_data_segment.push(Value::Nil.to_word());
-            }
         }
 
         let t = self.function(f.body);
@@ -158,7 +147,7 @@ impl Compiler {
         } else {
             self.gloabls.insert(name.clone(), global_id as usize);
             self.global_types
-                .insert(global_id as usize, (t, false, true));
+                .insert(global_id as usize, (t, false));
         }
         self.define_variable(global_id as u32, t);
     }
@@ -196,7 +185,7 @@ impl Compiler {
                 (
                     ValueTypeK::Array(var_type, n as usize).intern(),
                     false,
-                    true,
+                    
                 ),
             );
         }
@@ -207,13 +196,9 @@ impl Compiler {
 
     fn define_array(&mut self, global_id: i64, size: Option<u32>, a: ArrayDeclaration) {
         
-        let line = 0;
+        let _line = 0;
 
         if global_id == -1 {
-            self.function_compiler
-                .func
-                .chunk
-                .write(Opcode::DefineStackArray as u8, line);
 
             let last_local = self.last_local();
             let elem_type = self.function_compiler.locals.get(&last_local).unwrap().local_type;
@@ -244,7 +229,6 @@ impl Compiler {
                 let n = size.expect("size is none");
                 for _ in 0..n {
                     for _ in 0..elem_type.num_words() {
-                        self.function_compiler.func.chunk.write(Opcode::Nil.into(), line);
                         self.function_compiler.local_count += 1;
                     }
                 }
@@ -253,7 +237,6 @@ impl Compiler {
             if let Expression::Empty = a.elements[0] {
                 for _ in 0..size.unwrap() {
                     for _ in 0..pointee_type.num_words() {
-                        self.function_compiler.func.chunk.write(Opcode::Nil.into(), line);
                         self.function_compiler.local_count += 1;
                     }
                 }
@@ -284,14 +267,6 @@ impl Compiler {
                 _ => ValueTypeK::Undef.intern(),
             };
 
-            if let Expression::Empty = a.elements[0] {
-                for _ in 0..size.unwrap() {
-                    for _ in 0..pointee_type.num_words() {
-                        self.function_compiler.func.chunk.write(Opcode::Nil.into(), line);
-                    }
-                }
-            }
-
             for v in a.elements.clone() {
                 let pt = self.visit_expression(v, false);
                 if pointee_type == ValueTypeK::Undef.intern() {
@@ -321,29 +296,6 @@ impl Compiler {
                 }
             }
 
-            self.static_data_segment.extend(Value::Nil.to_words());
-
-            let words = Value::Pointer(Pointer::Static(self.static_data_segment.len())).to_words();
-
-            for word in 0..words.len() {
-                self.static_data_segment[global_id as usize + word] = words[word];
-            }
-            for _ in 0..size.unwrap() {
-                for _ in 0..pointee_type.num_words() {
-                    self.static_data_segment.extend(Value::Nil.to_words());
-                }
-            }
-
-            self.function_compiler.func.chunk.write_pool_opcode(
-                Opcode::DefineGlobalArray,
-                global_id as u32,
-                line,
-            );
-            self.function_compiler.func.chunk.write(size.unwrap() as u8, line);
-            self.function_compiler
-                .func
-                .chunk
-                .write(pointee_type.num_words() as u8, line);
         }
     }
 }

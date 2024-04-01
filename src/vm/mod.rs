@@ -1,22 +1,22 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
-use tracing::{event, span, Level};
+use tracing::{ event, span, Level };
 
 use std::rc::Rc;
 
 use crate::chunk::Opcode;
 
-use crate::compiler::Compiler;
+use crate::compiler;
 
 use crate::lexer::Lexer;
-use crate::{parser};
-use crate::common::runnable::{Function, Runnable};
+use crate::parser;
+use crate::common::runnable::{ Function, Runnable };
 
 use crate::value::pointer::Pointer;
-use crate::typing::{ValueType, ValueTypeK};
-use crate::value::Value::{self, Bool, Nil};
+use crate::typing::{ ValueType, ValueTypeK };
+use crate::value::Value::{ self, Bool, Nil };
 use crate::value::Word;
-use crate::value::{Upvalue, Closure};
+use crate::value::{ Upvalue, Closure };
 
 const STACK_MAX: usize = 256;
 const HEAP_MAX: usize = 2048;
@@ -50,7 +50,7 @@ impl CallFrame {
         self.ip += 2;
         let b1 = self.function.chunk.code[self.ip - 2].0;
         let b2 = self.function.chunk.code[self.ip - 1].0;
-        (b1 as u16) << 8 | (b2 as u16)
+        ((b1 as u16) << 8) | (b2 as u16)
     }
 
     fn get_constant(&mut self, constant_idx: usize) -> Value {
@@ -65,9 +65,9 @@ pub enum InterpretResult {
 }
 
 macro_rules! runtime_error {
-    ($self:expr, $fmt:literal $(, $args:expr)* ) => {
+    ($self:expr, $fmt:literal $(, $args:expr)*) => {
         {
-            print!("Runtime Error: ");
+            print!("Line {}: Runtime Error: ", line!());
             println!($fmt $(, $args)*);
             for frame in $self.frames.iter().rev() {
                 let function = &frame.function;
@@ -88,7 +88,6 @@ fn clock_native(_args: &[Word]) -> Value {
     Value::Float(duration.as_secs_f64())
 }
 
-
 impl VM {
     pub fn new() -> VM {
         let mut vm = VM {
@@ -105,17 +104,15 @@ impl VM {
         vm.define_native(
             "clock",
             clock_native,
-            ValueTypeK::Closure(Box::new([ValueTypeK::Float.intern()])).intern(),
+            ValueTypeK::Closure(Box::new([ValueTypeK::Float.intern()])).intern()
         );
         vm
     }
-    
-    pub fn interpret<P>(&mut self, source: String) -> InterpretResult
-    where P: parser::Parser {
-        
+
+    pub fn interpret<P>(&mut self, source: String) -> InterpretResult where P: parser::Parser {
         let lexer = Lexer::new(source);
         let parsed = P::parse(lexer);
-        let compiled = Compiler::compile(parsed, &self.natives);
+        let compiled = compiler::compile(parsed, &self.natives);
 
         let Some(func) = compiled.function else {
             return InterpretResult::CompileError;
@@ -124,9 +121,9 @@ impl VM {
 
         self.static_segment = compiled.static_data_segment;
         self.function_segment.extend(compiled.function_segment);
-        
+
         self.function_segment.push(Runnable::Function(f.clone()));
-        let c = Closure::new(Pointer::Function(self.function_segment.len() - 1), 0);
+        let c = Closure::new(Pointer::Function(self.function_segment.len() - 1), 0, Rc::new(Vec::new()));
         // self.brk += 1;
         self.push_many(&c.clone().to_words());
 
@@ -139,27 +136,24 @@ impl VM {
         let mut frame_no = self.frames.len() - 1;
         let lspan = span!(Level::TRACE, "vm::run");
         loop {
-            
             let _guard = lspan.enter();
 
             event!(Level::TRACE, "stack: {:?}", &self.stack[0..self.stack_top]);
-            
 
             let instruction = self.frames[frame_no].read_byte();
 
-            self.frames[frame_no]
-                .function
-                .chunk
-                .dissassemble_instruction(self.frames[frame_no].ip - 1, Level::DEBUG);
-            
+            self.frames[frame_no].function.chunk.dissassemble_instruction(
+                self.frames[frame_no].ip - 1,
+                Level::DEBUG
+            );
 
             match Opcode::from(instruction) {
-                Opcode::NoOp => { // NoOp
+                Opcode::NoOp => {
+                    // NoOp
                 }
                 Opcode::Return => {
                     // Return
                     let num_bytes = self.frames[frame_no].read_byte();
-                    self.close_upvalues(self.frames[frame_no].frame_pointer);
                     let result = self.pop_many(num_bytes as usize);
 
                     let Some(old_frame) = self.frames.pop() else {
@@ -180,7 +174,8 @@ impl VM {
                     let constant = self.frames[frame_no].get_constant(constant_idx as usize);
                     self.push(constant.to_word());
                 }
-                Opcode::ConstantLong => { // ConstantLong
+                Opcode::ConstantLong => {
+                    // ConstantLong
                 }
                 Opcode::NegateInt => {
                     // Negate
@@ -223,13 +218,22 @@ impl VM {
                     let p = self.pop().to_pointer();
                     match p {
                         Pointer::Local(slot) => {
-                            self.push(Value::Pointer(Pointer::Local(slot + n as usize)).to_word());
+                            self.push(
+                                Value::Pointer(Pointer::Local(slot + (n as usize))).to_word()
+                            );
                         }
                         Pointer::Heap(idx) => {
-                            self.push(Value::Pointer(Pointer::Heap(idx + n as usize)).to_word());
+                            self.push(Value::Pointer(Pointer::Heap(idx + (n as usize))).to_word());
                         }
                         Pointer::Static(idx) => {
-                            self.push(Value::Pointer(Pointer::Static(idx + n as usize)).to_word());
+                            self.push(
+                                Value::Pointer(Pointer::Static(idx + (n as usize))).to_word()
+                            );
+                        }
+                        Pointer::Upvalue(idx, o) => {
+                            self.push(
+                                Value::Pointer(Pointer::Upvalue(idx, o + (n as usize))).to_word()
+                            );
                         }
                         _ => {
                             runtime_error!(self, "Operand must be a pointer");
@@ -237,6 +241,12 @@ impl VM {
                         }
                     }
                 }
+
+                Opcode::FrameBase => {
+                    let base = self.frames[frame_no].frame_pointer;
+                    self.push(Value::Integer(base as i64).to_word());
+                }
+
                 Opcode::SubtractInt => {
                     let b = self.pop().to_i64();
                     let a = self.peek(0).to_i64();
@@ -253,13 +263,17 @@ impl VM {
                     let p = self.pop().to_pointer();
                     match p {
                         Pointer::Local(slot) => {
-                            self.push(Value::Pointer(Pointer::Local(slot - n as usize)).to_word());
+                            self.push(
+                                Value::Pointer(Pointer::Local(slot - (n as usize))).to_word()
+                            );
                         }
                         Pointer::Heap(idx) => {
-                            self.push(Value::Pointer(Pointer::Heap(idx - n as usize)).to_word());
+                            self.push(Value::Pointer(Pointer::Heap(idx - (n as usize))).to_word());
                         }
                         Pointer::Static(idx) => {
-                            self.push(Value::Pointer(Pointer::Static(idx - n as usize)).to_word());
+                            self.push(
+                                Value::Pointer(Pointer::Static(idx - (n as usize))).to_word()
+                            );
                         }
                         _ => {
                             runtime_error!(self, "Operand must be a pointer");
@@ -392,13 +406,14 @@ impl VM {
                     self.pop_many(slize);
                 }
                 Opcode::PopClosure => {
+                    println!("PopClosure");
                     // PopClosure
-                    let _c = self.pop_many(3);
-                    // if c[1].to_u64() > 0 {
-                    // let upvals =
-                    //     unsafe { Box::from_raw(c[2].to_u64() as *mut Vec<Rc<RefCell<Upvalue>>>) };
-                    // drop(upvals);
-                // }
+                    let c = self.pop_many(3);
+                    if c[1].to_u64() > 0 {
+                    let upvals =
+                        unsafe { Rc::from_raw(c[2].to_u64() as *const Vec<Word>) };
+                    drop(upvals);
+                    }
                 }
                 Opcode::DefineGlobal => {
                     // DefineGlobal
@@ -406,7 +421,7 @@ impl VM {
                     let slize = self.frames[frame_no].read_byte() as usize;
                     let v = self.pop_many(slize);
                     for i in 0..slize {
-                        self.static_segment[global_id as usize + i] = v[i];
+                        self.static_segment[(global_id as usize) + i] = v[i];
                         self.heap[self.brk] = v[i];
                         self.brk += 1;
                     }
@@ -419,48 +434,50 @@ impl VM {
                     // GetGlobal
                     let global_id = self.frames[frame_no].read_byte() as u8;
                     let slize = self.frames[frame_no].read_byte() as usize;
-                    let v = self.static_segment[global_id as usize..global_id as usize + slize]
-                        .to_vec();
+                    let v =
+                        self.static_segment[
+                            global_id as usize..(global_id as usize) + slize
+                        ].to_vec();
                     self.push_many(&v);
                 }
                 Opcode::CopyClosure => {
                     // CopyClosure
-                    let p = self.pop();
-                    let n = self.pop().to_i64();
+                    // let p = self.pop();
+                    // let n = self.pop().to_i64();
+                    // let c = self.pop().to_pointer();
 
-                    let upvals;
-                    if n > 0 {
-                    let rupvals =
-                        unsafe { Box::from_raw(p.to_u64() as *mut Vec<Rc<RefCell<Upvalue>>>) };
-                     upvals = Some(rupvals.clone());
-                    Box::into_raw(rupvals);
-                    } else {
-                        upvals = None;
+                    // let upvals = unsafe {
+                    //     Rc::from_raw(p.to_u64() as *const Vec<Word>)
+                    // };
+                    
+                    // let c = Closure::new(c, n as u32, upvals);
+                
+                    // self.push_many(&c.to_words());
+
+                    unsafe {
+                        Rc::increment_strong_count(self.peek(0).to_u64() as *const Vec<Word>);
                     }
-
-                    let c = self.pop().to_pointer();
-
-                    let mut c = Closure::new(c, n as u32);
-                    c.upvalues = upvals;
-
-                    self.push_many(&c.to_words());
                 }
                 Opcode::GetGlobalLong => {
                     // GetGlobalLong
                 }
-                
+
                 Opcode::GetLocal => {
                     // GetLocal
                     let slot = self.frames[frame_no].read_byte() as usize;
                     let slize = self.frames[frame_no].read_byte() as usize;
                     // self.push(self.stack[self.frames[frame_no].frame_pointer + slot].clone());
-                    let v = self.stack[self.frames[frame_no].frame_pointer + slot
-                        ..self.frames[frame_no].frame_pointer + slot + slize]
-                        .to_vec();
+                    let v =
+                        self.stack[
+                            self.frames[frame_no].frame_pointer + slot..self.frames
+                                [frame_no].frame_pointer +
+                                slot +
+                                slize
+                        ].to_vec();
 
                     self.push_many(&v);
                 }
-                
+
                 Opcode::JumpIfFalse => {
                     // JumpIfFalse
                     let offset = self.frames[frame_no].read_short() as usize;
@@ -490,23 +507,14 @@ impl VM {
                     let arg_count = self.frames[frame_no].read_byte() as usize;
 
                     let f = self.peek(arg_count + 2).to_pointer();
-                    let n = self.peek(arg_count + 1).to_i64();
-                    let p = self.peek(arg_count);
-                    let upvals;
-                    if n > 0 {
-                        let rupvals =
-                            unsafe { Box::from_raw(p.to_u64() as *mut Vec<Rc<RefCell<Upvalue>>>) };
-                        upvals = Some(rupvals.clone());
-                        Box::into_raw(rupvals);
-                    } else {
-                        upvals = None;
-                    }
+                    let upvalue_count = self.peek(arg_count + 1);
+                    let upvalue_segment = unsafe {
+                        Rc::from_raw(self.peek(arg_count).to_u64() as *const Vec<Word>)
+                    };
 
-                    let mut c = Closure::new(f, n as u32);
-                    c.upvalues = upvals;
+                    let mut c = Closure::new(f, upvalue_count.to_u64() as u32, upvalue_segment);
 
                     let args = self.pop_many(arg_count);
-                    // self.pop_many(3);
                     self.push_many(&args);
                     if !self.call(c, arg_count) {
                         return InterpretResult::RuntimeError;
@@ -516,12 +524,7 @@ impl VM {
                 Opcode::RefLocal => {
                     // Ref
                     let slot = self.pop().to_i64() as usize;
-                    self.push(
-                        Value::Pointer(Pointer::Local(
-                            slot as usize,
-                        ))
-                        .to_word(),
-                    );
+                    self.push(Value::Pointer(Pointer::Local(slot as usize)).to_word());
                 }
                 Opcode::RefGlobal => {
                     // global ref
@@ -535,8 +538,7 @@ impl VM {
                     let p = tp.to_pointer();
                     match p {
                         Pointer::Local(slot) => {
-                            let base = self.frames[frame_no].frame_pointer;
-                            let v = self.stack[base+slot..base+slot + slize].to_vec();
+                            let v = self.stack[slot..slot + slize].to_vec();
                             self.push_many(&v);
                         }
                         Pointer::Heap(idx) => {
@@ -546,6 +548,21 @@ impl VM {
                         Pointer::Static(idx) => {
                             let v = self.static_segment[idx..idx + slize].to_vec();
                             self.push_many(&v);
+                        }
+                        Pointer::Upvalue(idx, o) => {
+                            // // let upval = self.frames[frame_no].closure.upvalues
+                            // //     .as_ref()
+                            // //     .unwrap()
+                            // //     [idx as usize].clone();
+                            // // let idx = upval.borrow().idx;
+                            // // if upval.borrow().closed {
+                            // //     let v = self.frames[frame_no].closure.upvalue_segment
+                            // //         [idx+ o as usize..idx + o as usize + slize].to_vec();
+                            // //     self.push_many(&v);
+                            // // } else {
+                            // //     let v = self.stack[idx + o as usize..idx+ o  as usize + slize].to_vec();
+                            // //     self.push_many(&v);
+                            // }
                         }
                         _ => {
                             runtime_error!(self, "Operand must be a pointer");
@@ -563,8 +580,8 @@ impl VM {
                     match p {
                         Pointer::Local(slot) => {
                             for i in 0..slize {
-                                let base = self.frames[frame_no].frame_pointer;
-                                self.stack[base + slot + i] = v[i];
+                                // let base = self.frames[frame_no].frame_pointer;
+                                self.stack[slot + i] = v[i];
                             }
                         }
                         Pointer::Heap(idx) => {
@@ -576,6 +593,22 @@ impl VM {
                             for i in 0..slize {
                                 self.static_segment[idx + i] = v[i];
                             }
+                        }
+                        Pointer::Upvalue(idx, o) => {
+                            // let upval = self.frames[frame_no].closure.upvalues
+                            //     .as_ref()
+                            //     .unwrap()
+                            //     [idx as usize].clone();
+                            // let idx = upval.borrow().idx;
+                            // if upval.borrow().closed {
+                            //     for i in 0..slize {
+                            //         self.frames[frame_no].closure.upvalue_segment[idx + i + o] = v[i];
+                            //     }
+                            // } else {
+                            //     for i in 0..slize {
+                            //         self.stack[idx + i + o] = v[i];
+                            //     }
+                            // }
                         }
                         _ => {
                             runtime_error!(self, "Operand must be a pointer");
@@ -592,10 +625,10 @@ impl VM {
                     let glob_id = self.frames[frame_no].read_byte();
                     let num = self.frames[frame_no].read_byte() as usize;
                     let slize = self.frames[frame_no].read_byte() as usize;
-                    for i in 0..num {
+                    for i in (0..num).rev() {
                         let v = self.pop_many(slize);
                         for j in 0..slize {
-                            self.static_segment[glob_id as usize + i * slize + j + 1] = v[j];
+                            self.static_segment[(glob_id as usize) + i * slize + j + 1] = v[j];
                         }
                     }
                 }
@@ -609,69 +642,80 @@ impl VM {
 
                     let _start = self.function_segment.len();
 
-                    let mut closure =
-                        Closure::new(Pointer::Function(p as usize), f.upvalue_count as u32);
+                    let uc = self.frames[frame_no].read_byte() as u32;
 
-                    for _ in 0..closure.upvalue_count {
-                        let Some(ref mut upvals) = closure.upvalues else {
-                            runtime_error!(self, "upvalue must be a pointer to a function");
-                            return InterpretResult::RuntimeError;
-                        };
+                    let mut upvalue_segment = Vec::new();
+                    for _ in 0..uc {
+                        let idl = self.frames[frame_no].read_byte() as usize;
                         let is_local = self.frames[frame_no].read_byte() != 0;
-                        let index = self.frames[frame_no].read_byte();
+                        let slize = self.frames[frame_no].read_byte() as usize;
+
                         if is_local {
-                            let u = self.capture_upvalue(
-                                self.frames[frame_no].frame_pointer + index as usize,
-                            );
-                            upvals.push(u.clone());
-                            self.open_upvalues.push(u.clone());
+                            let base = self.frames[frame_no].frame_pointer;
+                            for i in 0..slize {
+                                upvalue_segment.push(self.stack[idl + i + base]);
+                            }
                         } else {
-                            let old_upvalue = self.frames[frame_no].closure.upvalues.as_mut().unwrap()
-                                [index as usize]
-                                .clone();
-                            upvals.push(old_upvalue);
+                            for i in 0..slize {
+                                upvalue_segment.push(
+                                    self.frames[frame_no].closure.upvalue_segment[idl + i as usize]
+                                );
+                            }
                         }
                     }
-                    // self.function_segment.push(Object::Closure(closure.clone()));
+                    let mut closure = Closure::new(
+                        Pointer::Function(p as usize),
+                        uc,
+                        Rc::new(upvalue_segment),
+                    );
                     self.push_many(&closure.to_words());
                 }
                 Opcode::GetUpvalue => {
                     // getupcal
-                    let idx = self.frames[frame_no].read_byte();
+                    let u_idx = self.frames[frame_no].read_byte();
+                    let l_idx = self.frames[frame_no].read_byte()as usize;
                     let slize = self.frames[frame_no].read_byte() as usize;
-                    let upval =
-                        self.frames[frame_no].closure.upvalues.as_ref().unwrap()[idx as usize].clone();
-                    if let Some(idx) = upval.borrow().idx {
-                        let v = self.stack[idx..idx + slize].to_vec();
-                        self.push_many(&v);
-                    } else {
-                        let cap = &upval.borrow().closed;
-                        self.push_many(cap);
-                    };
-                }
-                Opcode::SetUpvalue => {
-                    let idx = self.frames[frame_no].read_byte();
-                    let slize = self.frames[frame_no].read_byte() as usize;
-                    let v = self.pop_many(slize);
-                    if let Some(idx) = self.frames[frame_no].closure.upvalues.as_ref().unwrap()[idx as usize]
-                        .borrow()
-                        .idx
-                    {
-                        for i in 0..slize {
-                            self.stack[idx + i] = v[i];
-                        }
-                    } else {
-                        let upval =
-                            self.frames[frame_no].closure.upvalues.as_ref().unwrap()[idx as usize].clone();
-                        upval.as_ref().borrow_mut().closed = v;
+                    for i in 0..slize {
+                        let v =
+                        self.frames[frame_no].closure.upvalue_segment[(u_idx as usize) + i];
+                        let mut vec = self.stack.to_vec();
+                        vec.insert(self.frames[frame_no].frame_pointer + l_idx + i, v);
+                        self.stack = vec.as_slice()[0..STACK_MAX].try_into().unwrap();
                     }
                 }
-                Opcode::CloseUpvalue => {
-                    // close value
-                    let slize = self.frames[frame_no].read_byte() as usize;
-                    self.close_upvalues(self.stack_top - slize);
-                    self.pop();
-                }
+                // Opcode::SetUpvalue => {
+                //     let idx = self.frames[frame_no].read_byte();
+                //     let slize = self.frames[frame_no].read_byte() as usize;
+                //     let v = self.pop_many(slize);
+                //     let u_idx = self.frames[frame_no].closure.upvalues
+                //             .as_ref()
+                //             .unwrap()
+                //             [idx as usize].borrow().idx;
+                //     if
+                //         !self.frames[frame_no].closure.upvalues
+                //             .as_ref()
+                //             .unwrap()
+                //             [u_idx as usize].borrow().closed
+                //     {
+
+                //         for i in 0..slize {
+                //             self.stack[u_idx + i] = v[i];
+                //         }
+                //     } else {
+                //         let upval = self.frames[frame_no].closure.upvalues
+                //             .as_ref()
+                //             .unwrap()
+                //             [u_idx as usize].clone();
+                //         self.frames[frame_no].closure.upvalue_segment[u_idx as usize..u_idx as usize + slize]
+                //             .copy_from_slice(&v);
+                //     }
+                // }
+                // Opcode::CloseUpvalue => {
+                //     // close value
+                //     let slize = self.frames[frame_no].read_byte() as usize;
+                //     self.close_upvalues(self.stack_top - slize, frame_no);
+                //     self.pop();
+                // }
                 Opcode::CastIntToFloat => {
                     // cast int to float
                     let n = self.pop().to_i64();
@@ -766,26 +810,30 @@ impl VM {
         }
     }
 
-    fn close_upvalues(&mut self, last: usize) {
-        while !self.open_upvalues.is_empty()
-            && self.open_upvalues.last().unwrap().borrow().idx.unwrap() >= last
-        {
-            let upval = self.open_upvalues.pop().unwrap();
-            let idx = upval.as_ref().borrow().idx.unwrap();
-            let slize = upval.as_ref().borrow().slize;
-            upval.as_ref().borrow_mut().closed = self.stack[idx..idx + slize].to_vec();
-            upval.as_ref().borrow_mut().idx = None;
-        }
-    }
+    // fn close_upvalues(&mut self, last: usize, frame_no: usize) {
+    //     while
+    //         !self.open_upvalues.is_empty() &&
+    //         self.open_upvalues.last().unwrap().borrow().idx >= last
+    //     {
+    //         let upval = self.open_upvalues.pop().unwrap();
+    //         let idx = upval.as_ref().borrow().idx;
+    //         let slize = upval.as_ref().borrow().slize;
+    //         self.frames[frame_no].closure.upvalue_segment.as_ref().borrow_mut().extend(
+    //             self.stack[idx..idx + slize].to_vec()
+    //         );
+    //         upval.as_ref().borrow_mut().idx =
+    //             self.frames[frame_no].closure.upvalue_segment.len() - slize;
+    //         upval.as_ref().borrow_mut().closed = true;
+    //     }
+    // }
 
     fn capture_upvalue(&mut self, local_idx: usize) -> Rc<RefCell<Upvalue>> {
         let u = Rc::new(
-            Upvalue {
+            (Upvalue {
                 slize: self.stack_top - local_idx,
-                closed: vec![],
-                idx: Some(local_idx),
-            }
-            .into(),
+                closed: false,
+                idx: local_idx,
+            }).into()
         );
 
         u
@@ -827,6 +875,7 @@ impl VM {
             runtime_error!(self, "Stack overflow.");
             return false;
         }
+        let uc = c.upvalue_count as usize;
         self.frames.push(CallFrame {
             closure: c,
             function: func,
@@ -840,13 +889,10 @@ impl VM {
         &mut self,
         name: &str,
         function: fn(&[Word]) -> Value,
-        function_type: ValueType,
+        function_type: ValueType
     ) {
         self.function_segment.push(Runnable::NativeFunction(function));
-        self.natives.insert(
-            name.to_string(),
-            (self.function_segment.len() - 1, function_type),
-        );
+        self.natives.insert(name.to_string(), (self.function_segment.len() - 1, function_type));
     }
 
     fn push(&mut self, value: Word) {
@@ -902,7 +948,7 @@ impl VM {
                 let mut s = String::new();
                 let len = self.heap[idx].to_i64();
                 for i in 0..len {
-                    s.push(self.heap[idx + 1 + i as usize].to_char() as char);
+                    s.push(self.heap[idx + 1 + (i as usize)].to_char() as char);
                 }
                 s
             }
@@ -910,7 +956,7 @@ impl VM {
                 let mut s = String::new();
                 let len = self.static_segment[idx].to_i64();
                 for i in 0..len {
-                    s.push(self.static_segment[idx + 1 + i as usize].to_char() as char);
+                    s.push(self.static_segment[idx + 1 + (i as usize)].to_char() as char);
                 }
                 s
             }

@@ -6,8 +6,27 @@ fun fib(x : int) -> int {
   }
 }
 
-var i = 0;
-while(i < 10) {
-  print fib(i);
-  i = i + 1;
+const tab_size = 50;
+const tab : int[50];
+
+fun fast_fib(x : int) -> int {
+  if (x <= 1) {
+    return x;
+  } else {
+    if (tab[x] == 0) {
+      tab[x] = fast_fib(x - 1) + fast_fib(x - 2);
+    }
+    return tab[x];
+  }
+}
+
+fun main() {
+  var i = 0;
+  while(i < 25) {
+    print i;
+    print fib(i);
+    print fast_fib(i);
+        print "-----";
+    i = i + 1;
+  }
 }

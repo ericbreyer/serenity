@@ -2,10 +2,10 @@
 pub mod pointer;
 
 use core::fmt;
-use std::{cell::RefCell, fmt::Debug, ops::Index, rc::Rc};
+use std::{cell::RefCell, fmt::Debug, mem::take, ops::Index, rc::Rc};
 
 use self::pointer::Pointer;
-use crate::common::runnable::{Runnable};
+use crate::common::runnable::Runnable;
 
 #[derive(Clone, Copy, PartialEq)]
 pub struct Word(u64);
@@ -163,32 +163,34 @@ impl Index<usize> for ConstantPool {
 #[derive(Clone, PartialEq, Debug)]
 pub struct Upvalue {
     pub slize: usize,
-    pub closed: Vec<Word>,
-    pub idx: Option<usize>,
+    pub closed: bool,
+    pub idx: usize,
 }
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct Closure {
     pub func : Pointer,
     pub upvalue_count: u32,
-    pub upvalues: Option<Box<Vec<Rc<RefCell<Upvalue>>>>>,
+    pub upvalue_segment: Rc<Vec<Word>>
 }
-
 impl Closure {
     pub fn to_words(self) -> Vec<Word> {
         let mut words = self.func.to_words();
-        words.push((self.upvalue_count as u64).into());
-        match self.upvalues {
-            Some(u) => words.push((Box::into_raw(u) as u64).into()),
-            None => words.push(0.into()),
-        }
+	words.push((self.upvalue_count as u64).into());
+	unsafe {
+		let ptr = Rc::into_raw(self.upvalue_segment) ;
+	words.push(
+	    Word(ptr as u64)
+	);
+	Rc::increment_strong_count(ptr);
+}
         words
     }
-    pub fn new(f: Pointer, upvalue_count : u32) -> Closure {
-        if upvalue_count > 0 {
-            Closure { func: f.clone(), upvalue_count: upvalue_count, upvalues: Some(Box::new(vec![])) }
-        } else {
-            Closure { func: f.clone(), upvalue_count: upvalue_count, upvalues: None }
-        }
+    pub fn new(f: Pointer, upvalue_count : u32, upvalue_segment: Rc<Vec<Word>>) -> Closure {
+	Closure {
+	    func: f,
+	    upvalue_count,
+	    upvalue_segment
+	}
     }
 }

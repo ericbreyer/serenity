@@ -3,6 +3,7 @@ use std::fmt::Debug;
 use tracing::{info, instrument, Level};
 
 use crate::typing::{ValueType, ValueTypeK};
+use crate::value::pointer::Pointer;
 use crate::value::{ConstantPool, Value};
 use crate::{dyn_event, dyn_span};
 // use crate::common::function::Function;
@@ -68,7 +69,7 @@ pub enum Opcode {
     Closure,
     CopyClosure,
     GetUpvalue,
-    SetUpvalue,
+    // SetUpvalue,
     CloseUpvalue,
     GetField,
 
@@ -80,6 +81,8 @@ pub enum Opcode {
     CastBoolToInt,
     CastBoolToString,
     CastIntToBool,
+
+    FrameBase,
 
     Break,
     Continue,
@@ -145,6 +148,7 @@ impl Chunk {
 
     pub fn write_pop(&mut self, t: ValueType, line: usize) {
         if t == ValueTypeK::AnyFunction.intern() {
+            println!("pop closure");
             self.write(Opcode::PopClosure.into(), line);
         } else {
             self.write(Opcode::Pop.into(), line);
@@ -182,7 +186,7 @@ impl Chunk {
     pub fn dissassemble_instruction(&self, offset: usize, trace_level: Level) -> usize {
         let (instruction, _) = self.code[offset];
         match Opcode::from(instruction) {
-            Opcode::NoOp => self.simple_instruction("OP_NOOP", offset, trace_level),
+            Opcode::NoOp => return self.simple_instruction("OP_NOOP", offset, trace_level),
             Opcode::Return => return self.byte_instruction("OP_RETURN", offset, trace_level),
             Opcode::Constant => return self.constant_instruction("OP_CONSTANT", offset, trace_level),
             Opcode::ConstantLong => return self.constant_long_instruction("OP_CONSTANT_LONG", offset, trace_level),
@@ -236,10 +240,15 @@ impl Chunk {
             Opcode::DerefAssign => return self.byte_instruction("OP_DEREF_ASSIGN", offset, trace_level),
             Opcode::DefineStackArray => return self.simple_instruction("OP_DefineStackArray", offset, trace_level),
             Opcode::DefineGlobalArray => return self.three_byte_instruction("OP_DefineGlobalArray", offset, trace_level),
-            Opcode::Closure => return self.constant_instruction("OP_CLOSURE", offset, trace_level),
-            Opcode::GetUpvalue => return self.two_byte_instruction("OP_GETUPVALUE", offset, trace_level),
-            Opcode::SetUpvalue => return self.two_byte_instruction("OP_SETUPVALUE", offset, trace_level),
-            Opcode::CloseUpvalue => return self.simple_instruction("OP_CLOSEUPVSLUR", offset, trace_level),
+            Opcode::Closure => {
+                
+                let (fid, _) = self.code[offset + 1];
+                let (count_upvals, _) = self.code[offset + 2];
+                dyn_event!(trace_level,"{:16} {:?} {:?}", "OP_CLOSURE", fid as usize, count_upvals);
+                
+                return offset + 3 + (count_upvals * 3) as usize
+            }
+            Opcode::GetUpvalue => return self.three_byte_instruction("OP_GET_UPVALUE", offset, trace_level),
             Opcode::CastIntToFloat => return self.simple_instruction("OP_CAST_INT_TO_FLOAT", offset, trace_level),
             Opcode::CastFloatToInt => return self.simple_instruction("OP_CAST_FLOAT_TO_INT", offset, trace_level),
             Opcode::CastIntToString => return self.simple_instruction("OP_CAST_INT_TO_STRING", offset, trace_level),
@@ -248,9 +257,9 @@ impl Chunk {
             Opcode::CastBoolToInt => return self.simple_instruction("OP_CAST_BOOL_TO_INT", offset, trace_level),
             Opcode::CastBoolToString => return self.simple_instruction("OP_CAST_BOOL_TO_STRING", offset, trace_level),
             Opcode::CastIntToBool => return self.simple_instruction("OP_CAST_INT_TO_BOOL", offset, trace_level),
-            Opcode::CopyClosure => return self.simple_instruction("OP_COPY_CLOSURE", offset, trace_level),
             Opcode::PopClosure => return self.simple_instruction("OP_POP_CLOSURE", offset, trace_level),
-
+            Opcode::FrameBase => return self.simple_instruction("OP_FRAME_BASE", offset, trace_level),
+            Opcode::CopyClosure => return self.simple_instruction("OP_COPY_CLOSURE", offset, trace_level),
             _ => {
                 info!("Unknown opcode: {}", instruction);
                 return offset + 1;
@@ -310,5 +319,14 @@ impl Chunk {
         jump |= self.code[offset + 2].0 as i32;
         dyn_event!(trace_level,"{:16} {} -> {}", name, offset, offset as i32 + 3 + (sign * jump as i32));
         offset + 3
+    }
+
+    pub fn write_local_ptr(&mut self, i: usize, line: usize) {
+        self.write_constant(
+            Value::Pointer(Pointer::Local(i)),
+            line
+        );
+        self.write(Opcode::FrameBase as u8, line);
+        self.write(Opcode::PointerAdd as u8, line);
     }
 }

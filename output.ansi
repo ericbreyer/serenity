@@ -1,0 +1,12 @@
+ INFO parse: serenity::parser::serenity_parser: enter
+ INFO parse: serenity::parser::serenity_parser: Parse success
+ INFO parse: serenity::parser::serenity_parser: exit
+ INFO type_check: serenity::compiler::type_check_pass: enter
+ INFO type_check: serenity::compiler::type_check_pass: Type checking succeeded.
+ INFO type_check: serenity::compiler::type_check_pass: exit
+ INFO optimize: serenity::compiler::optimization_pass: enter
+ INFO optimize: serenity::compiler::optimization_pass: Compilation succeeded.
+ INFO optimize: serenity::compiler::optimization_pass: exit
+ INFO emit: serenity::compiler::emit_pass: enter
+ INFO emit: serenity::compiler::emit_pass: Compilation succeeded.
+ INFO emit: serenity::compiler::emit_pass: exit

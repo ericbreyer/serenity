@@ -1,11 +1,14 @@
 var closures: (fun() -> float)[2];
 
+var glob: float;
+
 fun outer(x: float) {
-  var y = x;
+  glob = x;
+  var y = &glob;
   fun inner() -> float {
     print "inner\n";
-    y = y + 1.0;
-    return y;
+    *y = *y + 1.0;
+    return *y;
   }
   fun inner2() -> float {
     return inner();
@@ -14,9 +17,10 @@ fun outer(x: float) {
   closures[1] = inner2;
 }
 
+fun main() {
   outer(1.0);
+  print(closures[0]());
   print(closures[1]());
   print(closures[1]());
   print(closures[1]());
-  print(closures[1]());
-  
+}

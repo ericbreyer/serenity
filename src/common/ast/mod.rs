@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Debug};
+use std::{cell::Cell, collections::HashMap, fmt::Debug};
 mod to_str;
 use to_str::ToStr;
 
@@ -12,10 +12,9 @@ use crate::{
 pub enum ASTNode {
     Err,
     Module(Vec<ASTNode>),
-    Statement(Statement),
-    Expression(Expression),
-    Declaration(Declaration),
-    Token(Token),
+    Statement(Statement, usize),
+    Expression(Expression, usize),
+    Declaration(Declaration, usize),
 }
 
 impl Debug for ASTNode {
@@ -62,7 +61,7 @@ pub enum Expression {
     This(Token),
     Super(Token, Token),
     Function(FunctionExpression),
-    Cast(Box<Expression>, ValueType),
+    Cast(Box<Expression>, ValueType, Cell<ValueType>),
     ArrayLiteral(Vec<Expression>),
     StructInitializer(CustomStruct, HashMap<String, Expression>),
     Empty,

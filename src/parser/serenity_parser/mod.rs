@@ -1,6 +1,7 @@
 mod parse_table;
 
 use crate::common::ast::{self, ArrayDeclaration};
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::common::ParseResult;
 use crate::typing::ValueTypeK;
@@ -143,7 +144,8 @@ impl SerenityParser {
         } else if self.match_token(TokenType::Struct) {
             ret = self.struct_declaration();
         } else {
-            ret = ASTNode::Statement(self.statement());
+            let line = self.previous.line;
+            ret = ASTNode::Statement(self.statement(), line);
         }
         if self.panic_mode.get() {
             self.synchronize();
@@ -265,14 +267,15 @@ impl SerenityParser {
 
     fn for_statement(&mut self) -> Statement {
         self.consume(TokenType::LeftParen, "Expect '(' after 'for'.");
+        let line = self.previous.line;
 
         let initializer: Option<ASTNode>;
         if self.match_token(TokenType::Semicolon) {
-            initializer = ASTNode::Expression(Expression::Empty).into();
+            initializer = ASTNode::Expression(Expression::Empty, line).into();
         } else if self.match_token(TokenType::Var) {
             initializer = self.var_declaration(true).into();
         } else {
-            initializer = ASTNode::Statement(self.expression_statement()).into();
+            initializer = ASTNode::Statement(self.expression_statement(), line).into();
         }
 
         let mut cond_node = None;
@@ -307,12 +310,13 @@ impl SerenityParser {
         let cast_type = self.parse_complex_type(false);
         self.consume(TokenType::RightParen, "Expect ')' after type.");
 
-        Expression::Cast(Box::new(node), cast_type)
+        Expression::Cast(Box::new(node), cast_type, Cell::new(ValueTypeK::Nil.intern()))
     }
 
     fn struct_declaration(&mut self) -> ASTNode {
         self.consume(TokenType::Identifier, "Expect struct name.");
         let name = self.previous.clone();
+        let line = self.previous.line;
 
         debug!("before Struct: {}", name.lexeme);
 
@@ -387,7 +391,7 @@ impl SerenityParser {
                 name: name.lexeme.clone(),
                 fields: Rc::clone(&self.custom_types.get(&name.lexeme).unwrap().fields),
             },
-        }))
+        }), line)
     }
 
     fn parse_complex_type(&mut self, is_const: bool) -> ValueType {
@@ -444,7 +448,7 @@ impl SerenityParser {
             ValueTypeK::Err.intern()
         };
         if self.match_token(TokenType::Star) {
-            return ValueTypeK::Pointer(parset_type, is_const).intern();
+            return ValueTypeK::Pointer(parset_type, true).intern();
         }
         parset_type
     }
@@ -479,6 +483,7 @@ impl SerenityParser {
 
     fn array_declaration(&mut self, var_name: String, var_type: ValueType) -> ASTNode {
         let mut init = Vec::new();
+        let line = self.previous.line;
         match self.parse_literal_index() {
             Ok(n) => {
                 self.consume(TokenType::RightBracket, "brace");
@@ -496,7 +501,7 @@ impl SerenityParser {
             name: var_name,
             elem_tipe: var_type.into(),
             line: self.previous.line,
-        }))
+        }), line)
     }
 
     fn define_array(&mut self, size: Option<u32>) -> Vec<Expression> {
@@ -555,7 +560,7 @@ impl SerenityParser {
                     name: name,
                     elem_tipe: var_type,
                     line: line,
-                }));
+                }), line);
             }
             if self.current.token_type == TokenType::Struct {
                 let s = self.struct_initializer();
@@ -576,7 +581,7 @@ impl SerenityParser {
             initializer: initializer.map(Box::new),
             mutable: mutable,
             line: line,
-        }))
+        }), line)
     }
 
     fn struct_initializer(&mut self) -> Expression {
@@ -614,15 +619,13 @@ impl SerenityParser {
             name: name,
             body: node,
             line: self.previous.line,
-        }));
+        }), self.previous.line);
     }
 
     fn lambda(&mut self, _can_assign: bool) -> Expression {
-        static mut ANON_ID: u32 = 0;
-        let func_expr = self.function(format!("anon{}", unsafe { ANON_ID }).as_str());
-        unsafe {
-            ANON_ID += 1;
-        };
+        static ANON_ID : AtomicUsize =  AtomicUsize::new(0);
+        let func_expr = self.function(format!("anon{}", ANON_ID.load(Ordering::Relaxed)).as_str());
+        ANON_ID.fetch_add(1, Ordering::Relaxed);
         Expression::Function(func_expr)
     }
 
@@ -918,11 +921,23 @@ impl Parser for SerenityParser {
             while parser.current.token_type != TokenType::EOF {
                 nodes.push(parser.declaration());
             }
+            
+            //call the users main function
+            nodes.push(ASTNode::Statement(Statement::Expression(Expression::Call(Expression::Variable(Token{ token_type: TokenType::Identifier, lexeme: "main".to_string(), line: 0 }).into(), Vec::new()).into()), 0));
+            
+
             parser.consume(TokenType::EOF, "Expect end of file.");
             ret.ast = ASTNode::Module(nodes);
             ret.had_errors = parser.had_error.get();
             ret.custom_structs = parser.custom_types.clone();
         }
+
+        if ret.had_errors {
+            tracing::error!("Parse errors");
+        } else {
+            tracing::info!("Parse success");
+        }
+
         ret
     }
 }

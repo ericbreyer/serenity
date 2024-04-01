@@ -16,17 +16,14 @@ impl ToStr for ASTNode {
                     s.push_str(&n.to_string(depth));
                 };
             }
-            ASTNode::Statement(st) => {
-                s.push_str(&format!("{}", st.to_string(depth)));
+            ASTNode::Statement(st, line) => {
+                s.push_str(&format!("Line {}: {}", line, st.to_string(depth)));
             }
-            ASTNode::Expression(e) => {
-                s.push_str(&format!("{}", e.to_string(depth)));
+            ASTNode::Expression(e, line) => {
+                s.push_str(&format!("Line {}: {}", line, e.to_string(depth)));
             }
-            ASTNode::Declaration(d) => {
-                s.push_str(&format!("{}", d.to_string(depth)));
-            }
-            ASTNode::Token(t) => {
-                s.push_str(&format!("{}", t.to_string(depth)));
+            ASTNode::Declaration(d, line) => {
+                s.push_str(&format!("Line {}: {}", line, d.to_string(depth)));
             }
         }
         s
@@ -111,9 +108,9 @@ impl ToStr for Expression {
                 s.push_str(&format!("Super: {:?} {:?}", t, m));
             }
             Expression::Function(f) => {
-                s.push_str(&format!("Function: {:?}", f.to_string(depth + 1)));
+                s.push_str(&format!("Function: {}", f.to_string(depth + 1)));
             }
-            Expression::Cast(e, t) => {
+            Expression::Cast(e, t, _) => {
                 s.push_str(&format!("Cast: {:?}", t));
                 s.push_str(&e.to_string(depth + 1));
             }
@@ -211,7 +208,7 @@ impl ToStr for FunctionExpression {
         for _ in 0..depth {
             s.push_str("  ");
         }
-        s.push_str(&format!("Function:"));
+        s.push_str(&format!("return_type: {:?}", self.return_type));
         s.push('\n');
             for _ in 0..depth+1 {
                 s.push_str("  ");

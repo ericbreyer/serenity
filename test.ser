@@ -8,6 +8,7 @@ fun cumtrapz(f : fun(float) -> float, start:float, num_steps: int, step : float,
   }
 }
 
+fun main() {
 var buf : float[21];
 
 cumtrapz(lambda(x : float) -> float {return cast(2, float) * x;}, 0.0, 20, 0.1, buf);
@@ -16,26 +17,29 @@ for (var i = 0; i < 21; i = i + 1) {
   print cast(cast(buf[i] * 100.0, int), float) / 100.0;
 }
 
-fun outer(const x: float) -> fun() -> float {
-  fun inner() -> float {
-    return -x*-x - x + - x;
+  fun outer(const x: float) -> fun() -> float {
+    fun inner() -> float {
+      return x;
+    }
+
+    return inner;
   }
 
-  return inner;
-}
 
-var f = outer(100.0);
-print f();
+  var f = outer(100.0);
+  print "hi";
+  print f();
 
-var s = "hello\nworld";
-s[0] = 'H';
-s[6] = 'W';
-print s;
-print 'F';
+  var s = "hello\nworld";
+  s[0] = 'H';
+  s[6] = 'W';
+  print s;
+  print 'F';
 
-var c = clock();
-for (var i = 0; i < 10; i = i + 1) {
-  print i;
-  while (clock() - c < 1.0) {}
-  c = clock();
+  var c = clock();
+  for (var i = 0; i < 10; i = i + 1) {
+    print i;
+    while (clock() - c < 1.0) {}
+    c = clock();
+  }
 }

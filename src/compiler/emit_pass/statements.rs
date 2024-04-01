@@ -2,11 +2,11 @@ use tracing::instrument;
 
 use crate::{chunk::Opcode, common::ast::{ASTNode, Expression, Statement}, typing::ValueTypeK};
 
-use super::Compiler;
+use super::EmitWalker;
 
 use crate::error;
 
-impl Compiler {
+impl EmitWalker {
 
     #[instrument(level = "trace", skip_all)]
     pub fn print(&mut self, e: Expression) {

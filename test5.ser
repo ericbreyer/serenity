@@ -1,17 +1,49 @@
-struct inner {
-        a: int,
-        b: int,
-        };
+struct counter {
+        count : int,
+};
 
-struct outer {
-        c: int,
-        d: struct inner,
-        };
+fun increment(c : struct counter *) {
+        c->count = c->count + 1;
+}
 
-var e: struct outer;
-e.c = 1;
-e.d.a = 2;
-e.d.b = 3;
-print e.c;
-print e.d.a;
-print e.d.b;
+fun decrement(c : struct counter *) {
+        c->count = c->count - 1;
+}
+
+var closures: (fun(int) -> int)[2];
+
+fun make_counter() {
+        var c: struct counter;
+        c.count = 0;
+        closures[0] = lambda(x: int) -> int {
+                var d = c;
+                d.count = d.count + x;
+                return d.count;
+        };
+        closures[1] = lambda(x: int) -> int {
+                c.count = c.count - x;
+                return c.count;
+        };
+}
+
+fun main() {
+        var c: struct counter;
+        c.count = 0;
+        increment(&c);
+        print c.count;
+        increment(&c);
+        print c.count;
+        decrement(&c);
+        print c.count;
+        decrement(&c);
+        print c.count;
+
+        make_counter();
+        print "here";
+        print closures[0](1);
+        print closures[0](1);
+        print closures[1](1);
+        print closures[1](1);
+        print closures[0](1);
+        print closures[1](1);
+}
