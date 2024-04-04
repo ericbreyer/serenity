@@ -2,7 +2,7 @@
 pub mod pointer;
 
 use core::fmt;
-use std::{cell::RefCell, fmt::Debug, mem::take, ops::Index, rc::Rc};
+use std::{fmt::Debug, ops::Index, rc::Rc};
 
 use self::pointer::Pointer;
 use crate::common::runnable::Runnable;
@@ -70,7 +70,7 @@ pub enum Value {
 	Char(u8),
 	Bool(bool),
 	Nil,
-	Object(Runnable),
+	Runnable(Runnable),
 	Pointer(Pointer),
 	Closure(Closure),
 }
@@ -86,23 +86,14 @@ impl Value {
 	}
 
 	pub fn to_words(&self) -> Vec<Word> {
-		// match self {
-		// 	Value::Integer(i) => (*i as u64).into(),
-		// 	Value::Float(f) => f.to_bits().into(),
-		// 	Value::Char(c) => (*c as u64).into(),
-		// 	Value::Bool(b) => (*b as u64).into(),
-		// 	Value::Nil => 0.into(),
-		// 	Value::Object(_) => panic!("cannot convert object to word"),
-		// 	Value::Pointer(p) => p.to_word(),
-		// }
 		match self {
 			Value::Integer(i) => vec![(*i as u64).into()],
 			Value::Float(f) => vec![f.to_bits().into()],
 			Value::Char(c) => vec![(*c as u64).into()],
 			Value::Bool(b) => vec![(*b as u64).into()],
 			Value::Nil => vec![0.into()],
-			Value::Object(_) => panic!("cannot convert object to word"),
-			Value::Pointer(p) => p.to_words(),
+			Value::Runnable(_) => panic!("cannot convert object to word"),
+			Value::Pointer(p) => vec![p.to_word()],
 			Value::Closure(c) => c.clone().to_words(),
 		}
 	}
@@ -127,10 +118,9 @@ impl Debug for Value {
 			Value::Char(c) => write!(f, "{}", *c as char),
 			Value::Bool(b) => write!(f, "{}", b),
 			Value::Nil => write!(f, "nil"),
-			Value::Object(o) => match o {
+			Value::Runnable(o) => match o {
 				Runnable::Function(func) => write!(f, "{:?}", func),
 				Runnable::NativeFunction(_) => write!(f, "<native fn>"),
-				// Object::Upvalue(_) => write!(f, "<upvalue>"),
 			},
 			Value::Pointer(p) => write!(f, "{:?}", p),
 			Value::Closure(_c) => write!(f, "{:?}", "closure"),
@@ -161,13 +151,6 @@ impl Index<usize> for ConstantPool {
 
 
 #[derive(Clone, PartialEq, Debug)]
-pub struct Upvalue {
-    pub slize: usize,
-    pub closed: bool,
-    pub idx: usize,
-}
-
-#[derive(Clone, PartialEq, Debug)]
 pub struct Closure {
     pub func : Pointer,
     pub upvalue_count: u32,
@@ -175,15 +158,12 @@ pub struct Closure {
 }
 impl Closure {
     pub fn to_words(self) -> Vec<Word> {
-        let mut words = self.func.to_words();
+        let mut words = vec![self.func.to_word()];
 	words.push((self.upvalue_count as u64).into());
-	unsafe {
 		let ptr = Rc::into_raw(self.upvalue_segment) ;
 	words.push(
 	    Word(ptr as u64)
 	);
-	Rc::increment_strong_count(ptr);
-}
         words
     }
     pub fn new(f: Pointer, upvalue_count : u32, upvalue_segment: Rc<Vec<Word>>) -> Closure {

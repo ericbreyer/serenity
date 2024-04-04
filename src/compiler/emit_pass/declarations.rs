@@ -1,42 +1,38 @@
-use tracing::{instrument, span, Level};
+use tracing::{ instrument, span, Level };
 
 use crate::{
     chunk::Opcode,
     common::ast::{
-        ArrayDeclaration, Expression, FunctionDeclaration, StructDeclaration, VarDeclaration
+        ArrayDeclaration,
+        Expression,
+        FunctionDeclaration,
+        StructDeclaration,
+        VarDeclaration,
     },
-    value::{pointer::Pointer, Value},
-    typing::ValueTypeK,
+    typing::ValueType,
+    value::{ pointer::Pointer, Value },
+    error
 };
 
-use super::{EmitWalker, Local};
-
-use crate::error;
+use super::{ EmitWalker, Local };
 
 impl EmitWalker {
-
     #[instrument(level = "trace", skip(self))]
     pub fn var_declaration(&mut self, mut v: VarDeclaration) {
         let _guard = span!(Level::TRACE, "var_declaration");
         let line = v.line;
 
         let name = v.name.clone();
-        let mut global_id = self.parse_variable(v.name, v.mutable);
-        
+        let global_id = self.parse_variable(v.name, v.mutable);
 
         if let Some(var_type) = v.tipe {
             if global_id == -1 {
                 let last_local = self.last_local();
-                self.function_compiler
-                    .locals
-                    .get_mut(&last_local)
-                    .unwrap()
-                    .local_type = var_type;
+                self.function_compiler.locals.get_mut(&last_local).unwrap().local_type = var_type;
                 // self.function_compiler.local_count += var_type.num_words() as usize;
             } else {
                 self.gloabls.insert(name.clone(), global_id as usize);
-                self.global_types
-                    .insert(global_id as usize, (var_type, v.mutable, true));
+                self.global_types.insert(global_id as usize, (var_type, v.mutable, true));
             }
         }
         if let Some(expr) = v.initializer {
@@ -44,10 +40,10 @@ impl EmitWalker {
 
             if let Some(var_type) = v.tipe {
                 if expr_type != var_type {
-                    error!(self, &format!(
-                        "Type mismatch, expected {:?} got {:?}",
-                        var_type, expr_type
-                    ));
+                    error!(
+                        self,
+                        &format!("Type mismatch, expected {:?} got {:?}", var_type, expr_type)
+                    );
                 }
             }
 
@@ -56,16 +52,11 @@ impl EmitWalker {
             if global_id == -1 {
                 let last_local = self.last_local();
                 self.function_compiler.locals.get_mut(&last_local).unwrap().assigned = true;
-                self.function_compiler
-                    .locals
-                    .get_mut(&last_local)
-                    .unwrap()
-                    .local_type = expr_type;
+                self.function_compiler.locals.get_mut(&last_local).unwrap().local_type = expr_type;
                 // self.function_compiler.local_count += expr_type.num_words() as usize;
             } else {
                 self.gloabls.insert(name, global_id as usize);
-                self.global_types
-                    .insert(global_id as usize, (expr_type, v.mutable, true));
+                self.global_types.insert(global_id as usize, (expr_type, v.mutable, true));
             }
         } else {
             for _ in 0..v.tipe.unwrap().num_words() {
@@ -85,15 +76,16 @@ impl EmitWalker {
         self.declare_variable(name.clone(), mutable);
         if self.function_compiler.scope_depth > 0 {
             let last_local = self.last_local();
-            self.function_compiler.locals.get_mut(&last_local).unwrap().depth = self.function_compiler.scope_depth;
+            self.function_compiler.locals.get_mut(&last_local).unwrap().depth =
+                self.function_compiler.scope_depth;
             return -1;
         }
-        self.gloabls
-            .insert(name.clone(), self.static_data_segment.len());
-        self.global_types.insert(
-            self.static_data_segment.len(),
-            (ValueTypeK::Undef.intern(), mutable, false),
-        );
+        self.gloabls.insert(name.clone(), self.static_data_segment.len());
+        self.global_types.insert(self.static_data_segment.len(), (
+            ValueType::Undef.intern(),
+            mutable,
+            false,
+        ));
         return *self.gloabls.get(&name).unwrap() as i64;
     }
 
@@ -123,12 +115,10 @@ impl EmitWalker {
             mutable: mutable,
             assigned: false,
             captured: false,
-            local_type: ValueTypeK::Undef.intern(),
+            local_type: ValueType::Undef.intern(),
         };
 
-        self.function_compiler
-            .locals
-            .insert(self.function_compiler.local_count, local);
+        self.function_compiler.locals.insert(self.function_compiler.local_count, local);
     }
 
     #[instrument(level = "trace", skip(self))]
@@ -138,7 +128,8 @@ impl EmitWalker {
         if self.function_compiler.scope_depth > 0 {
             // self.compiler.locals.last_mut().unwrap().depth = self.compiler.scope_depth;
             let last_local = self.last_local();
-            self.function_compiler.locals.get_mut(&last_local).unwrap().depth = self.function_compiler.scope_depth;
+            self.function_compiler.locals.get_mut(&last_local).unwrap().depth =
+                self.function_compiler.scope_depth;
         }
 
         if global_id != -1 {
@@ -151,16 +142,10 @@ impl EmitWalker {
 
         if global_id == -1 {
             let last_local = self.last_local();
-            self.function_compiler
-                .locals
-                .get_mut(&last_local)
-                .unwrap()
-                .local_type = t;
+            self.function_compiler.locals.get_mut(&last_local).unwrap().local_type = t;
         } else {
-            
             self.gloabls.insert(name.clone(), global_id as usize);
-            self.global_types
-                .insert(global_id as usize, (t, false, true));
+            self.global_types.insert(global_id as usize, (t, false, true));
         }
         self.define_variable(global_id as u32, t);
     }
@@ -175,7 +160,6 @@ impl EmitWalker {
 
     #[instrument(level = "trace", skip(self))]
     pub fn array_declaration(&mut self, a: ArrayDeclaration) {
-
         let global_id = self.parse_variable(a.name.clone(), false);
         let var_type = a.elem_tipe.expect("elem_tipe is none");
         let n = a.elements.len();
@@ -184,63 +168,52 @@ impl EmitWalker {
 
         if global_id == -1 {
             let last_local = self.last_local();
-            self.function_compiler
-                .locals
-                .get_mut(&last_local)
-                .unwrap()
-                .local_type = ValueTypeK::Array(var_type, n as usize).intern();
+            self.function_compiler.locals.get_mut(&last_local).unwrap().local_type =
+                ValueType::Array(var_type, n as usize).intern();
             self.function_compiler.locals.get_mut(&last_local).unwrap().mutable = false;
             self.function_compiler.locals.get_mut(&last_local).unwrap().assigned = true;
-
         } else {
-            self.global_types.insert(
-                global_id as usize,
-                (
-                    ValueTypeK::Array(var_type, n as usize).intern(),
-                    false,
-                    true,
-                ),
-            );
+            self.global_types.insert(global_id as usize, (
+                ValueType::Array(var_type, n as usize).intern(),
+                false,
+                true,
+            ));
         }
 
         self.define_array(global_id, Some(n as u32), a);
-
     }
 
     fn define_array(&mut self, global_id: i64, size: Option<u32>, a: ArrayDeclaration) {
-        
         let line = 0;
 
         if global_id == -1 {
-            self.function_compiler
-                .func
-                .chunk
-                .write(Opcode::DefineStackArray as u8, line);
+            self.function_compiler.func.chunk.write(Opcode::DefineStackArray as u8, line);
 
             let last_local = self.last_local();
             let elem_type = self.function_compiler.locals.get(&last_local).unwrap().local_type;
-            let mut pointee_type = match elem_type.decay(self.custom_structs.clone().into()) {
-                ValueTypeK::Pointer(t, _) => t,
-                _ => ValueTypeK::Undef.intern(),
+            let mut pointee_type = match elem_type.decay(self.custom_structs.clone().into()).as_ref() {
+                ValueType::Pointer(t, _) => *t,
+                _ => ValueType::Undef.intern(),
             };
 
-            if let ValueTypeK::Array(_, n) =
-                self.function_compiler.locals.get(&last_local).unwrap().local_type
+            if
+                let ValueType::Array(_, n) = self.function_compiler.locals
+                    .get(&last_local)
+                    .unwrap().local_type.as_ref()
             {
                 if *n != a.elements.len() {
-                    error!(self, &format!(
-                        "Args in initializer don't match, expected {} got {}",
-                        n,
-                        a.elements.len()
-                    ));
+                    error!(
+                        self,
+                        &format!(
+                            "Args in initializer don't match, expected {} got {}",
+                            n,
+                            a.elements.len()
+                        )
+                    );
                 }
-            
 
-                self.function_compiler
-                    .locals
-                    .get_mut(&last_local)
-                    .unwrap()
-                    .local_type = ValueTypeK::Array(pointee_type, *n as usize).intern();
+                self.function_compiler.locals.get_mut(&last_local).unwrap().local_type =
+                    ValueType::Array(pointee_type, *n as usize).intern();
                 self.function_compiler.local_count += 1;
             } else {
                 let n = size.expect("size is none");
@@ -264,27 +237,28 @@ impl EmitWalker {
 
             for v in &a.elements {
                 let pt = self.visit_expression(v.clone(), false);
-                if pointee_type == ValueTypeK::Undef.intern() {
+                if pointee_type == ValueType::Undef.intern() {
                     pointee_type = pt;
                 }
                 self.function_compiler.local_count += pointee_type.num_words() as usize;
 
-                if pt != pointee_type && pt != ValueTypeK::Nil.intern() {
-                    error!(self, 
+                if pt != pointee_type && pt != ValueType::Nil.intern() {
+                    error!(
+                        self,
                         format!(
                             "b Element must have type {:?}, got {:?} instead",
-                            pointee_type, pt
-                        )
-                        .as_str()
+                            pointee_type,
+                            pt
+                        ).as_str()
                     );
                 }
             }
-        }else {
+        } else {
             // global array
             let elem_type = self.global_types.get(&(global_id as usize)).unwrap().0;
-            let mut pointee_type = match elem_type.decay(self.custom_structs.clone().into()) {
-                ValueTypeK::Pointer(t, _) => t,
-                _ => ValueTypeK::Undef.intern(),
+            let mut pointee_type = match elem_type.decay(self.custom_structs.clone().into()).as_ref() {
+                ValueType::Pointer(t, _) => *t,
+                _ => ValueType::Undef.intern(),
             };
 
             if let Expression::Empty = a.elements[0] {
@@ -297,30 +271,36 @@ impl EmitWalker {
 
             for v in a.elements.clone() {
                 let pt = self.visit_expression(v, false);
-                if pointee_type == ValueTypeK::Undef.intern() {
+                if pointee_type == ValueType::Undef.intern() {
                     pointee_type = pt;
                 }
 
-                if pt != pointee_type && pt != ValueTypeK::Nil.intern() {
-                    error!(self, 
+                if pt != pointee_type && pt != ValueType::Nil.intern() {
+                    error!(
+                        self,
                         format!(
                             "a Element must have type {:?}, got {:?} instead",
-                            pointee_type, pt
-                        )
-                        .as_str()
+                            pointee_type,
+                            pt
+                        ).as_str()
                     );
                 }
             }
 
-            if let ValueTypeK::Array(_, n) =
-                self.global_types.get(&(global_id as usize)).unwrap().0
+            if
+                let ValueType::Array(_, n) = self.global_types
+                    .get(&(global_id as usize))
+                    .unwrap().0.as_ref()
             {
                 if *n != a.elements.len() {
-                    error!(self, &format!(
-                        "Args in initializer don't match, expected {} got {}",
-                        n,
-                        a.elements.len()
-                    ));
+                    error!(
+                        self,
+                        &format!(
+                            "Args in initializer don't match, expected {} got {}",
+                            n,
+                            a.elements.len()
+                        )
+                    );
                 }
             }
 
@@ -329,7 +309,7 @@ impl EmitWalker {
             let words = Value::Pointer(Pointer::Static(self.static_data_segment.len())).to_words();
 
             for word in 0..words.len() {
-                self.static_data_segment[global_id as usize + word] = words[word];
+                self.static_data_segment[(global_id as usize) + word] = words[word];
             }
             for _ in 0..size.unwrap() {
                 for _ in 0..pointee_type.num_words() {
@@ -340,13 +320,10 @@ impl EmitWalker {
             self.function_compiler.func.chunk.write_pool_opcode(
                 Opcode::DefineGlobalArray,
                 global_id as u32,
-                line,
+                line
             );
             self.function_compiler.func.chunk.write(size.unwrap() as u8, line);
-            self.function_compiler
-                .func
-                .chunk
-                .write(pointee_type.num_words() as u8, line);
+            self.function_compiler.func.chunk.write(pointee_type.num_words() as u8, line);
         }
     }
 }

@@ -6,9 +6,9 @@ use std::collections::HashMap;
 
 use emit_pass::EmitWalker;
 
-use crate::{ common::{ CompileResult, ParseResult }, typing::ValueType };
+use crate::{ common::{ CompileResult, ParseResult }, typing::UValueType };
 
-use self::type_check_pass::TypeCheckWalker;
+use self::{optimization_pass::OptimizationWalker, type_check_pass::TypeCheckWalker};
 
 #[macro_export]
 macro_rules! error {
@@ -19,9 +19,9 @@ macro_rules! error {
 
 pub fn compile(
     mut parsed: ParseResult,
-    native_functions: &HashMap<String, (usize, ValueType)>
+    native_functions: &HashMap<String, (usize, UValueType)>
 ) -> CompileResult {
     parsed = TypeCheckWalker::type_check(parsed, native_functions);
-    parsed = optimization_pass::OptimizationWalker::optimize(parsed, native_functions);
+    parsed = OptimizationWalker::optimize(parsed, native_functions);
     return EmitWalker::emit(parsed, native_functions);
 }

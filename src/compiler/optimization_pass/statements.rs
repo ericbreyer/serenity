@@ -1,10 +1,10 @@
 use tracing::instrument;
 
-use crate::{chunk::Opcode, common::ast::{ASTNode, Expression, Statement}, typing::ValueTypeK};
+use crate::{common::ast::{ASTNode, Expression, Statement}};
 
 use super::OptimizationWalker;
 
-use crate::error;
+
 
 impl OptimizationWalker {
 
@@ -15,17 +15,17 @@ impl OptimizationWalker {
     }
     
     #[instrument(level = "trace", skip_all)]
-    pub fn while_statement(&mut self, c: Expression, b: Statement) {
+    pub fn while_statement(&mut self, _c: Expression, _b: Statement) {
         
     }
 
     #[instrument(level = "trace", skip_all)]
-    pub fn for_statement(&mut self, initializer: Option<ASTNode>, condition: Option<Expression>, increment: Option<Expression>, body: Statement) {
+    pub fn for_statement(&mut self, _initializer: Option<ASTNode>, _condition: Option<Expression>, _increment: Option<Expression>, _body: Statement) {
         
     }
 
     #[instrument(level = "trace", skip_all)]
-    pub fn if_statement(&mut self, c: Expression, t: Statement, e: Option<Statement>) {
+    pub fn if_statement(&mut self, _c: Expression, _t: Statement, _e: Option<Statement>) {
 
     }
 

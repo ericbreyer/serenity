@@ -9,8 +9,8 @@ use crate::common::ParseResult;
 
 use crate::error;
 
-use crate::typing::{ CustomStruct, ValueType };
-use crate::typing::ValueTypeK;
+use crate::typing::{ CustomStruct, UValueType };
+use crate::typing::ValueType;
 
 
 
@@ -21,6 +21,7 @@ use std::collections::HashMap;
 
 use std::fmt::Debug;
 use std::rc::Rc;
+use std::sync::atomic::AtomicU64;
 
 
 
@@ -29,7 +30,7 @@ pub struct TypeCheckWalker {
     panic_mode: Cell<bool>,
     function_compiler: Box<FunctionCompiler>,
     gloabls: HashMap<String, usize>,
-    global_types: HashMap<usize, (ValueType, bool)>,
+    global_types: HashMap<usize, (UValueType, bool)>,
     custom_structs: Rc<HashMap<String, CustomStruct>>,
 }
 
@@ -42,7 +43,7 @@ impl Debug for TypeCheckWalker {
 impl TypeCheckWalker { 
     fn new(
         compiler: Box<FunctionCompiler>,
-        native_functions: &HashMap<String, (usize, ValueType)>,
+        native_functions: &HashMap<String, (usize, UValueType)>,
         custom_structs: HashMap<String, CustomStruct>
     ) -> TypeCheckWalker {
         let mut c = TypeCheckWalker {
@@ -53,9 +54,9 @@ impl TypeCheckWalker {
             global_types: HashMap::new(),
             custom_structs: custom_structs.into(),
         };
-        for (name, (_id, t)) in native_functions.iter() {
-            c.gloabls.insert(name.clone(), 0);
-            c.global_types.insert(0, (*t, false));
+        for (i, (name, (_id, t)) )in native_functions.iter().enumerate() {
+            c.gloabls.insert(name.clone(), i);
+            c.global_types.insert(i, (*t, false));
         }
         c
     }
@@ -91,6 +92,8 @@ impl TypeCheckWalker {
 
     #[instrument(skip_all, level = "trace")]
     fn visit_statement(&mut self, node: Statement) -> bool {
+        static LOOP_NEST: AtomicU64 = AtomicU64::new(0);
+
         match node {
             Statement::Print(e) => {
                 self.print(*e)
@@ -99,10 +102,20 @@ impl TypeCheckWalker {
                 self.begin_scope();
                 let mut has_return = false;
                 for n in nodes {
-                   let ( _, r) = self.visit(n);
+                   let ( n_prime, r) = self.visit(n);
                    has_return = has_return || r;
+                   // if nprime was a break, return, or continue, we should break out of the loop
+                   if match n_prime {
+                       ASTNode::Statement(Statement::Break, _) => true,
+                       ASTNode::Statement(Statement::Return(_), _) => true,
+                       ASTNode::Statement(Statement::Continue, _) => true,
+                       _ => false,
+                   } {
+                       break;
+                   }
                 }
                 self.end_scope();
+                
                 has_return
             }
             Statement::If(e, s, o) => {
@@ -113,20 +126,36 @@ impl TypeCheckWalker {
                 )
             }
             Statement::While(e, s) => {
-                self.while_statement(*e, *s)
+                LOOP_NEST.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                let r = self.while_statement(*e, *s);
+                LOOP_NEST.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
+                r
             }
             Statement::For(i, c, u, s) => {
-                self.for_statement(
+                LOOP_NEST.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                let r = self.for_statement(
                     i.map(|x| *x),
                     c.map(|x| *x),
                     u.map(|x| *x),
                     *s
-                )
+                );
+                LOOP_NEST.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
+                r
             }
-            Statement::Break => todo!(),
-            Statement::Continue => todo!(),
+            Statement::Break => {
+                if LOOP_NEST.load(std::sync::atomic::Ordering::SeqCst) == 0 {
+                    error!(self, "Cannot break outside of loop.");
+                }
+                false
+            }
+            Statement::Continue => {
+                if LOOP_NEST.load(std::sync::atomic::Ordering::SeqCst) == 0 {
+                    error!(self, "Cannot continue outside of loop.");
+                }
+                false
+            },
             Statement::Return(s) => {
-                let mut t = ValueTypeK::Nil.intern();
+                let mut t = ValueType::Nil.intern();
                 if let Some(e) = s {
                     t = self.visit_expression(*e, false);
                 }
@@ -145,7 +174,7 @@ impl TypeCheckWalker {
     }
 
     #[instrument(skip_all, level = "trace")]
-    fn visit_expression(&mut self, node: Expression, assignment_target: bool) -> ValueType {
+    fn visit_expression(&mut self, node: Expression, assignment_target: bool) -> UValueType {
         if assignment_target {
             match node {
                 Expression::Deref(_) => (),
@@ -154,7 +183,7 @@ impl TypeCheckWalker {
                 Expression::Dot(_, _) => (),
                 _ => {
                     error!(self, "Invalid in assignment target expression.");
-                    return ValueTypeK::Err.intern();
+                    return ValueType::Err.intern();
                 }
             }
         }
@@ -177,9 +206,9 @@ impl TypeCheckWalker {
             Expression::Cast(e, t, ref from_t) => self.cast(*e, t, from_t),
             Expression::ArrayLiteral(a) => self.array_literal(a),
             Expression::StructInitializer(t, v) => self.struct_literal(t, v),
-            Expression::Empty => ValueTypeK::Nil.intern(),
-            Expression::Nil => ValueTypeK::Nil.intern(),
-            _ => ValueTypeK::Err.intern(),
+            Expression::Empty => ValueType::Nil.intern(),
+            Expression::Nil => ValueType::Nil.intern(),
+            _ => ValueType::Err.intern(),
         };
         t
     }
@@ -218,9 +247,9 @@ impl TypeCheckWalker {
 
             // if its an array, we need to pop the array off the stack
             if
-                let ValueTypeK::Array(t, n) = self.function_compiler.locals
+                let ValueType::Array(t, n) = self.function_compiler.locals
                     .get(&last_local)
-                    .unwrap().local_type
+                    .unwrap().local_type.as_ref()
             {
                 let words = t.num_words();
                 for _ in 0..*n {
@@ -236,7 +265,7 @@ impl TypeCheckWalker {
         }
     }
 
-    fn define_variable(&mut self, _global_id: u32, local_type: ValueType) {
+    fn define_variable(&mut self, _global_id: u32, local_type: UValueType) {
         if self.function_compiler.scope_depth > 0 {
             self.mark_initialized();
             let last_local = self.last_local();
@@ -307,12 +336,12 @@ struct Local {
     mutable: bool,
     assigned: bool,
     captured: bool,
-    local_type: ValueType,
+    local_type: UValueType,
 }
 
 struct FunctionCompiler {
     upvalues: Vec<Upvalue>,
-    return_type: ValueType,
+    return_type: UValueType,
 
     locals: HashMap<usize, Local>,
     local_count: usize,
@@ -322,17 +351,15 @@ struct FunctionCompiler {
     enclosing: Option<Box<FunctionCompiler>>,
 }
 struct Upvalue {
-    pub upvalue_type: ValueType,
     pub name: String,
     pub local_idx: usize,
-    pub upvalue_idx: usize,
 }
 
 impl Default for FunctionCompiler {
     fn default() -> Self {
         FunctionCompiler {
             locals: HashMap::new(),
-            return_type: ValueTypeK::Nil.intern(),
+            return_type: ValueType::Nil.intern(),
             local_count: 0,
             upvalue_count: 0,
             scope_depth: 0,
@@ -349,7 +376,7 @@ impl FunctionCompiler {
     ) -> FunctionCompiler {
         let mut c = FunctionCompiler {
             locals: HashMap::new(),
-            return_type: ValueTypeK::Nil.intern(),
+            return_type: ValueType::Nil.intern(),
             local_count: 0,
             upvalue_count: 0,
             scope_depth: 0,
@@ -362,7 +389,7 @@ impl FunctionCompiler {
             mutable: false,
             assigned: false,
             captured: false,
-            local_type: ValueTypeK::Nil.intern(),
+            local_type: ValueType::Nil.intern(),
         });
 
         c.local_count += 3;
@@ -380,7 +407,7 @@ impl TypeCheckWalker {
     #[instrument(skip_all, level = "info")]
     pub fn type_check(
         parsed: ParseResult,
-        native_functions: &HashMap<String, (usize, ValueType)>,
+        native_functions: &HashMap<String, (usize, UValueType)>,
     ) -> ParseResult {
         if parsed.had_errors {
             tracing::error!("Parsing failed.");

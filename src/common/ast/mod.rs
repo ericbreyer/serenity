@@ -1,11 +1,11 @@
-use std::{cell::Cell, collections::HashMap, fmt::Debug};
+use std::{ cell::Cell, collections::HashMap, fmt::Debug };
 mod to_str;
 use to_str::ToStr;
 
 use crate::{
-    lexer::{Token, TokenType},
+    lexer::{ Token, TokenType },
+    typing::{ CustomStruct, UValueType, ValueType },
     value::Value,
-    typing::{CustomStruct, ValueType, ValueTypeK},
 };
 
 #[derive(Clone)]
@@ -29,12 +29,7 @@ pub enum Statement {
     Block(Vec<ASTNode>),
     If(Box<Expression>, Box<Statement>, Option<Box<Statement>>),
     While(Box<Expression>, Box<Statement>),
-    For(
-        Option<Box<ASTNode>>,
-        Option<Box<Expression>>,
-        Option<Box<Expression>>,
-        Box<Statement>,
-    ),
+    For(Option<Box<ASTNode>>, Option<Box<Expression>>, Option<Box<Expression>>, Box<Statement>),
     Break,
     Continue,
     Return(Option<Box<Expression>>),
@@ -61,7 +56,7 @@ pub enum Expression {
     This(Token),
     Super(Token, Token),
     Function(FunctionExpression),
-    Cast(Box<Expression>, ValueType, Cell<ValueType>),
+    Cast(Box<Expression>, UValueType, Cell<UValueType>),
     ArrayLiteral(Vec<Expression>),
     StructInitializer(CustomStruct, HashMap<String, Expression>),
     Empty,
@@ -93,31 +88,32 @@ impl HalfExpression {
             HalfExpression::Index(r) => Expression::Index(Box::new(left), r),
             HalfExpression::Call(r) => Expression::Call(Box::new(left), r),
             HalfExpression::Assign(r) => Expression::Assign(Box::new(left), r),
-            HalfExpression::DerefDot(t) => Expression::Dot(Box::new(Expression::Deref(Box::new(left))), t),
+            HalfExpression::DerefDot(t) =>
+                Expression::Dot(Box::new(Expression::Deref(Box::new(left))), t),
         }
     }
 }
 
 #[derive(Clone)]
 pub struct FunctionExpression {
-    pub params: Vec<(String, ValueType)>,
+    pub params: Vec<(String, UValueType)>,
     pub body: Vec<ASTNode>,
-    pub return_type: ValueType,
+    pub return_type: UValueType,
     pub name: String,
 }
 
 impl FunctionExpression {
     pub fn new(
-        params: Vec<(String, ValueType)>,
+        params: Vec<(String, UValueType)>,
         body: Vec<ASTNode>,
-        return_type: ValueType,
-        name: String,
+        return_type: UValueType,
+        name: String
     ) -> FunctionExpression {
         FunctionExpression {
             params,
             body,
             return_type,
-            name
+            name,
         }
     }
 }
@@ -127,7 +123,7 @@ impl Default for FunctionExpression {
         FunctionExpression {
             params: vec![],
             body: vec![],
-            return_type: ValueTypeK::Nil.intern(),
+            return_type: ValueType::Nil.intern(),
             name: String::new(),
         }
     }
@@ -144,7 +140,7 @@ pub enum Declaration {
 #[derive(Clone)]
 pub struct VarDeclaration {
     pub name: String,
-    pub tipe: Option<ValueType>,
+    pub tipe: Option<UValueType>,
     pub initializer: Option<Box<Expression>>,
     pub mutable: bool,
     pub line: usize,
@@ -160,7 +156,7 @@ impl Debug for VarDeclaration {
 pub struct ArrayDeclaration {
     pub name: String,
     pub elements: Vec<Expression>,
-    pub elem_tipe: Option<ValueType>,
+    pub elem_tipe: Option<UValueType>,
     pub line: usize,
 }
 

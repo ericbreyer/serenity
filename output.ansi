@@ -2,11 +2,604 @@
  INFO parse: serenity::parser::serenity_parser: Parse success
  INFO parse: serenity::parser::serenity_parser: exit
  INFO type_check: serenity::compiler::type_check_pass: enter
+DEBUG type_check: serenity::compiler::type_check_pass: ast Line 7: 
+Declaration: Fun: 
+  FunctionDeclaration: "main"
+    return_type: UValueType(3)
+      Params:Line 2: 
+      Declaration: Var: 
+        VarDeclaration: "v"
+          Call:
+            Variable: Token { token_type: Identifier, lexeme: "sbrk", line: 2 }
+            Literal: 1Line 3: 
+      Declaration: Var: 
+        VarDeclaration: "p"
+          Cast: UValueType(6)
+            Variable: Token { token_type: Identifier, lexeme: "v", line: 3 }Line 3: 
+      Expression: 
+        Assign:
+          Deref: 
+            Variable: Token { token_type: Identifier, lexeme: "p", line: 4 }
+          Literal: 2Line 4: 
+      Print: 
+        Variable: Token { token_type: Identifier, lexeme: "p", line: 5 }Line 5: 
+      Print: 
+        Deref: 
+          Variable: Token { token_type: Identifier, lexeme: "p", line: 6 }Line 0: 
+Expression: 
+  Call:
+    Variable: Token { token_type: Identifier, lexeme: "main", line: 0 }
+TRACE type_check:visit: serenity::compiler::type_check_pass: enter
+TRACE type_check:visit:visit: serenity::compiler::type_check_pass: enter
+TRACE type_check:visit:visit:visit_declaration: serenity::compiler::type_check_pass: enter
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}: serenity::compiler::type_check_pass::declarations: enter
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function: serenity::compiler::type_check_pass::expressions: enter
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit: serenity::compiler::type_check_pass: enter
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration: serenity::compiler::type_check_pass: enter
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=v}: serenity::compiler::type_check_pass::declarations: enter
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=v}:visit_expression: serenity::compiler::type_check_pass: enter
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=v}:visit_expression:call: serenity::compiler::type_check_pass::expressions: enter
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=v}:visit_expression:call:visit_expression: serenity::compiler::type_check_pass: enter
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=v}:visit_expression:call:visit_expression:variable: serenity::compiler::type_check_pass::expressions: enter
+DEBUG type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=v}:visit_expression:call:visit_expression:variable: serenity::compiler::type_check_pass::expressions: variable tok=Token { token_type: Identifier, lexeme: "sbrk", line: 2 } assignment_target=false
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=v}:visit_expression:call:visit_expression:variable: serenity::compiler::type_check_pass::expressions: exit
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=v}:visit_expression:call:visit_expression: serenity::compiler::type_check_pass: exit
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=v}:visit_expression:call:visit_expression: serenity::compiler::type_check_pass: enter
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=v}:visit_expression:call:visit_expression:literal: serenity::compiler::type_check_pass::expressions: enter
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=v}:visit_expression:call:visit_expression:literal: serenity::compiler::type_check_pass::expressions: exit
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=v}:visit_expression:call:visit_expression: serenity::compiler::type_check_pass: exit
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=v}:visit_expression:call: serenity::compiler::type_check_pass::expressions: exit
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=v}:visit_expression: serenity::compiler::type_check_pass: exit
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=v}: serenity::compiler::type_check_pass::declarations: exit
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration: serenity::compiler::type_check_pass: exit
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit: serenity::compiler::type_check_pass: exit
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit: serenity::compiler::type_check_pass: enter
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration: serenity::compiler::type_check_pass: enter
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=p}: serenity::compiler::type_check_pass::declarations: enter
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=p}:visit_expression: serenity::compiler::type_check_pass: enter
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=p}:visit_expression:cast: serenity::compiler::type_check_pass::expressions: enter
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=p}:visit_expression:cast:visit_expression: serenity::compiler::type_check_pass: enter
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=p}:visit_expression:cast:visit_expression:variable: serenity::compiler::type_check_pass::expressions: enter
+DEBUG type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=p}:visit_expression:cast:visit_expression:variable: serenity::compiler::type_check_pass::expressions: variable tok=Token { token_type: Identifier, lexeme: "v", line: 3 } assignment_target=false
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=p}:visit_expression:cast:visit_expression:variable: serenity::compiler::type_check_pass::expressions: exit
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=p}:visit_expression:cast:visit_expression: serenity::compiler::type_check_pass: exit
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=p}:visit_expression:cast: serenity::compiler::type_check_pass::expressions: exit
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=p}:visit_expression: serenity::compiler::type_check_pass: exit
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=p}: serenity::compiler::type_check_pass::declarations: exit
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration: serenity::compiler::type_check_pass: exit
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit: serenity::compiler::type_check_pass: exit
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit: serenity::compiler::type_check_pass: enter
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement: serenity::compiler::type_check_pass: enter
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression: serenity::compiler::type_check_pass: enter
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression:assign: serenity::compiler::type_check_pass::expressions: enter
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression:assign:visit_expression: serenity::compiler::type_check_pass: enter
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression:assign:visit_expression:deref: serenity::compiler::type_check_pass::expressions: enter
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression:assign:visit_expression:deref:visit_expression: serenity::compiler::type_check_pass: enter
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression:assign:visit_expression:deref:visit_expression:variable: serenity::compiler::type_check_pass::expressions: enter
+DEBUG type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression:assign:visit_expression:deref:visit_expression:variable: serenity::compiler::type_check_pass::expressions: variable tok=Token { token_type: Identifier, lexeme: "p", line: 4 } assignment_target=false
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression:assign:visit_expression:deref:visit_expression:variable: serenity::compiler::type_check_pass::expressions: exit
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression:assign:visit_expression:deref:visit_expression: serenity::compiler::type_check_pass: exit
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression:assign:visit_expression:deref: serenity::compiler::type_check_pass::expressions: exit
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression:assign:visit_expression: serenity::compiler::type_check_pass: exit
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression:assign:visit_expression: serenity::compiler::type_check_pass: enter
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression:assign:visit_expression:literal: serenity::compiler::type_check_pass::expressions: enter
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression:assign:visit_expression:literal: serenity::compiler::type_check_pass::expressions: exit
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression:assign:visit_expression: serenity::compiler::type_check_pass: exit
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression:assign: serenity::compiler::type_check_pass::expressions: exit
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression: serenity::compiler::type_check_pass: exit
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement: serenity::compiler::type_check_pass: exit
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit: serenity::compiler::type_check_pass: exit
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit: serenity::compiler::type_check_pass: enter
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement: serenity::compiler::type_check_pass: enter
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print: serenity::compiler::type_check_pass::statements: enter
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print:visit_expression: serenity::compiler::type_check_pass: enter
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print:visit_expression:variable: serenity::compiler::type_check_pass::expressions: enter
+DEBUG type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print:visit_expression:variable: serenity::compiler::type_check_pass::expressions: variable tok=Token { token_type: Identifier, lexeme: "p", line: 5 } assignment_target=false
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print:visit_expression:variable: serenity::compiler::type_check_pass::expressions: exit
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print:visit_expression: serenity::compiler::type_check_pass: exit
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print: serenity::compiler::type_check_pass::statements: exit
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement: serenity::compiler::type_check_pass: exit
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit: serenity::compiler::type_check_pass: exit
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit: serenity::compiler::type_check_pass: enter
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement: serenity::compiler::type_check_pass: enter
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print: serenity::compiler::type_check_pass::statements: enter
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print:visit_expression: serenity::compiler::type_check_pass: enter
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print:visit_expression:deref: serenity::compiler::type_check_pass::expressions: enter
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print:visit_expression:deref:visit_expression: serenity::compiler::type_check_pass: enter
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print:visit_expression:deref:visit_expression:variable: serenity::compiler::type_check_pass::expressions: enter
+DEBUG type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print:visit_expression:deref:visit_expression:variable: serenity::compiler::type_check_pass::expressions: variable tok=Token { token_type: Identifier, lexeme: "p", line: 6 } assignment_target=false
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print:visit_expression:deref:visit_expression:variable: serenity::compiler::type_check_pass::expressions: exit
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print:visit_expression:deref:visit_expression: serenity::compiler::type_check_pass: exit
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print:visit_expression:deref: serenity::compiler::type_check_pass::expressions: exit
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print:visit_expression: serenity::compiler::type_check_pass: exit
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print: serenity::compiler::type_check_pass::statements: exit
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement: serenity::compiler::type_check_pass: exit
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit: serenity::compiler::type_check_pass: exit
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}:function: serenity::compiler::type_check_pass::expressions: exit
+TRACE type_check:visit:visit:visit_declaration:fun_declaration{f=main}: serenity::compiler::type_check_pass::declarations: exit
+TRACE type_check:visit:visit:visit_declaration: serenity::compiler::type_check_pass: exit
+TRACE type_check:visit:visit: serenity::compiler::type_check_pass: exit
+TRACE type_check:visit:visit: serenity::compiler::type_check_pass: enter
+TRACE type_check:visit:visit:visit_statement: serenity::compiler::type_check_pass: enter
+TRACE type_check:visit:visit:visit_statement:visit_expression: serenity::compiler::type_check_pass: enter
+TRACE type_check:visit:visit:visit_statement:visit_expression:call: serenity::compiler::type_check_pass::expressions: enter
+TRACE type_check:visit:visit:visit_statement:visit_expression:call:visit_expression: serenity::compiler::type_check_pass: enter
+TRACE type_check:visit:visit:visit_statement:visit_expression:call:visit_expression:variable: serenity::compiler::type_check_pass::expressions: enter
+DEBUG type_check:visit:visit:visit_statement:visit_expression:call:visit_expression:variable: serenity::compiler::type_check_pass::expressions: variable tok=Token { token_type: Identifier, lexeme: "main", line: 0 } assignment_target=false
+TRACE type_check:visit:visit:visit_statement:visit_expression:call:visit_expression:variable: serenity::compiler::type_check_pass::expressions: exit
+TRACE type_check:visit:visit:visit_statement:visit_expression:call:visit_expression: serenity::compiler::type_check_pass: exit
+TRACE type_check:visit:visit:visit_statement:visit_expression:call: serenity::compiler::type_check_pass::expressions: exit
+TRACE type_check:visit:visit:visit_statement:visit_expression: serenity::compiler::type_check_pass: exit
+TRACE type_check:visit:visit:visit_statement: serenity::compiler::type_check_pass: exit
+TRACE type_check:visit:visit: serenity::compiler::type_check_pass: exit
+TRACE type_check:visit: serenity::compiler::type_check_pass: exit
  INFO type_check: serenity::compiler::type_check_pass: Type checking succeeded.
  INFO type_check: serenity::compiler::type_check_pass: exit
  INFO optimize: serenity::compiler::optimization_pass: enter
- INFO optimize: serenity::compiler::optimization_pass: Compilation succeeded.
+DEBUG optimize: serenity::compiler::optimization_pass: ast Line 7: 
+Declaration: Fun: 
+  FunctionDeclaration: "main"
+    return_type: UValueType(3)
+      Params:Line 2: 
+      Declaration: Var: 
+        VarDeclaration: "v"
+          Call:
+            Variable: Token { token_type: Identifier, lexeme: "sbrk", line: 2 }
+            Literal: 1Line 3: 
+      Declaration: Var: 
+        VarDeclaration: "p"
+          Cast: UValueType(6)
+            Variable: Token { token_type: Identifier, lexeme: "v", line: 3 }Line 3: 
+      Expression: 
+        Assign:
+          Deref: 
+            Variable: Token { token_type: Identifier, lexeme: "p", line: 4 }
+          Literal: 2Line 4: 
+      Print: 
+        Variable: Token { token_type: Identifier, lexeme: "p", line: 5 }Line 5: 
+      Print: 
+        Deref: 
+          Variable: Token { token_type: Identifier, lexeme: "p", line: 6 }Line 0: 
+Expression: 
+  Call:
+    Variable: Token { token_type: Identifier, lexeme: "main", line: 0 }
+TRACE optimize:visit: serenity::compiler::optimization_pass: enter
+TRACE optimize:visit:visit: serenity::compiler::optimization_pass: enter
+TRACE optimize:visit:visit:visit_declaration: serenity::compiler::optimization_pass: enter
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}: serenity::compiler::optimization_pass::declarations: enter
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function: serenity::compiler::optimization_pass::expressions: enter
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit: serenity::compiler::optimization_pass: enter
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration: serenity::compiler::optimization_pass: enter
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=v}: serenity::compiler::optimization_pass::declarations: enter
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=v}:visit_expression: serenity::compiler::optimization_pass: enter
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=v}:visit_expression:call: serenity::compiler::optimization_pass::expressions: enter
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=v}:visit_expression:call:visit_expression: serenity::compiler::optimization_pass: enter
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=v}:visit_expression:call:visit_expression:variable: serenity::compiler::optimization_pass::expressions: enter
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=v}:visit_expression:call:visit_expression:variable: serenity::compiler::optimization_pass::expressions: exit
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=v}:visit_expression:call:visit_expression: serenity::compiler::optimization_pass: exit
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=v}:visit_expression:call:visit_expression: serenity::compiler::optimization_pass: enter
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=v}:visit_expression:call:visit_expression:literal: serenity::compiler::optimization_pass::expressions: enter
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=v}:visit_expression:call:visit_expression:literal: serenity::compiler::optimization_pass::expressions: exit
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=v}:visit_expression:call:visit_expression: serenity::compiler::optimization_pass: exit
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=v}:visit_expression:call: serenity::compiler::optimization_pass::expressions: exit
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=v}:visit_expression: serenity::compiler::optimization_pass: exit
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=v}: serenity::compiler::optimization_pass::declarations: exit
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration: serenity::compiler::optimization_pass: exit
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit: serenity::compiler::optimization_pass: exit
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit: serenity::compiler::optimization_pass: enter
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration: serenity::compiler::optimization_pass: enter
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=p}: serenity::compiler::optimization_pass::declarations: enter
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=p}:visit_expression: serenity::compiler::optimization_pass: enter
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=p}:visit_expression:cast: serenity::compiler::optimization_pass::expressions: enter
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=p}:visit_expression:cast:visit_expression: serenity::compiler::optimization_pass: enter
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=p}:visit_expression:cast:visit_expression:variable: serenity::compiler::optimization_pass::expressions: enter
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=p}:visit_expression:cast:visit_expression:variable: serenity::compiler::optimization_pass::expressions: exit
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=p}:visit_expression:cast:visit_expression: serenity::compiler::optimization_pass: exit
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=p}:visit_expression:cast: serenity::compiler::optimization_pass::expressions: exit
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=p}:visit_expression: serenity::compiler::optimization_pass: exit
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=p}: serenity::compiler::optimization_pass::declarations: exit
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration: serenity::compiler::optimization_pass: exit
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit: serenity::compiler::optimization_pass: exit
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit: serenity::compiler::optimization_pass: enter
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement: serenity::compiler::optimization_pass: enter
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression: serenity::compiler::optimization_pass: enter
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression:assign: serenity::compiler::optimization_pass::expressions: enter
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression:assign:visit_expression: serenity::compiler::optimization_pass: enter
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression:assign:visit_expression:deref: serenity::compiler::optimization_pass::expressions: enter
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression:assign:visit_expression:deref: serenity::compiler::optimization_pass::expressions: exit
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression:assign:visit_expression: serenity::compiler::optimization_pass: exit
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression:assign:visit_expression: serenity::compiler::optimization_pass: enter
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression:assign:visit_expression:literal: serenity::compiler::optimization_pass::expressions: enter
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression:assign:visit_expression:literal: serenity::compiler::optimization_pass::expressions: exit
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression:assign:visit_expression: serenity::compiler::optimization_pass: exit
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression:assign: serenity::compiler::optimization_pass::expressions: exit
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression: serenity::compiler::optimization_pass: exit
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement: serenity::compiler::optimization_pass: exit
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit: serenity::compiler::optimization_pass: exit
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit: serenity::compiler::optimization_pass: enter
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement: serenity::compiler::optimization_pass: enter
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print: serenity::compiler::optimization_pass::statements: enter
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print:visit_expression: serenity::compiler::optimization_pass: enter
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print:visit_expression:variable: serenity::compiler::optimization_pass::expressions: enter
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print:visit_expression:variable: serenity::compiler::optimization_pass::expressions: exit
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print:visit_expression: serenity::compiler::optimization_pass: exit
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print: serenity::compiler::optimization_pass::statements: exit
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement: serenity::compiler::optimization_pass: exit
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit: serenity::compiler::optimization_pass: exit
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit: serenity::compiler::optimization_pass: enter
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement: serenity::compiler::optimization_pass: enter
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print: serenity::compiler::optimization_pass::statements: enter
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print:visit_expression: serenity::compiler::optimization_pass: enter
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print:visit_expression:deref: serenity::compiler::optimization_pass::expressions: enter
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print:visit_expression:deref: serenity::compiler::optimization_pass::expressions: exit
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print:visit_expression: serenity::compiler::optimization_pass: exit
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print: serenity::compiler::optimization_pass::statements: exit
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement: serenity::compiler::optimization_pass: exit
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit: serenity::compiler::optimization_pass: exit
+DEBUG optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}: serenity::chunk: enter
+DEBUG optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}: serenity::chunk: exit
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}:function: serenity::compiler::optimization_pass::expressions: exit
+TRACE optimize:visit:visit:visit_declaration:fun_declaration{f=main}: serenity::compiler::optimization_pass::declarations: exit
+TRACE optimize:visit:visit:visit_declaration: serenity::compiler::optimization_pass: exit
+TRACE optimize:visit:visit: serenity::compiler::optimization_pass: exit
+TRACE optimize:visit:visit: serenity::compiler::optimization_pass: enter
+TRACE optimize:visit:visit:visit_statement: serenity::compiler::optimization_pass: enter
+TRACE optimize:visit:visit:visit_statement:visit_expression: serenity::compiler::optimization_pass: enter
+TRACE optimize:visit:visit:visit_statement:visit_expression:call: serenity::compiler::optimization_pass::expressions: enter
+TRACE optimize:visit:visit:visit_statement:visit_expression:call:visit_expression: serenity::compiler::optimization_pass: enter
+TRACE optimize:visit:visit:visit_statement:visit_expression:call:visit_expression:variable: serenity::compiler::optimization_pass::expressions: enter
+TRACE optimize:visit:visit:visit_statement:visit_expression:call:visit_expression:variable: serenity::compiler::optimization_pass::expressions: exit
+TRACE optimize:visit:visit:visit_statement:visit_expression:call:visit_expression: serenity::compiler::optimization_pass: exit
+TRACE optimize:visit:visit:visit_statement:visit_expression:call: serenity::compiler::optimization_pass::expressions: exit
+TRACE optimize:visit:visit:visit_statement:visit_expression: serenity::compiler::optimization_pass: exit
+TRACE optimize:visit:visit:visit_statement: serenity::compiler::optimization_pass: exit
+TRACE optimize:visit:visit: serenity::compiler::optimization_pass: exit
+TRACE optimize:visit: serenity::compiler::optimization_pass: exit
+DEBUG optimize:dissassemble{name="script"}: serenity::chunk: enter
+DEBUG optimize:dissassemble{name="script"}: serenity::chunk: exit
+ INFO optimize: serenity::compiler::optimization_pass: Optimization succeeded.
  INFO optimize: serenity::compiler::optimization_pass: exit
  INFO emit: serenity::compiler::emit_pass: enter
+DEBUG emit: serenity::compiler::emit_pass: ast Line 7: 
+Declaration: Fun: 
+  FunctionDeclaration: "main"
+    return_type: UValueType(3)
+      Params:Line 2: 
+      Declaration: Var: 
+        VarDeclaration: "v"
+          Call:
+            Variable: Token { token_type: Identifier, lexeme: "sbrk", line: 2 }
+            Literal: 1Line 3: 
+      Declaration: Var: 
+        VarDeclaration: "p"
+          Cast: UValueType(6)
+            Variable: Token { token_type: Identifier, lexeme: "v", line: 3 }Line 3: 
+      Expression: 
+        Assign:
+          Deref: 
+            Variable: Token { token_type: Identifier, lexeme: "p", line: 4 }
+          Literal: 2Line 4: 
+      Print: 
+        Variable: Token { token_type: Identifier, lexeme: "p", line: 5 }Line 5: 
+      Print: 
+        Deref: 
+          Variable: Token { token_type: Identifier, lexeme: "p", line: 6 }Line 0: 
+Expression: 
+  Call:
+    Variable: Token { token_type: Identifier, lexeme: "main", line: 0 }
+TRACE emit:visit: serenity::compiler::emit_pass: enter
+TRACE emit:visit:visit: serenity::compiler::emit_pass: enter
+TRACE emit:visit:visit:visit_declaration: serenity::compiler::emit_pass: enter
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}: serenity::compiler::emit_pass::declarations: enter
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function: serenity::compiler::emit_pass::expressions: enter
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit: serenity::compiler::emit_pass: enter
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration: serenity::compiler::emit_pass: enter
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=v}: serenity::compiler::emit_pass::declarations: enter
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=v}:visit_expression: serenity::compiler::emit_pass: enter
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=v}:visit_expression:call: serenity::compiler::emit_pass::expressions: enter
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=v}:visit_expression:call:visit_expression: serenity::compiler::emit_pass: enter
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=v}:visit_expression:call:visit_expression:variable: serenity::compiler::emit_pass::expressions: enter
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=v}:visit_expression:call:visit_expression:variable: serenity::compiler::emit_pass::expressions: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=v}:visit_expression:call:visit_expression: serenity::compiler::emit_pass: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=v}:visit_expression:call:visit_expression: serenity::compiler::emit_pass: enter
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=v}:visit_expression:call:visit_expression:literal: serenity::compiler::emit_pass::expressions: enter
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=v}:visit_expression:call:visit_expression:literal: serenity::compiler::emit_pass::expressions: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=v}:visit_expression:call:visit_expression: serenity::compiler::emit_pass: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=v}:visit_expression:call: serenity::compiler::emit_pass::expressions: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=v}:visit_expression: serenity::compiler::emit_pass: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=v}: serenity::compiler::emit_pass::declarations: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration: serenity::compiler::emit_pass: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit: serenity::compiler::emit_pass: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit: serenity::compiler::emit_pass: enter
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration: serenity::compiler::emit_pass: enter
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=p}: serenity::compiler::emit_pass::declarations: enter
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=p}:visit_expression: serenity::compiler::emit_pass: enter
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=p}:visit_expression:cast: serenity::compiler::emit_pass::expressions: enter
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=p}:visit_expression:cast:visit_expression: serenity::compiler::emit_pass: enter
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=p}:visit_expression:cast:visit_expression:variable: serenity::compiler::emit_pass::expressions: enter
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=p}:visit_expression:cast:visit_expression:variable: serenity::compiler::emit_pass::expressions: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=p}:visit_expression:cast:visit_expression: serenity::compiler::emit_pass: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=p}:visit_expression:cast: serenity::compiler::emit_pass::expressions: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=p}:visit_expression: serenity::compiler::emit_pass: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration:var_declaration{v=p}: serenity::compiler::emit_pass::declarations: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_declaration: serenity::compiler::emit_pass: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit: serenity::compiler::emit_pass: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit: serenity::compiler::emit_pass: enter
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement: serenity::compiler::emit_pass: enter
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression: serenity::compiler::emit_pass: enter
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression:assign: serenity::compiler::emit_pass::expressions: enter
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression:assign:visit_expression: serenity::compiler::emit_pass: enter
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression:assign:visit_expression:deref: serenity::compiler::emit_pass::expressions: enter
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression:assign:visit_expression:deref:visit_expression: serenity::compiler::emit_pass: enter
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression:assign:visit_expression:deref:visit_expression:variable: serenity::compiler::emit_pass::expressions: enter
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression:assign:visit_expression:deref:visit_expression:variable: serenity::compiler::emit_pass::expressions: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression:assign:visit_expression:deref:visit_expression: serenity::compiler::emit_pass: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression:assign:visit_expression:deref: serenity::compiler::emit_pass::expressions: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression:assign:visit_expression: serenity::compiler::emit_pass: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression:assign:visit_expression: serenity::compiler::emit_pass: enter
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression:assign:visit_expression:literal: serenity::compiler::emit_pass::expressions: enter
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression:assign:visit_expression:literal: serenity::compiler::emit_pass::expressions: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression:assign:visit_expression: serenity::compiler::emit_pass: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression:assign: serenity::compiler::emit_pass::expressions: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:visit_expression: serenity::compiler::emit_pass: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement: serenity::compiler::emit_pass: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit: serenity::compiler::emit_pass: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit: serenity::compiler::emit_pass: enter
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement: serenity::compiler::emit_pass: enter
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print: serenity::compiler::emit_pass::statements: enter
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print:visit_expression: serenity::compiler::emit_pass: enter
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print:visit_expression:variable: serenity::compiler::emit_pass::expressions: enter
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print:visit_expression:variable: serenity::compiler::emit_pass::expressions: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print:visit_expression: serenity::compiler::emit_pass: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print: serenity::compiler::emit_pass::statements: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement: serenity::compiler::emit_pass: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit: serenity::compiler::emit_pass: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit: serenity::compiler::emit_pass: enter
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement: serenity::compiler::emit_pass: enter
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print: serenity::compiler::emit_pass::statements: enter
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print:visit_expression: serenity::compiler::emit_pass: enter
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print:visit_expression:deref: serenity::compiler::emit_pass::expressions: enter
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print:visit_expression:deref:visit_expression: serenity::compiler::emit_pass: enter
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print:visit_expression:deref:visit_expression:variable: serenity::compiler::emit_pass::expressions: enter
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print:visit_expression:deref:visit_expression:variable: serenity::compiler::emit_pass::expressions: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print:visit_expression:deref:visit_expression: serenity::compiler::emit_pass: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print:visit_expression:deref: serenity::compiler::emit_pass::expressions: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print:visit_expression: serenity::compiler::emit_pass: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement:print: serenity::compiler::emit_pass::statements: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit:visit_statement: serenity::compiler::emit_pass: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:visit: serenity::compiler::emit_pass: exit
+DEBUG emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}: serenity::chunk: enter
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:two_byte_instruction{name="OP_GET_GLOBAL" offset=0 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:two_byte_instruction{name="OP_GET_GLOBAL" offset=0 trace_level=Level(Debug)}: serenity::chunk: OP_GET_GLOBAL    3 3
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:two_byte_instruction{name="OP_GET_GLOBAL" offset=0 trace_level=Level(Debug)}: serenity::chunk: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:simple_instruction{name="OP_COPY_CLOSURE" offset=3 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:simple_instruction{name="OP_COPY_CLOSURE" offset=3 trace_level=Level(Debug)}: serenity::chunk: OP_COPY_CLOSURE  
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:simple_instruction{name="OP_COPY_CLOSURE" offset=3 trace_level=Level(Debug)}: serenity::chunk: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:constant_instruction{name="OP_CONSTANT" offset=4 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:constant_instruction{name="OP_CONSTANT" offset=4 trace_level=Level(Debug)}: serenity::chunk: OP_CONSTANT      0
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:constant_instruction{name="OP_CONSTANT" offset=4 trace_level=Level(Debug)}: serenity::chunk: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:byte_instruction{name="OP_CALL" offset=6 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:byte_instruction{name="OP_CALL" offset=6 trace_level=Level(Debug)}: serenity::chunk: OP_CALL          1
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:byte_instruction{name="OP_CALL" offset=6 trace_level=Level(Debug)}: serenity::chunk: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:two_byte_instruction{name="OP_GET_LOCAL" offset=8 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:two_byte_instruction{name="OP_GET_LOCAL" offset=8 trace_level=Level(Debug)}: serenity::chunk: OP_GET_LOCAL     3 1
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:two_byte_instruction{name="OP_GET_LOCAL" offset=8 trace_level=Level(Debug)}: serenity::chunk: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:two_byte_instruction{name="OP_GET_LOCAL" offset=11 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:two_byte_instruction{name="OP_GET_LOCAL" offset=11 trace_level=Level(Debug)}: serenity::chunk: OP_GET_LOCAL     4 1
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:two_byte_instruction{name="OP_GET_LOCAL" offset=11 trace_level=Level(Debug)}: serenity::chunk: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:constant_instruction{name="OP_CONSTANT" offset=14 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:constant_instruction{name="OP_CONSTANT" offset=14 trace_level=Level(Debug)}: serenity::chunk: OP_CONSTANT      1
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:constant_instruction{name="OP_CONSTANT" offset=14 trace_level=Level(Debug)}: serenity::chunk: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:byte_instruction{name="OP_DEREF_ASSIGN" offset=16 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:byte_instruction{name="OP_DEREF_ASSIGN" offset=16 trace_level=Level(Debug)}: serenity::chunk: OP_DEREF_ASSIGN  1
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:byte_instruction{name="OP_DEREF_ASSIGN" offset=16 trace_level=Level(Debug)}: serenity::chunk: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:byte_instruction{name="OP_POP" offset=18 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:byte_instruction{name="OP_POP" offset=18 trace_level=Level(Debug)}: serenity::chunk: OP_POP           1
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:byte_instruction{name="OP_POP" offset=18 trace_level=Level(Debug)}: serenity::chunk: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:two_byte_instruction{name="OP_GET_LOCAL" offset=20 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:two_byte_instruction{name="OP_GET_LOCAL" offset=20 trace_level=Level(Debug)}: serenity::chunk: OP_GET_LOCAL     4 1
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:two_byte_instruction{name="OP_GET_LOCAL" offset=20 trace_level=Level(Debug)}: serenity::chunk: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:simple_instruction{name="OP_PRINT_POINTER" offset=23 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:simple_instruction{name="OP_PRINT_POINTER" offset=23 trace_level=Level(Debug)}: serenity::chunk: OP_PRINT_POINTER 
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:simple_instruction{name="OP_PRINT_POINTER" offset=23 trace_level=Level(Debug)}: serenity::chunk: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:two_byte_instruction{name="OP_GET_LOCAL" offset=24 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:two_byte_instruction{name="OP_GET_LOCAL" offset=24 trace_level=Level(Debug)}: serenity::chunk: OP_GET_LOCAL     4 1
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:two_byte_instruction{name="OP_GET_LOCAL" offset=24 trace_level=Level(Debug)}: serenity::chunk: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:byte_instruction{name="OP_DEREF_GET" offset=27 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:byte_instruction{name="OP_DEREF_GET" offset=27 trace_level=Level(Debug)}: serenity::chunk: OP_DEREF_GET     1
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:byte_instruction{name="OP_DEREF_GET" offset=27 trace_level=Level(Debug)}: serenity::chunk: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:simple_instruction{name="OP_PRINT_INT" offset=29 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:simple_instruction{name="OP_PRINT_INT" offset=29 trace_level=Level(Debug)}: serenity::chunk: OP_PRINT_INT     
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:simple_instruction{name="OP_PRINT_INT" offset=29 trace_level=Level(Debug)}: serenity::chunk: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:simple_instruction{name="OP_NIL" offset=30 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:simple_instruction{name="OP_NIL" offset=30 trace_level=Level(Debug)}: serenity::chunk: OP_NIL           
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:simple_instruction{name="OP_NIL" offset=30 trace_level=Level(Debug)}: serenity::chunk: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:byte_instruction{name="OP_RETURN" offset=31 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:byte_instruction{name="OP_RETURN" offset=31 trace_level=Level(Debug)}: serenity::chunk: OP_RETURN        1
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:byte_instruction{name="OP_RETURN" offset=31 trace_level=Level(Debug)}: serenity::chunk: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:byte_instruction{name="OP_POP" offset=33 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:byte_instruction{name="OP_POP" offset=33 trace_level=Level(Debug)}: serenity::chunk: OP_POP           1
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:byte_instruction{name="OP_POP" offset=33 trace_level=Level(Debug)}: serenity::chunk: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:byte_instruction{name="OP_POP" offset=35 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:byte_instruction{name="OP_POP" offset=35 trace_level=Level(Debug)}: serenity::chunk: OP_POP           1
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}:byte_instruction{name="OP_POP" offset=35 trace_level=Level(Debug)}: serenity::chunk: exit
+DEBUG emit:visit:visit:visit_declaration:fun_declaration{f=main}:function:dissassemble{name="main"}: serenity::chunk: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}:function: serenity::compiler::emit_pass::expressions: exit
+TRACE emit:visit:visit:visit_declaration:fun_declaration{f=main}: serenity::compiler::emit_pass::declarations: exit
+TRACE emit:visit:visit:visit_declaration: serenity::compiler::emit_pass: exit
+TRACE emit:visit:visit: serenity::compiler::emit_pass: exit
+TRACE emit:visit:visit: serenity::compiler::emit_pass: enter
+TRACE emit:visit:visit:visit_statement: serenity::compiler::emit_pass: enter
+TRACE emit:visit:visit:visit_statement:visit_expression: serenity::compiler::emit_pass: enter
+TRACE emit:visit:visit:visit_statement:visit_expression:call: serenity::compiler::emit_pass::expressions: enter
+TRACE emit:visit:visit:visit_statement:visit_expression:call:visit_expression: serenity::compiler::emit_pass: enter
+TRACE emit:visit:visit:visit_statement:visit_expression:call:visit_expression:variable: serenity::compiler::emit_pass::expressions: enter
+TRACE emit:visit:visit:visit_statement:visit_expression:call:visit_expression:variable: serenity::compiler::emit_pass::expressions: exit
+TRACE emit:visit:visit:visit_statement:visit_expression:call:visit_expression: serenity::compiler::emit_pass: exit
+TRACE emit:visit:visit:visit_statement:visit_expression:call: serenity::compiler::emit_pass::expressions: exit
+TRACE emit:visit:visit:visit_statement:visit_expression: serenity::compiler::emit_pass: exit
+TRACE emit:visit:visit:visit_statement: serenity::compiler::emit_pass: exit
+TRACE emit:visit:visit: serenity::compiler::emit_pass: exit
+TRACE emit:visit: serenity::compiler::emit_pass: exit
+DEBUG emit:dissassemble{name="script"}: serenity::chunk: enter
+DEBUG emit:dissassemble{name="script"}: serenity::chunk: OP_CLOSURE       2 0
+TRACE emit:dissassemble{name="script"}:two_byte_instruction{name="OP_DEFINE_GLOBAL" offset=3 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG emit:dissassemble{name="script"}:two_byte_instruction{name="OP_DEFINE_GLOBAL" offset=3 trace_level=Level(Debug)}: serenity::chunk: OP_DEFINE_GLOBAL 6 3
+TRACE emit:dissassemble{name="script"}:two_byte_instruction{name="OP_DEFINE_GLOBAL" offset=3 trace_level=Level(Debug)}: serenity::chunk: exit
+TRACE emit:dissassemble{name="script"}:two_byte_instruction{name="OP_GET_GLOBAL" offset=6 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG emit:dissassemble{name="script"}:two_byte_instruction{name="OP_GET_GLOBAL" offset=6 trace_level=Level(Debug)}: serenity::chunk: OP_GET_GLOBAL    6 3
+TRACE emit:dissassemble{name="script"}:two_byte_instruction{name="OP_GET_GLOBAL" offset=6 trace_level=Level(Debug)}: serenity::chunk: exit
+TRACE emit:dissassemble{name="script"}:simple_instruction{name="OP_COPY_CLOSURE" offset=9 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG emit:dissassemble{name="script"}:simple_instruction{name="OP_COPY_CLOSURE" offset=9 trace_level=Level(Debug)}: serenity::chunk: OP_COPY_CLOSURE  
+TRACE emit:dissassemble{name="script"}:simple_instruction{name="OP_COPY_CLOSURE" offset=9 trace_level=Level(Debug)}: serenity::chunk: exit
+TRACE emit:dissassemble{name="script"}:byte_instruction{name="OP_CALL" offset=10 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG emit:dissassemble{name="script"}:byte_instruction{name="OP_CALL" offset=10 trace_level=Level(Debug)}: serenity::chunk: OP_CALL          0
+TRACE emit:dissassemble{name="script"}:byte_instruction{name="OP_CALL" offset=10 trace_level=Level(Debug)}: serenity::chunk: exit
+TRACE emit:dissassemble{name="script"}:byte_instruction{name="OP_POP" offset=12 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG emit:dissassemble{name="script"}:byte_instruction{name="OP_POP" offset=12 trace_level=Level(Debug)}: serenity::chunk: OP_POP           1
+TRACE emit:dissassemble{name="script"}:byte_instruction{name="OP_POP" offset=12 trace_level=Level(Debug)}: serenity::chunk: exit
+DEBUG emit:dissassemble{name="script"}: serenity::chunk: exit
  INFO emit: serenity::compiler::emit_pass: Compilation succeeded.
  INFO emit: serenity::compiler::emit_pass: exit
+TRACE vm::run: serenity::vm: enter
+TRACE vm::run: serenity::vm: stack: [0xc000000000000003, 0x0, 0x1361049f0]
+DEBUG vm::run: serenity::chunk: OP_CLOSURE       2 0
+TRACE vm::run: serenity::vm: exit
+TRACE vm::run: serenity::vm: enter
+TRACE vm::run: serenity::vm: stack: [0xc000000000000003, 0x0, 0x1361049f0, 0xc000000000000002, 0x0, 0x1361047c0]
+TRACE vm::run:two_byte_instruction{name="OP_DEFINE_GLOBAL" offset=3 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG vm::run:two_byte_instruction{name="OP_DEFINE_GLOBAL" offset=3 trace_level=Level(Debug)}: serenity::chunk: OP_DEFINE_GLOBAL 6 3
+TRACE vm::run:two_byte_instruction{name="OP_DEFINE_GLOBAL" offset=3 trace_level=Level(Debug)}: serenity::chunk: exit
+TRACE vm::run: serenity::vm: exit
+TRACE vm::run: serenity::vm: enter
+TRACE vm::run: serenity::vm: stack: [0xc000000000000003, 0x0, 0x1361049f0]
+TRACE vm::run:two_byte_instruction{name="OP_GET_GLOBAL" offset=6 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG vm::run:two_byte_instruction{name="OP_GET_GLOBAL" offset=6 trace_level=Level(Debug)}: serenity::chunk: OP_GET_GLOBAL    6 3
+TRACE vm::run:two_byte_instruction{name="OP_GET_GLOBAL" offset=6 trace_level=Level(Debug)}: serenity::chunk: exit
+TRACE vm::run: serenity::vm: exit
+TRACE vm::run: serenity::vm: enter
+TRACE vm::run: serenity::vm: stack: [0xc000000000000003, 0x0, 0x1361049f0, 0xc000000000000002, 0x0, 0x1361047c0]
+TRACE vm::run:simple_instruction{name="OP_COPY_CLOSURE" offset=9 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG vm::run:simple_instruction{name="OP_COPY_CLOSURE" offset=9 trace_level=Level(Debug)}: serenity::chunk: OP_COPY_CLOSURE  
+TRACE vm::run:simple_instruction{name="OP_COPY_CLOSURE" offset=9 trace_level=Level(Debug)}: serenity::chunk: exit
+TRACE vm::run: serenity::vm: exit
+TRACE vm::run: serenity::vm: enter
+TRACE vm::run: serenity::vm: stack: [0xc000000000000003, 0x0, 0x1361049f0, 0xc000000000000002, 0x0, 0x1361047c0]
+TRACE vm::run:byte_instruction{name="OP_CALL" offset=10 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG vm::run:byte_instruction{name="OP_CALL" offset=10 trace_level=Level(Debug)}: serenity::chunk: OP_CALL          0
+TRACE vm::run:byte_instruction{name="OP_CALL" offset=10 trace_level=Level(Debug)}: serenity::chunk: exit
+TRACE vm::run: serenity::vm: exit
+TRACE vm::run: serenity::vm: enter
+TRACE vm::run: serenity::vm: stack: [0xc000000000000003, 0x0, 0x1361049f0, 0xc000000000000002, 0x0, 0x1361047c0]
+TRACE vm::run:two_byte_instruction{name="OP_GET_GLOBAL" offset=0 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG vm::run:two_byte_instruction{name="OP_GET_GLOBAL" offset=0 trace_level=Level(Debug)}: serenity::chunk: OP_GET_GLOBAL    3 3
+TRACE vm::run:two_byte_instruction{name="OP_GET_GLOBAL" offset=0 trace_level=Level(Debug)}: serenity::chunk: exit
+TRACE vm::run: serenity::vm: exit
+TRACE vm::run: serenity::vm: enter
+TRACE vm::run: serenity::vm: stack: [0xc000000000000003, 0x0, 0x1361049f0, 0xc000000000000002, 0x0, 0x1361047c0, 0xc000000000000001, 0x0, 0x1357065f0]
+TRACE vm::run:simple_instruction{name="OP_COPY_CLOSURE" offset=3 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG vm::run:simple_instruction{name="OP_COPY_CLOSURE" offset=3 trace_level=Level(Debug)}: serenity::chunk: OP_COPY_CLOSURE  
+TRACE vm::run:simple_instruction{name="OP_COPY_CLOSURE" offset=3 trace_level=Level(Debug)}: serenity::chunk: exit
+TRACE vm::run: serenity::vm: exit
+TRACE vm::run: serenity::vm: enter
+TRACE vm::run: serenity::vm: stack: [0xc000000000000003, 0x0, 0x1361049f0, 0xc000000000000002, 0x0, 0x1361047c0, 0xc000000000000001, 0x0, 0x1357065f0]
+TRACE vm::run:constant_instruction{name="OP_CONSTANT" offset=4 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG vm::run:constant_instruction{name="OP_CONSTANT" offset=4 trace_level=Level(Debug)}: serenity::chunk: OP_CONSTANT      0
+TRACE vm::run:constant_instruction{name="OP_CONSTANT" offset=4 trace_level=Level(Debug)}: serenity::chunk: exit
+TRACE vm::run: serenity::vm: exit
+TRACE vm::run: serenity::vm: enter
+TRACE vm::run: serenity::vm: stack: [0xc000000000000003, 0x0, 0x1361049f0, 0xc000000000000002, 0x0, 0x1361047c0, 0xc000000000000001, 0x0, 0x1357065f0, 0x1]
+TRACE vm::run:byte_instruction{name="OP_CALL" offset=6 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG vm::run:byte_instruction{name="OP_CALL" offset=6 trace_level=Level(Debug)}: serenity::chunk: OP_CALL          1
+TRACE vm::run:byte_instruction{name="OP_CALL" offset=6 trace_level=Level(Debug)}: serenity::chunk: exit
+TRACE vm::run: serenity::vm: exit
+TRACE vm::run: serenity::vm: enter
+TRACE vm::run: serenity::vm: stack: [0xc000000000000003, 0x0, 0x1361049f0, 0xc000000000000002, 0x0, 0x1361047c0, 0x8000000000000003]
+TRACE vm::run:two_byte_instruction{name="OP_GET_LOCAL" offset=8 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG vm::run:two_byte_instruction{name="OP_GET_LOCAL" offset=8 trace_level=Level(Debug)}: serenity::chunk: OP_GET_LOCAL     3 1
+TRACE vm::run:two_byte_instruction{name="OP_GET_LOCAL" offset=8 trace_level=Level(Debug)}: serenity::chunk: exit
+TRACE vm::run: serenity::vm: exit
+TRACE vm::run: serenity::vm: enter
+TRACE vm::run: serenity::vm: stack: [0xc000000000000003, 0x0, 0x1361049f0, 0xc000000000000002, 0x0, 0x1361047c0, 0x8000000000000003, 0x8000000000000003]
+TRACE vm::run:two_byte_instruction{name="OP_GET_LOCAL" offset=11 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG vm::run:two_byte_instruction{name="OP_GET_LOCAL" offset=11 trace_level=Level(Debug)}: serenity::chunk: OP_GET_LOCAL     4 1
+TRACE vm::run:two_byte_instruction{name="OP_GET_LOCAL" offset=11 trace_level=Level(Debug)}: serenity::chunk: exit
+TRACE vm::run: serenity::vm: exit
+TRACE vm::run: serenity::vm: enter
+TRACE vm::run: serenity::vm: stack: [0xc000000000000003, 0x0, 0x1361049f0, 0xc000000000000002, 0x0, 0x1361047c0, 0x8000000000000003, 0x8000000000000003, 0x8000000000000003]
+TRACE vm::run:constant_instruction{name="OP_CONSTANT" offset=14 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG vm::run:constant_instruction{name="OP_CONSTANT" offset=14 trace_level=Level(Debug)}: serenity::chunk: OP_CONSTANT      1
+TRACE vm::run:constant_instruction{name="OP_CONSTANT" offset=14 trace_level=Level(Debug)}: serenity::chunk: exit
+TRACE vm::run: serenity::vm: exit
+TRACE vm::run: serenity::vm: enter
+TRACE vm::run: serenity::vm: stack: [0xc000000000000003, 0x0, 0x1361049f0, 0xc000000000000002, 0x0, 0x1361047c0, 0x8000000000000003, 0x8000000000000003, 0x8000000000000003, 0x2]
+TRACE vm::run:byte_instruction{name="OP_DEREF_ASSIGN" offset=16 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG vm::run:byte_instruction{name="OP_DEREF_ASSIGN" offset=16 trace_level=Level(Debug)}: serenity::chunk: OP_DEREF_ASSIGN  1
+TRACE vm::run:byte_instruction{name="OP_DEREF_ASSIGN" offset=16 trace_level=Level(Debug)}: serenity::chunk: exit
+TRACE vm::run: serenity::vm: exit
+TRACE vm::run: serenity::vm: enter
+TRACE vm::run: serenity::vm: stack: [0xc000000000000003, 0x0, 0x1361049f0, 0xc000000000000002, 0x0, 0x1361047c0, 0x8000000000000003, 0x8000000000000003, 0x2]
+TRACE vm::run:byte_instruction{name="OP_POP" offset=18 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG vm::run:byte_instruction{name="OP_POP" offset=18 trace_level=Level(Debug)}: serenity::chunk: OP_POP           1
+TRACE vm::run:byte_instruction{name="OP_POP" offset=18 trace_level=Level(Debug)}: serenity::chunk: exit
+TRACE vm::run: serenity::vm: exit
+TRACE vm::run: serenity::vm: enter
+TRACE vm::run: serenity::vm: stack: [0xc000000000000003, 0x0, 0x1361049f0, 0xc000000000000002, 0x0, 0x1361047c0, 0x8000000000000003, 0x8000000000000003]
+TRACE vm::run:two_byte_instruction{name="OP_GET_LOCAL" offset=20 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG vm::run:two_byte_instruction{name="OP_GET_LOCAL" offset=20 trace_level=Level(Debug)}: serenity::chunk: OP_GET_LOCAL     4 1
+TRACE vm::run:two_byte_instruction{name="OP_GET_LOCAL" offset=20 trace_level=Level(Debug)}: serenity::chunk: exit
+TRACE vm::run: serenity::vm: exit
+TRACE vm::run: serenity::vm: enter
+TRACE vm::run: serenity::vm: stack: [0xc000000000000003, 0x0, 0x1361049f0, 0xc000000000000002, 0x0, 0x1361047c0, 0x8000000000000003, 0x8000000000000003, 0x8000000000000003]
+TRACE vm::run:simple_instruction{name="OP_PRINT_POINTER" offset=23 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG vm::run:simple_instruction{name="OP_PRINT_POINTER" offset=23 trace_level=Level(Debug)}: serenity::chunk: OP_PRINT_POINTER 
+TRACE vm::run:simple_instruction{name="OP_PRINT_POINTER" offset=23 trace_level=Level(Debug)}: serenity::chunk: exit
+TRACE vm::run: serenity::vm: exit
+TRACE vm::run: serenity::vm: enter
+TRACE vm::run: serenity::vm: stack: [0xc000000000000003, 0x0, 0x1361049f0, 0xc000000000000002, 0x0, 0x1361047c0, 0x8000000000000003, 0x8000000000000003]
+TRACE vm::run:two_byte_instruction{name="OP_GET_LOCAL" offset=24 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG vm::run:two_byte_instruction{name="OP_GET_LOCAL" offset=24 trace_level=Level(Debug)}: serenity::chunk: OP_GET_LOCAL     4 1
+TRACE vm::run:two_byte_instruction{name="OP_GET_LOCAL" offset=24 trace_level=Level(Debug)}: serenity::chunk: exit
+TRACE vm::run: serenity::vm: exit
+TRACE vm::run: serenity::vm: enter
+TRACE vm::run: serenity::vm: stack: [0xc000000000000003, 0x0, 0x1361049f0, 0xc000000000000002, 0x0, 0x1361047c0, 0x8000000000000003, 0x8000000000000003, 0x8000000000000003]
+TRACE vm::run:byte_instruction{name="OP_DEREF_GET" offset=27 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG vm::run:byte_instruction{name="OP_DEREF_GET" offset=27 trace_level=Level(Debug)}: serenity::chunk: OP_DEREF_GET     1
+TRACE vm::run:byte_instruction{name="OP_DEREF_GET" offset=27 trace_level=Level(Debug)}: serenity::chunk: exit
+TRACE vm::run: serenity::vm: exit
+TRACE vm::run: serenity::vm: enter
+TRACE vm::run: serenity::vm: stack: [0xc000000000000003, 0x0, 0x1361049f0, 0xc000000000000002, 0x0, 0x1361047c0, 0x8000000000000003, 0x8000000000000003, 0x2]
+TRACE vm::run:simple_instruction{name="OP_PRINT_INT" offset=29 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG vm::run:simple_instruction{name="OP_PRINT_INT" offset=29 trace_level=Level(Debug)}: serenity::chunk: OP_PRINT_INT     
+TRACE vm::run:simple_instruction{name="OP_PRINT_INT" offset=29 trace_level=Level(Debug)}: serenity::chunk: exit
+TRACE vm::run: serenity::vm: exit
+TRACE vm::run: serenity::vm: enter
+TRACE vm::run: serenity::vm: stack: [0xc000000000000003, 0x0, 0x1361049f0, 0xc000000000000002, 0x0, 0x1361047c0, 0x8000000000000003, 0x8000000000000003]
+TRACE vm::run:simple_instruction{name="OP_NIL" offset=30 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG vm::run:simple_instruction{name="OP_NIL" offset=30 trace_level=Level(Debug)}: serenity::chunk: OP_NIL           
+TRACE vm::run:simple_instruction{name="OP_NIL" offset=30 trace_level=Level(Debug)}: serenity::chunk: exit
+TRACE vm::run: serenity::vm: exit
+TRACE vm::run: serenity::vm: enter
+TRACE vm::run: serenity::vm: stack: [0xc000000000000003, 0x0, 0x1361049f0, 0xc000000000000002, 0x0, 0x1361047c0, 0x8000000000000003, 0x8000000000000003, 0x0]
+TRACE vm::run:byte_instruction{name="OP_RETURN" offset=31 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG vm::run:byte_instruction{name="OP_RETURN" offset=31 trace_level=Level(Debug)}: serenity::chunk: OP_RETURN        1
+TRACE vm::run:byte_instruction{name="OP_RETURN" offset=31 trace_level=Level(Debug)}: serenity::chunk: exit
+TRACE vm::run: serenity::vm: exit
+TRACE vm::run: serenity::vm: enter
+TRACE vm::run: serenity::vm: stack: [0xc000000000000003, 0x0, 0x1361049f0, 0x0]
+TRACE vm::run:byte_instruction{name="OP_POP" offset=12 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG vm::run:byte_instruction{name="OP_POP" offset=12 trace_level=Level(Debug)}: serenity::chunk: OP_POP           1
+TRACE vm::run:byte_instruction{name="OP_POP" offset=12 trace_level=Level(Debug)}: serenity::chunk: exit
+TRACE vm::run: serenity::vm: exit
+TRACE vm::run: serenity::vm: enter
+TRACE vm::run: serenity::vm: stack: [0xc000000000000003, 0x0, 0x1361049f0]
+TRACE vm::run:simple_instruction{name="OP_NIL" offset=14 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG vm::run:simple_instruction{name="OP_NIL" offset=14 trace_level=Level(Debug)}: serenity::chunk: OP_NIL           
+TRACE vm::run:simple_instruction{name="OP_NIL" offset=14 trace_level=Level(Debug)}: serenity::chunk: exit
+TRACE vm::run: serenity::vm: exit
+TRACE vm::run: serenity::vm: enter
+TRACE vm::run: serenity::vm: stack: [0xc000000000000003, 0x0, 0x1361049f0, 0x0]
+TRACE vm::run:byte_instruction{name="OP_RETURN" offset=15 trace_level=Level(Debug)}: serenity::chunk: enter
+DEBUG vm::run:byte_instruction{name="OP_RETURN" offset=15 trace_level=Level(Debug)}: serenity::chunk: OP_RETURN        1
+TRACE vm::run:byte_instruction{name="OP_RETURN" offset=15 trace_level=Level(Debug)}: serenity::chunk: exit
+TRACE vm::run: serenity::vm: exit

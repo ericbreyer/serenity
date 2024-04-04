@@ -1,12 +1,9 @@
-use std::{ cell::Cell, collections::HashMap };
+use std::{ borrow::BorrowMut, cell::Cell, collections::HashMap };
 
 use tracing::{debug, instrument};
 
 use crate::{
-    common::ast::{ Expression, FunctionExpression },
-    lexer::{ Token, TokenType },
-    value::Value,
-    typing::{ CustomStruct, ValueType, ValueTypeK },
+    common::ast::{ Expression, FunctionExpression }, lexer::{ Token, TokenType }, typing::{ CustomStruct, UValueType, ValueType }, value::Value
 };
 
 use super::{ FunctionCompiler, Local, TypeCheckWalker, Upvalue };
@@ -15,29 +12,29 @@ use crate::error;
 
 impl TypeCheckWalker {
     #[instrument(level = "trace", skip_all)]
-    pub fn literal(&mut self, v: Value) -> ValueType {
+    pub fn literal(&mut self, v: Value) -> UValueType {
         let _line = 0;
         match v {
-            Value::Bool(false) => { ValueTypeK::Bool.intern() }
-            Value::Nil => { ValueTypeK::Nil.intern() }
-            Value::Bool(true) => { ValueTypeK::Bool.intern() }
-            Value::Integer(_i) => { ValueTypeK::Integer.intern() }
-            Value::Float(_f) => { ValueTypeK::Float.intern() }
-            Value::Char(_c) => { ValueTypeK::Char.intern() }
+            Value::Bool(false) => { ValueType::Bool.intern() }
+            Value::Nil => { ValueType::Nil.intern() }
+            Value::Bool(true) => { ValueType::Bool.intern() }
+            Value::Integer(_i) => { ValueType::Integer.intern() }
+            Value::Float(_f) => { ValueType::Float.intern() }
+            Value::Char(_c) => { ValueType::Char.intern() }
             _ => {
                 error!(self, "Cannot compile this type of literal");
-                ValueTypeK::Err.intern()
+                ValueType::Err.intern()
             }
         }
     }
 
     #[instrument(level = "trace", skip_all)]
-    pub fn string(&mut self, _s: String) -> ValueType {
-        return ValueTypeK::String.intern();
+    pub fn string(&mut self, _s: String) -> UValueType {
+        return ValueType::String.intern();
     }
 
     #[instrument(level = "trace", skip_all)]
-    pub fn unary(&mut self, token_t: TokenType, e: Expression) -> ValueType {
+    pub fn unary(&mut self, token_t: TokenType, e: Expression) -> UValueType {
         let _line = 0;
         let operator_type = token_t;
         // Compile the operand.
@@ -46,15 +43,15 @@ impl TypeCheckWalker {
         // Emit the operator instruction.
         match operator_type {
             TokenType::Minus =>
-                match t {
-                    ValueTypeK::Integer | ValueTypeK::Float => {}
+                match t.as_ref() {
+                    ValueType::Integer | ValueType::Float => {}
                     _ => {
                         error!(self, "Operand must be a number.");
                     }
                 }
             TokenType::Bang =>
-                match t {
-                    ValueTypeK::Bool => {}
+                match t.as_ref() {
+                    ValueType::Bool => {}
                     _ => {
                         error!(self, "Operand must be a boolean.");
                     }
@@ -65,15 +62,15 @@ impl TypeCheckWalker {
     }
 
     #[instrument(level = "trace", skip_all)]
-    pub fn deref(&mut self, e: Expression, at: bool) -> ValueType {
+    pub fn deref(&mut self, e: Expression, at: bool) -> UValueType {
         let _line = 0;
         // Compile the operand.
         let raw_t = self.visit_expression(e, false);
-        let (t, _is_const) = match raw_t.decay(self.custom_structs.clone().into()) {
-            &ValueTypeK::Pointer(pointee_type, is_const) => (pointee_type, is_const),
+        let (t, _is_const) = match raw_t.decay(self.custom_structs.clone().into()).as_ref() {
+            &ValueType::Pointer(pointee_type, is_const) => (pointee_type, is_const),
             _ => {
                 error!(self, "Expected pointer type");
-                (ValueTypeK::Err.intern(), false)
+                (ValueType::Err.intern(), false)
             }
         };
 
@@ -85,44 +82,44 @@ impl TypeCheckWalker {
     }
 
     #[instrument(level = "trace", skip_all)]
-    pub fn addr_of(&mut self, e: Expression) -> ValueType {
+    pub fn addr_of(&mut self, e: Expression) -> UValueType {
         // Compile the operand.
         let t = self.visit_expression(e, true);
-        match t {
-            ValueTypeK::Pointer(_, _) => t,
+        match t.as_ref() {
+            ValueType::Pointer(_, _) => t,
             _ => {
                 error!(self, "Expected pointer type");
-                ValueTypeK::Err.intern()
+                ValueType::Err.intern()
             }
         }
     }
 
     #[instrument(level = "trace", skip_all)]
-    pub fn index(&mut self, e: Expression, i: Expression, at: bool) -> ValueType {
+    pub fn index(&mut self, e: Expression, i: Expression, at: bool) -> UValueType {
         let _line = 0;
 
         // Compile the operand.
         let raw_t = self.visit_expression(e, false);
         let pointer_type = raw_t.decay(self.custom_structs.clone().into());
-        let &ValueTypeK::Pointer(pointee_type, _) = pointer_type else {
+        let ValueType::Pointer(pointee_type, _) = pointer_type.as_ref() else {
             error!(self, "Expected pointer type");
-            return ValueTypeK::Err.intern();
+            return ValueType::Err.intern();
         };
 
         let i_type = self.visit_expression(i, false);
-        if i_type != ValueTypeK::Integer.intern() {
+        if i_type != ValueType::Integer.intern() {
             error!(self, "Index must be an integer");
         }
 
         if !at {
-            pointee_type
+            *pointee_type
         } else {
             raw_t
         }
     }
 
     #[instrument(level = "trace", skip_all)]
-    pub fn binary(&mut self, l: Expression, operator: TokenType, r: Expression) -> ValueType {
+    pub fn binary(&mut self, l: Expression, operator: TokenType, r: Expression) -> UValueType {
         let operator_type = operator;
         let _line = 0;
 
@@ -135,61 +132,61 @@ impl TypeCheckWalker {
         // Emit the operator instruction.
         match operator_type {
             TokenType::Plus =>
-                match (lt, rt) {
-                    (ValueTypeK::Integer, ValueTypeK::Integer) => {
-                        return ValueTypeK::Integer.intern();
+                match (lt.as_ref(), rt.as_ref()) {
+                    (ValueType::Integer, ValueType::Integer) => {
+                        return ValueType::Integer.intern();
                     }
-                    (ValueTypeK::Float, ValueTypeK::Float) => {
-                        return ValueTypeK::Float.intern();
+                    (ValueType::Float, ValueType::Float) => {
+                        return ValueType::Float.intern();
                     }
-                    (ValueTypeK::Pointer(_, _), ValueTypeK::Integer) => {
+                    (ValueType::Pointer(_, _), ValueType::Integer) => {
                         return lt;
                     }
                     _ => {
                         error!(self, format!("Operands must be two numbers or a pointer and an integer got {:?} and {:?}", lt, rt).as_str());
-                        return ValueTypeK::Err.intern();
+                        return ValueType::Err.intern();
                     }
                 }
             TokenType::Minus =>
-                match (lt, rt) {
-                    (ValueTypeK::Integer, ValueTypeK::Integer) => {
-                        return ValueTypeK::Integer.intern();
+                match (lt.as_ref(), rt.as_ref()) {
+                    (ValueType::Integer, ValueType::Integer) => {
+                        return ValueType::Integer.intern();
                     }
-                    (ValueTypeK::Float, ValueTypeK::Float) => {
-                        return ValueTypeK::Float.intern();
+                    (ValueType::Float, ValueType::Float) => {
+                        return ValueType::Float.intern();
                     }
-                    (ValueTypeK::Pointer(_, _), ValueTypeK::Integer) => {
+                    (ValueType::Pointer(_, _), ValueType::Integer) => {
                         return lt;
                     }
                     _ => {
                         error!(self, "Operands must be two numbers or a pointer and an integer.");
-                        return ValueTypeK::Err.intern();
+                        return ValueType::Err.intern();
                     }
                 }
             TokenType::Star =>
-                match (lt, rt) {
-                    (ValueTypeK::Integer, ValueTypeK::Integer) => {
-                        return ValueTypeK::Integer.intern();
+                match (lt.as_ref(), rt.as_ref()) {
+                    (ValueType::Integer, ValueType::Integer) => {
+                        return ValueType::Integer.intern();
                     }
-                    (ValueTypeK::Float, ValueTypeK::Float) => {
-                        return ValueTypeK::Float.intern();
+                    (ValueType::Float, ValueType::Float) => {
+                        return ValueType::Float.intern();
                     }
                     _ => {
                         error!(self, "Operands must be two numbers.");
-                        return ValueTypeK::Err.intern();
+                        return ValueType::Err.intern();
                     }
                 }
             TokenType::Slash =>
-                match (lt, rt) {
-                    (ValueTypeK::Integer, ValueTypeK::Integer) => {
-                        return ValueTypeK::Integer.intern();
+                match (lt.as_ref(), rt.as_ref()) {
+                    (ValueType::Integer, ValueType::Integer) => {
+                        return ValueType::Integer.intern();
                     }
-                    (ValueTypeK::Float, ValueTypeK::Float) => {
-                        return ValueTypeK::Float.intern();
+                    (ValueType::Float, ValueType::Float) => {
+                        return ValueType::Float.intern();
                     }
                     _ => {
                         error!(self, "Operands must be two numbers.");
-                        return ValueTypeK::Err.intern();
+                        return ValueType::Err.intern();
                     }
                 }
             TokenType::EqualEqual => {
@@ -202,10 +199,10 @@ impl TypeCheckWalker {
                         )
                     );
 
-                    return ValueTypeK::Bool.intern();
+                    return ValueType::Bool.intern();
                 }
 
-                return ValueTypeK::Bool.intern();
+                return ValueType::Bool.intern();
             }
             TokenType::BangEqual => {
                 if rt != lt {
@@ -217,64 +214,64 @@ impl TypeCheckWalker {
                         )
                     );
 
-                    return ValueTypeK::Bool.intern();
+                    return ValueType::Bool.intern();
                 }
 
-                return ValueTypeK::Bool.intern();
+                return ValueType::Bool.intern();
             }
             TokenType::Greater => {
-                match (lt, rt) {
-                    (ValueTypeK::Integer, ValueTypeK::Integer) |
-                    (ValueTypeK::Float, ValueTypeK::Float) => {}
+                match (lt.as_ref(), rt.as_ref()) {
+                    (ValueType::Integer, ValueType::Integer) |
+                    (ValueType::Float, ValueType::Float) => {}
                     _ => {
                         error!(self, "Operands must be two numbers.");
-                        return ValueTypeK::Err.intern();
+                        return ValueType::Err.intern();
                     }
                 }
-                return ValueTypeK::Bool.intern();
+                return ValueType::Bool.intern();
             }
             TokenType::GreaterEqual => {
-                match (lt, rt) {
-                    (ValueTypeK::Integer, ValueTypeK::Integer) => {}
-                    (ValueTypeK::Float, ValueTypeK::Float) => {}
+                match (lt.as_ref(), rt.as_ref()) {
+                    (ValueType::Integer, ValueType::Integer) => {}
+                    (ValueType::Float, ValueType::Float) => {}
                     _ => {
                         error!(self, "Operands must be two numbers.");
-                        return ValueTypeK::Err.intern();
+                        return ValueType::Err.intern();
                     }
                 }
-                return ValueTypeK::Bool.intern();
+                return ValueType::Bool.intern();
             }
             TokenType::Less => {
-                match (lt, rt) {
-                    (ValueTypeK::Integer, ValueTypeK::Integer) => {}
-                    (ValueTypeK::Float, ValueTypeK::Float) => {}
+                match (lt.as_ref(), rt.as_ref()) {
+                    (ValueType::Integer, ValueType::Integer) => {}
+                    (ValueType::Float, ValueType::Float) => {}
                     _ => {
                         error!(self, "Operands must be two numbers.");
-                        return ValueTypeK::Err.intern();
+                        return ValueType::Err.intern();
                     }
                 }
-                return ValueTypeK::Bool.intern();
+                return ValueType::Bool.intern();
             }
             TokenType::LessEqual => {
-                match (lt, rt) {
-                    (ValueTypeK::Integer, ValueTypeK::Integer) => {}
-                    (ValueTypeK::Float, ValueTypeK::Float) => {}
+                match (lt.as_ref(), rt.as_ref()) {
+                    (ValueType::Integer, ValueType::Integer) => {}
+                    (ValueType::Float, ValueType::Float) => {}
                     _ => {
                         error!(self, "Operands must be two numbers.");
-                        return ValueTypeK::Err.intern();
+                        return ValueType::Err.intern();
                     }
                 }
-                return ValueTypeK::Bool.intern();
+                return ValueType::Bool.intern();
             }
             _ => unreachable!(),
         }
     }
 
     #[instrument(level = "trace", skip_all)]
-    pub fn ternary(&mut self, c: Expression, t: Expression, f: Expression) -> ValueType {
+    pub fn ternary(&mut self, c: Expression, t: Expression, f: Expression) -> UValueType {
         let _line = 0;
         let c_type = self.visit_expression(c, false);
-        if c_type != ValueTypeK::Bool.intern() {
+        if c_type != ValueType::Bool.intern() {
             error!(self, "Condition must be a boolean.");
         }
         
@@ -291,7 +288,7 @@ impl TypeCheckWalker {
     }
 
     #[instrument(level = "trace", skip_all)]
-    pub fn variable(&mut self, tok: Token, assignment_target: bool) -> ValueType {
+    pub fn variable(&mut self, tok: Token, assignment_target: bool) -> UValueType {
         let _line = 0;
 
         debug!(?tok, ?assignment_target, "variable");
@@ -303,7 +300,7 @@ impl TypeCheckWalker {
                 //     error!(self, "Can't assign to const variable");
                 // }
 
-                return ValueTypeK::Pointer(
+                return ValueType::Pointer(
                     self.function_compiler.locals[&i].local_type,
                     assignable
                 ).intern();
@@ -319,7 +316,7 @@ impl TypeCheckWalker {
                 //     error!(self, "Can't assign to const variable");
                 // }
 
-                return ValueTypeK::Pointer(
+                return ValueType::Pointer(
                     self.function_compiler.locals[&i].local_type,
                     assignable
                 ).intern();
@@ -331,7 +328,7 @@ impl TypeCheckWalker {
             }
         } else if let Some(i) = self.gloabls.get(&tok.lexeme) {
             if assignment_target {
-                return ValueTypeK::Pointer(
+                return ValueType::Pointer(
                     self.global_types.get(i).unwrap().0,
                     self.global_types.get(i).unwrap().1
                 ).intern();
@@ -342,20 +339,21 @@ impl TypeCheckWalker {
             }
         } else {
             error!(self, format!("Undefined variable '{}'.", tok.lexeme).as_str());
-            ValueTypeK::Err.intern()
+            ValueType::Err.intern()
         }
     }
 
     #[instrument(level = "trace", skip_all)]
-    pub fn assign(&mut self, l: Expression, r: Expression) -> ValueType {
+    pub fn assign(&mut self, l: Expression, r: Expression) -> UValueType {
         let _line = 0;
         let t = self.visit_expression(l, true);
 
         let t2 = self.visit_expression(r, false);
 
-        let ValueTypeK::Pointer(s, assignable) = t.decay(self.custom_structs.clone().into()) else {
+        let decayed = t.decay(self.custom_structs.clone().into());
+        let ValueType::Pointer(s, assignable) = decayed.as_ref() else {
             error!(self, format!("Can only assign to a pointer type, got {:?}", t).as_str());
-            return ValueTypeK::Err.intern();
+            return ValueType::Err.intern();
         };
 
         if !assignable {
@@ -370,30 +368,30 @@ impl TypeCheckWalker {
     }
 
     #[instrument(level = "trace", skip_all)]
-    pub fn logical(&mut self, l: Expression, operator: TokenType, r: Expression) -> ValueType {
+    pub fn logical(&mut self, l: Expression, operator: TokenType, r: Expression) -> UValueType {
         let _line = 0;
         let operator_type = operator;
         let t = self.visit_expression(l, false);
-        if t != ValueTypeK::Bool.intern() {
+        if t != ValueType::Bool.intern() {
             error!(self, "Operand must be a boolean.");
         }
         if operator_type == TokenType::Or {
             let t2 = self.visit_expression(r, false);
-            if t2 != ValueTypeK::Bool.intern() {
+            if t2 != ValueType::Bool.intern() {
                 error!(self, "Operand must be a boolean.");
             }
-            return ValueTypeK::Bool.intern();
+            return ValueType::Bool.intern();
         } else {
             let t2 = self.visit_expression(r, false);
-            if t2 != ValueTypeK::Bool.intern() {
+            if t2 != ValueType::Bool.intern() {
                 error!(self, "Operand must be a boolean.");
             }
-            return ValueTypeK::Bool.intern();
+            return ValueType::Bool.intern();
         }
     }
 
     #[instrument(level = "trace", skip_all)]
-    pub fn call(&mut self, callee: Expression, args: Vec<Expression>) -> ValueType {
+    pub fn call(&mut self, callee: Expression, args: Vec<Expression>) -> UValueType {
         let _line = 0;
         let t = self.visit_expression(callee, false);
 
@@ -402,50 +400,55 @@ impl TypeCheckWalker {
             ts.push(self.visit_expression(arg, false));
         }
 
-        if let ValueTypeK::Closure(f) = t {
+        if let ValueType::Closure(f) = t.as_ref() {
 
-            if ts.iter().map(|x| x.decay(None)).collect::<Vec<ValueType>>() != f[0..f.len() - 1] {
+            if ts.iter().map(|x| x.decay(None)).collect::<Vec<UValueType>>() != f[0..f.len() - 1] {
                 error!(self, format!("Argument types do not match function signature. Expected {:?}, got {:?}", f[0..f.len() - 1].to_vec(), ts).as_str());
             }
 
             let return_type = f.last().unwrap();
-            return return_type;
+            return *return_type;
         } else {
             error!(self, format!("Can only call function types, got {:?}", t).as_str());
-            return ValueTypeK::Err.intern();
+            return ValueType::Err.intern();
         }
     }
 
     #[instrument(level = "trace", skip_all)]
-    pub fn dot(&mut self, e: Expression, tok: Token, at: bool) -> ValueType {
+    pub fn dot(&mut self, e: Expression, tok: Token, at: bool) -> UValueType {
         let _line = 0;
         let t = self.visit_expression(e, true);
 
-        let ValueTypeK::Pointer(ValueTypeK::Struct(s), _) = t.decay(
-            self.custom_structs.clone().into()
-        ) else {
+        let decayed = t.decay(self.custom_structs.clone().into());
+        let ValueType::Pointer(maybe_s, _) = decayed.as_ref() else {
             error!(self, format!("Can only access fields of struct types, got {:?}", t).as_str());
-            return ValueTypeK::Err.intern();
+            return ValueType::Err.intern();
         };
 
-        let temp = s.fields.borrow();
+        let ValueType::Struct(s) = maybe_s.as_ref() else {
+            error!(self, format!("Can only access fields of struct types, got {:?}", t).as_str());
+            return ValueType::Err.intern();
+        };
+
+        let l = s.fields.lock();
+        let temp = l.as_ref().unwrap();
         let Some(field) = temp.get(&tok.lexeme) else {
             error!(
                 self,
                 format!("Field '{}' not found have fields {:?}", tok.lexeme, s.fields).as_str()
             );
-            return ValueTypeK::Err.intern();
+            return ValueType::Err.intern();
         };
 
         if !at {
             return field.value;
         } else {
-            return ValueTypeK::Pointer(field.value, true).intern();
+            return ValueType::Pointer(field.value, true).intern();
         }
     }
 
     #[instrument(level = "trace", skip_all)]
-    pub fn function(&mut self, function_expr: FunctionExpression) -> ValueType {
+    pub fn function(&mut self, function_expr: FunctionExpression) -> UValueType {
         let c = FunctionCompiler::new(
             Some(std::mem::take(&mut self.function_compiler)),
             &function_expr.name.clone()
@@ -484,7 +487,7 @@ impl TypeCheckWalker {
             mutable: false,
             assigned: false,
             captured: false,
-            local_type: &ValueTypeK::Closure(ft.into()).intern(),
+            local_type: ValueType::Closure(ft.into()).intern(),
         });
         // self.compiler.local_count += ft.num_words() as usize;
         let mut does_return = false;
@@ -493,7 +496,7 @@ impl TypeCheckWalker {
             does_return = does_return || r;
         }
 
-        if !does_return && self.function_compiler.return_type != ValueTypeK::Nil.intern() {
+        if !does_return && self.function_compiler.return_type != ValueType::Nil.intern() {
             error!(self, format!("Function \"{}\" must return a value in all code paths", function_expr.name).as_str());
         }
 
@@ -503,7 +506,7 @@ impl TypeCheckWalker {
         let (maybe_enclosing, _upvalues) = c.recover_values();
         let Some(enclosing) = maybe_enclosing else {
             error!(self, "Cannot return from top-level code.");
-            return ValueTypeK::Err.intern();
+            return ValueType::Err.intern();
         };
 
         self.function_compiler = enclosing;
@@ -511,56 +514,56 @@ impl TypeCheckWalker {
 
         // if any upvalues are non-const we can not escape
 
-        return ValueTypeK::Closure(ft.into()).intern();
+        return ValueType::Closure(ft.into()).intern();
     }
 
     #[instrument(level = "trace", skip_all)]
-    pub fn cast(&mut self, value: Expression, cast_type: ValueType, from_type: &Cell<ValueType>) -> ValueType {
+    pub fn cast(&mut self, value: Expression, cast_type: UValueType, from_type: &Cell<UValueType>) -> UValueType {
         // cast(value, type)
         let _line = 0;
 
         let t = self.visit_expression(value, false);
         from_type.set(t);
 
-        match (t.decay(self.custom_structs.clone().into()), cast_type) {
-            (x, y) if x == y => x,
-            (ValueTypeK::Integer, ValueTypeK::Float) => {
-                ValueTypeK::Float.intern()
+        match (t.decay(self.custom_structs.clone().into()).as_ref(), cast_type.as_ref()) {
+            (x, y) if x == y => x.intern(),
+            (ValueType::Integer, ValueType::Float) => {
+                ValueType::Float.intern()
             }
-            (ValueTypeK::Float, ValueTypeK::Integer) => {
-                ValueTypeK::Integer.intern()
+            (ValueType::Float, ValueType::Integer) => {
+                ValueType::Integer.intern()
             }
-            (ValueTypeK::Integer, ValueTypeK::Bool) => {
-                ValueTypeK::Bool.intern()
+            (ValueType::Integer, ValueType::Bool) => {
+                ValueType::Bool.intern()
             }
-            (ValueTypeK::Bool, ValueTypeK::Integer) => {
-                ValueTypeK::Integer.intern()
+            (ValueType::Bool, ValueType::Integer) => {
+                ValueType::Integer.intern()
             }
-            (ValueTypeK::Bool, ValueTypeK::Float) => {
-                ValueTypeK::Float.intern()
+            (ValueType::Bool, ValueType::Float) => {
+                ValueType::Float.intern()
             }
-            (ValueTypeK::Integer, ValueTypeK::String) => {
-                ValueTypeK::String.intern()
+            (ValueType::Integer, ValueType::String) => {
+                ValueType::String.intern()
             }
-            (ValueTypeK::Float, ValueTypeK::String) => {
-                ValueTypeK::String.intern()
+            (ValueType::Float, ValueType::String) => {
+                ValueType::String.intern()
             }
-            (ValueTypeK::Bool, ValueTypeK::String) => {
-                ValueTypeK::String.intern()
+            (ValueType::Bool, ValueType::String) => {
+                ValueType::String.intern()
             }
-            (ValueTypeK::Array(x, _), ValueTypeK::Pointer(y, _)) if x == y => {
-                ValueTypeK::Pointer(x, false).intern()
+            (ValueType::Array(x, _), ValueType::Pointer(y, _)) if x == y => {
+                ValueType::Pointer(*x, false).intern()
             }
-            (ValueTypeK::Pointer(_, _), ValueTypeK::Pointer(_, _)) => cast_type,
+            (ValueType::Pointer(_, _), ValueType::Pointer(_, _)) => cast_type,
             _ => {
                 error!(self, &format!("Cannot cast {:?} to {:?}", t, cast_type));
-                ValueTypeK::Err.intern()
+                ValueType::Err.intern()
             }
         }
     }
 
     #[instrument(level = "trace", skip_all)]
-    pub fn array_literal(&mut self, elements: Vec<Expression>) -> ValueType {
+    pub fn array_literal(&mut self, elements: Vec<Expression>) -> UValueType {
         let _line = 0;
         let mut element_types = Vec::new();
         for e in elements {
@@ -573,7 +576,7 @@ impl TypeCheckWalker {
                 error!(self, "All elements of an array must have the same type.");
             }
         }
-        let array_type = ValueTypeK::Array(array_type, element_types.len()).intern();
+        let array_type = ValueType::Array(array_type, element_types.len()).intern();
         array_type
     }
 
@@ -582,8 +585,9 @@ impl TypeCheckWalker {
         &mut self,
         t: CustomStruct,
         fields: HashMap<String, Expression>
-    ) -> ValueType {
-        let temp = t.fields.borrow();
+    ) -> UValueType {
+        let mut l = t.fields.lock();
+        let temp = l.as_mut().unwrap().borrow_mut();
         let mut orig_fields = temp.iter().collect::<Vec<_>>();
         orig_fields.sort_by(|a, b| a.1.offset.cmp(&b.1.offset));
         for (name, entry) in orig_fields.iter() {
@@ -598,11 +602,12 @@ impl TypeCheckWalker {
                     self,
                     format!("Field {} has type {:?}, expected {:?}", name, ft, entry.value).as_str()
                 );
-                return ValueTypeK::Err.intern();
+                return ValueType::Err.intern();
             }
         }
         drop(temp);
-        ValueTypeK::Struct(t).intern()
+        drop(l);
+        ValueType::Struct(t).intern()
     }
 
     fn resolve_upvalue(&mut self, compiler_level: u32, token: &Token) -> Option<usize> {
@@ -621,7 +626,7 @@ impl TypeCheckWalker {
             compiler.locals.get_mut(&local).expect("Local not found").captured = true;
             let t = compiler.locals.get(&local).expect("Local not found").local_type;
             let n = compiler.locals.get(&local).expect("Local not found").name.clone();
-            let Some((upval_place, local_place)) =  Some(self.add_upvalue(local, compiler_level, t, n)) else {
+            let Some((_upval_place, local_place)) =  Some(self.add_upvalue(local, compiler_level, t, n)) else {
                 return None;
             };
             return Some(local_place);
@@ -653,7 +658,7 @@ impl TypeCheckWalker {
         &mut self,
         up_idx: usize,
         compiler_level: u32,
-        upvalue_type: ValueType,
+        upvalue_type: UValueType,
         name: String
     ) -> (usize, usize) {
         let compiler = Self::compiler_at(compiler_level, &mut self.function_compiler).unwrap();
@@ -686,8 +691,6 @@ impl TypeCheckWalker {
 
         compiler.upvalues.push(Upvalue {
             local_idx: up_idx,
-            upvalue_idx: compiler.upvalue_count,
-            upvalue_type: upvalue_type,
             name: name.to_owned(),
         });
         compiler.local_count += upvalue_type.num_words() as usize;

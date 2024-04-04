@@ -1,6 +1,6 @@
 use tracing::instrument;
 
-use crate::{chunk::Opcode, common::ast::{ASTNode, Expression, Statement}, typing::ValueTypeK};
+use crate::{chunk::Opcode, common::ast::{ASTNode, Expression, Statement}, typing::ValueType};
 
 use super::EmitWalker;
 
@@ -12,56 +12,56 @@ impl EmitWalker {
     pub fn print(&mut self, e: Expression) {
         let t = self.visit_expression(e, false);
         let line = 0;
-        match t {
-            ValueTypeK::Float => {
+        match t.as_ref() {
+            ValueType::Float => {
                 self.function_compiler
                     .func
                     .chunk
                     .write(Opcode::PrintFloat.into(), line);
             }
-            ValueTypeK::Integer => {
+            ValueType::Integer => {
                 self.function_compiler
                     .func
                     .chunk
                     .write(Opcode::PrintInt.into(), line);
             }
-            ValueTypeK::Bool => {
+            ValueType::Bool => {
                 self.function_compiler
                     .func
                     .chunk
                     .write(Opcode::PrintBool.into(), line);
             }
-            ValueTypeK::String => {
+            ValueType::String => {
                 self.function_compiler
                     .func
                     .chunk
                     .write(Opcode::PrintString.into(), line);
             }
-            ValueTypeK::Nil => {
+            ValueType::Nil => {
                 self.function_compiler
                     .func
                     .chunk
                     .write(Opcode::PrintNil.into(), line);
             }
-            ValueTypeK::Pointer(_, _) => {
+            ValueType::Pointer(_, _) => {
                 self.function_compiler
                     .func
                     .chunk
                     .write(Opcode::PrintPointer.into(), line);
             }
-            ValueTypeK::Array(_, _) => {
+            ValueType::Array(_, _) => {
                 self.function_compiler
                     .func
                     .chunk
                     .write(Opcode::PrintPointer.into(), line);
             }
-            ValueTypeK::Closure(_) => {
+            ValueType::Closure(_) => {
                 self.function_compiler
                     .func
                     .chunk
                     .write(Opcode::PrintPointer.into(), line);
             }
-            ValueTypeK::Char => {
+            ValueType::Char => {
                 self.function_compiler
                     .func
                     .chunk
@@ -136,7 +136,7 @@ impl EmitWalker {
             self.function_compiler
                 .func
                 .chunk
-                .write_pop(ValueTypeK::Bool.intern(), line);
+                .write_pop(ValueType::Bool.intern(), line);
         }
         self.fill_break_continue(increment_start);
         self.end_scope();

@@ -1,7 +1,6 @@
-use tracing::{ instrument, span, warn, Level };
+use tracing::{ instrument, warn };
 
 use crate::{
-    chunk::Opcode,
     common::ast::{
         ArrayDeclaration,
         Expression,
@@ -9,8 +8,7 @@ use crate::{
         StructDeclaration,
         VarDeclaration,
     },
-    value::{ pointer::Pointer, Value },
-    typing::ValueTypeK,
+    typing::ValueType,
 };
 
 use super::{ OptimizationWalker, Local };
@@ -63,9 +61,8 @@ impl OptimizationWalker {
             name: name.clone(),
             depth: -1,
             mutable: mutable,
-            assigned: false,
             captured: false,
-            local_type: ValueTypeK::Undef.intern(),
+            local_type: ValueType::Undef.intern(),
         };
         self.function_compiler.locals.insert(self.function_compiler.local_count, local);
     }
@@ -73,7 +70,7 @@ impl OptimizationWalker {
     #[instrument(level = "trace", skip(self))]
     pub fn fun_declaration(&mut self, f: &mut FunctionDeclaration) {
         let name = f.name.clone();
-        let global_id = self.parse_variable(name.clone(), false);
+        let _global_id = self.parse_variable(name.clone(), false);
         if self.function_compiler.scope_depth > 0 {
             // self.compiler.locals.last_mut().unwrap().depth = self.compiler.scope_depth;
             let last_local = self.last_local();
@@ -106,7 +103,7 @@ impl OptimizationWalker {
     }
 
     fn define_array(&mut self, a: &mut ArrayDeclaration) {
-        let line = 0;
+        let _line = 0;
         for v in &mut a.elements {
             let m_v = self.visit_expression(v.clone(), false);
             *v = m_v;

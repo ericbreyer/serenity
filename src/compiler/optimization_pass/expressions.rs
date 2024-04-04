@@ -1,9 +1,9 @@
-use std::{ cell::Cell, collections::HashMap, os::macos::raw::stat, rc::Rc };
+use std::{ cell::Cell, collections::HashMap, rc::Rc };
 
 use tracing::{instrument, warn, Level };
 
 use crate::{
-    chunk::Opcode, common::{ ast::{ ASTNode, Expression, FunctionExpression }, runnable::Runnable }, lexer::{ Token, TokenType }, typing::{ CustomStruct, ValueType, ValueTypeK }, value::{ pointer::Pointer, Value }
+    common::ast::{ Expression, FunctionExpression }, lexer::{ Token, TokenType }, typing::{ CustomStruct, UValueType, ValueType }, value::Value
 };
 
 use super::{ OptimizationWalker, Local, FunctionCompiler };
@@ -23,7 +23,7 @@ impl OptimizationWalker {
 
     #[instrument(level = "trace", skip_all)]
     pub fn unary(&mut self, token_t: TokenType, e: Expression) -> Expression {
-        let line = 0;
+        let _line = 0;
         let operator_type = token_t;
 
         
@@ -59,7 +59,7 @@ impl OptimizationWalker {
     }
 
     #[instrument(level = "trace", skip_all)]
-    pub fn deref(&mut self, e: Expression, at: bool) -> Expression {
+    pub fn deref(&mut self, e: Expression, _at: bool) -> Expression {
         Expression::Deref(Box::new(e))
     }
 
@@ -69,8 +69,8 @@ impl OptimizationWalker {
     }
 
     #[instrument(level = "trace", skip_all)]
-    pub fn index(&mut self, e: Expression, i: Expression, at: bool) -> Expression {
-        let line = 0;
+    pub fn index(&mut self, e: Expression, i: Expression, _at: bool) -> Expression {
+        let _line = 0;
         let t = self.visit_expression(e, false);
         let i = self.visit_expression(i, false);
         Expression::Index(Box::new(t), Box::new(i))
@@ -79,7 +79,7 @@ impl OptimizationWalker {
     #[instrument(level = "trace", skip_all)]
     pub fn binary(&mut self, l: Expression, operator: TokenType, r: Expression) -> Expression {
         let operator_type = operator;
-        let line = 0;
+        let _line = 0;
 
         // Compile the left operand.
         let le = self.visit_expression(l, false);
@@ -266,7 +266,7 @@ impl OptimizationWalker {
 
     #[instrument(level = "trace", skip_all)]
     pub fn ternary(&mut self, c: Expression, t: Expression, f: Expression) -> Expression {
-        let line = 0;
+        let _line = 0;
         let cond_v = self.visit_expression(c, false);
         let conseq_v = self.visit_expression(t, false);
         let alt_v = self.visit_expression(f, false);
@@ -285,8 +285,8 @@ impl OptimizationWalker {
     }
 
     #[instrument(level = "trace", skip_all)]
-    pub fn variable(&mut self, tok: Token, assignment_target: bool) -> Expression {
-        let line = 0;
+    pub fn variable(&mut self, tok: Token, _assignment_target: bool) -> Expression {
+        let _line = 0;
 
         // let (arg, assignable) = self.resolve_local(0, &tok);
         // if let Some(i) = arg {
@@ -317,7 +317,7 @@ impl OptimizationWalker {
 
     #[instrument(level = "trace", skip_all)]
     pub fn assign(&mut self, l: Expression, r: Expression) -> Expression {
-        let line = 0;
+        let _line = 0;
         let t = self.visit_expression(l, true);
 
         let t2 = self.visit_expression(r, false);
@@ -329,7 +329,7 @@ impl OptimizationWalker {
 
     #[instrument(level = "trace", skip_all)]
     pub fn logical(&mut self, l: Expression, operator: TokenType, r: Expression) -> Expression {
-        let line = 0;
+        let _line = 0;
         let operator_type = operator;
         let lv = self.visit_expression(l, false);
         let rv = self.visit_expression(r, false);
@@ -370,7 +370,7 @@ impl OptimizationWalker {
 
     #[instrument(level = "trace", skip_all)]
     pub fn call(&mut self, callee: Expression, args: Vec<Expression>) -> Expression {
-        let line = 0;
+        let _line = 0;
         let c = self.visit_expression(callee, false);
         let mut a = Vec::new();
         for arg in args {
@@ -380,8 +380,8 @@ impl OptimizationWalker {
     }
 
     #[instrument(level = "trace", skip_all)]
-    pub fn dot(&mut self, e: Expression, tok: Token, at: bool) -> Expression {
-        let line = 0;
+    pub fn dot(&mut self, e: Expression, tok: Token, _at: bool) -> Expression {
+        let _line = 0;
         let t = self.visit_expression(e, false);
         Expression::Dot(Box::new(t), tok)
     }
@@ -445,12 +445,11 @@ impl OptimizationWalker {
 
         let func_name = function_expr.name.clone();
 
-        let ft = ValueTypeK::Closure(param_types.clone().as_slice().into()).intern();
+        let ft = ValueType::Closure(param_types.clone().as_slice().into()).intern();
         self.function_compiler.locals.insert(0, Local {
             name: func_name.clone(),
             depth: 0,
             mutable: false,
-            assigned: false,
             captured: false,
             local_type: ft,
         });
@@ -466,7 +465,7 @@ impl OptimizationWalker {
         c.func.chunk.dissassemble(&name, Level::DEBUG);
         // }
 
-        let (rfunc, maybe_enclosing, upvalues) = c.recover_values();
+        let (rfunc, maybe_enclosing) = c.recover_values();
         let Some(enclosing) = maybe_enclosing else {
             error!(self, "Cannot return from top-level code.");
             return Expression::Function(FunctionExpression {
@@ -476,7 +475,7 @@ impl OptimizationWalker {
                 body: function_expr.body,
             });
         };
-        let func = Rc::new(rfunc);
+        let _func = Rc::new(rfunc);
 
         self.function_compiler = enclosing;
         
@@ -489,8 +488,8 @@ impl OptimizationWalker {
     }
 
     #[instrument(level = "trace", skip_all)]
-    pub fn cast(&mut self, value: Expression, cast_type: ValueType, o: Cell<ValueType>) -> Expression {
-        let line = 0;
+    pub fn cast(&mut self, value: Expression, cast_type: UValueType, o: Cell<UValueType>) -> Expression {
+        let _line = 0;
 
         let e = self.visit_expression(value, false);
 
@@ -500,41 +499,41 @@ impl OptimizationWalker {
             return status_quo;
         };
 
-        let l = match (t.clone(), cast_type) {
-            (Value::Integer(i), ValueTypeK::Float) => {
+        let l = match (t.clone(), cast_type.as_ref()) {
+            (Value::Integer(i), ValueType::Float) => {
                 Value::Float(i as f64)
             }
-            (Value::Float(f), ValueTypeK::Integer) => {
+            (Value::Float(f), ValueType::Integer) => {
                 Value::Integer(f as i64)
             }
-            (Value::Integer(i), ValueTypeK::Char) => {
+            (Value::Integer(i), ValueType::Char) => {
                 Value::Char(i as u8)
             }
-            (Value::Char(c), ValueTypeK::Integer) => {
+            (Value::Char(c), ValueType::Integer) => {
                 Value::Integer(c as u8 as i64)
             }
-            (Value::Char(c), ValueTypeK::Float) => {
+            (Value::Char(c), ValueType::Float) => {
                 Value::Float(c as u8 as f64)
             }
-            (Value::Float(f), ValueTypeK::Char) => {
+            (Value::Float(f), ValueType::Char) => {
                 Value::Char(f as f64 as u8)
             }
-            (Value::Char(c), ValueTypeK::Bool) => {
+            (Value::Char(c), ValueType::Bool) => {
                 Value::Bool(c != 0)
             }
-            (Value::Bool(b), ValueTypeK::Char) => {
+            (Value::Bool(b), ValueType::Char) => {
                 Value::Char(if b { 1 } else { 0 })
             }
-            (Value::Bool(b), ValueTypeK::Integer) => {
+            (Value::Bool(b), ValueType::Integer) => {
                 Value::Integer(if b { 1 } else { 0 })
             }
-            (Value::Integer(i), ValueTypeK::Bool) => {
+            (Value::Integer(i), ValueType::Bool) => {
                 Value::Bool(i != 0)
             }
-            (Value::Float(f), ValueTypeK::Bool) => {
+            (Value::Float(f), ValueType::Bool) => {
                 Value::Bool(f != 0.0)
             }
-            (Value::Bool(b), ValueTypeK::Float) => {
+            (Value::Bool(b), ValueType::Float) => {
                 Value::Float(if b { 1.0 } else { 0.0 })
             }
             _ => {
@@ -547,7 +546,7 @@ impl OptimizationWalker {
 
     #[instrument(level = "trace", skip_all)]
     pub fn array_literal(&mut self, elements: Vec<Expression>) -> Expression {
-        let line = 0;
+        let _line = 0;
         let mut e = Vec::new();
         for element in elements {
             e.push(self.visit_expression(element, false));
@@ -560,99 +559,11 @@ impl OptimizationWalker {
         t: CustomStruct,
         fields: HashMap<String, Expression>
     ) -> Expression {
-        let line = 0;
+        let _line = 0;
         let mut f = HashMap::new();
         for (k, v) in fields {
             f.insert(k, self.visit_expression(v, false));
         }
         Expression::StructInitializer(t, f)
-    }
-
-
-    fn resolve_upvalue(&mut self, compiler_level: u32, token: &Token) -> Option<usize> {
-        if let None = Self::compiler_at(compiler_level + 1, &mut self.function_compiler) {
-            return None;
-        }
-
-        if let (Some(local), _) = self.resolve_local(compiler_level + 1, token) {
-            let Some(compiler) = Self::compiler_at(
-                compiler_level + 1,
-                &mut self.function_compiler
-            ) else {
-                return None;
-            };
-
-            compiler.locals.get_mut(&local).expect("Local not found").captured = true;
-            let t = compiler.locals.get(&local).expect("Local not found").local_type;
-            return Some(self.add_upvalue(local, true, compiler_level, t));
-        }
-        if let Some(upvalue) = self.resolve_upvalue(compiler_level + 1, token) {
-            let Some(compiler) = Self::compiler_at(
-                compiler_level + 1,
-                &mut self.function_compiler
-            ) else {
-                return None;
-            };
-            let t = compiler.upvalues[upvalue].upvalue_type;
-            return Some(self.add_upvalue(upvalue, false, compiler_level, t));
-        }
-
-        None
-    }
-
-    fn compiler_at(level: u32, compiler: &mut FunctionCompiler) -> Option<&mut FunctionCompiler> {
-        if level == 0 {
-            return Some(compiler);
-        } else {
-            return compiler.enclosing.as_mut().and_then(|e| Self::compiler_at(level - 1, e));
-        }
-    }
-
-    fn add_upvalue(
-        &mut self,
-        idx: usize,
-        is_local: bool,
-        compiler_level: u32,
-        upvalue_type: ValueType
-    ) -> usize {
-        let compiler = Self::compiler_at(compiler_level, &mut self.function_compiler).unwrap();
-        let upvalue_count = compiler.func.upvalue_count;
-
-        for i in 0..upvalue_count {
-            let upvalue = &compiler.upvalues[i];
-            if upvalue.index == idx && upvalue.is_local == is_local {
-                return i;
-            }
-        }
-
-        if upvalue_count == (u8::MAX as usize) {
-            error!(self, "Trying to capture too many variables in closure");
-            return 0;
-        }
-        compiler.upvalues[upvalue_count].is_local = is_local;
-        compiler.upvalues[upvalue_count].index = idx;
-        compiler.upvalues[upvalue_count].upvalue_type = upvalue_type;
-        compiler.func.upvalue_count += 1;
-
-        return compiler.func.upvalue_count - 1;
-    }
-
-    fn resolve_local(&mut self, compiler_level: u32, token: &Token) -> (Option<usize>, bool) {
-        let Some(compiler) = Self::compiler_at(compiler_level, &mut self.function_compiler) else {
-            return (None, false);
-        };
-        if compiler.locals.len() == 0 {
-            return (None, true);
-        }
-        for (k, local) in compiler.locals.iter() {
-            if token.lexeme == local.name {
-                if local.depth == -1 {
-                    error!(self, "Cannot read local variable in its own initializer.");
-                    return (None, true);
-                }
-                return (Some(*k), local.mutable || !local.assigned);
-            }
-        }
-        return (None, true);
     }
 }

@@ -3,60 +3,51 @@ use std::{ collections::HashMap, rc::Rc };
 use tracing::{ instrument, warn, Level };
 
 use crate::{
-    chunk::Opcode,
-    common::{ ast::{ Expression, FunctionExpression }, runnable::Runnable },
-    lexer::{ Token, TokenType },
-    value::{ pointer::Pointer, Value },
-    typing::{ CustomStruct, ValueType, ValueTypeK },
+    chunk::Opcode, common::{ ast::{ Expression, FunctionExpression }, runnable::Runnable }, lexer::{ Token, TokenType }, typing::{ CustomStruct, UValueType, ValueType }, value::{ pointer::Pointer, Value }
 };
 
 use super::{ EmitWalker, FunctionCompiler, Local, Upvalue };
 
 use crate::error;
 
-enum UpvalueType {
-    Local(usize),
-    Upvalue(usize),
-}
-
 impl EmitWalker {
     #[instrument(level = "trace", skip_all)]
-    pub fn literal(&mut self, v: Value) -> ValueType {
+    pub fn literal(&mut self, v: Value) -> UValueType {
         let line = 0;
         match v {
             Value::Bool(false) => {
                 self.function_compiler.func.chunk.write(Opcode::False.into(), line);
-                ValueTypeK::Bool.intern()
+                ValueType::Bool.intern()
             }
             Value::Nil => {
                 self.function_compiler.func.chunk.write(Opcode::Nil.into(), line);
-                ValueTypeK::Nil.intern()
+                ValueType::Nil.intern()
             }
             Value::Bool(true) => {
                 self.function_compiler.func.chunk.write(Opcode::True.into(), line);
-                ValueTypeK::Bool.intern()
+                ValueType::Bool.intern()
             }
             Value::Integer(i) => {
                 self.function_compiler.func.chunk.write_constant(Value::Integer(i), line);
-                ValueTypeK::Integer.intern()
+                ValueType::Integer.intern()
             }
             Value::Float(f) => {
                 self.function_compiler.func.chunk.write_constant(Value::Float(f), line);
-                ValueTypeK::Float.intern()
+                ValueType::Float.intern()
             }
             Value::Char(c) => {
                 self.function_compiler.func.chunk.write_constant(Value::Char(c), line);
-                ValueTypeK::Char.intern()
+                ValueType::Char.intern()
             }
             _ => {
                 error!(self, "Cannot compile this type of literal");
-                ValueTypeK::Err.intern()
+                ValueType::Err.intern()
             }
         }
     }
 
     #[instrument(level = "trace", skip_all)]
-    pub fn string(&mut self, s: String) -> ValueType {
+    pub fn string(&mut self, s: String) -> UValueType {
         let line = 0;
         let mut value = s;
         value = value.trim_matches('"').to_string();
@@ -77,11 +68,11 @@ impl EmitWalker {
             Value::Pointer(Pointer::Static(start)),
             line
         );
-        return ValueTypeK::String.intern();
+        return ValueType::String.intern();
     }
 
     #[instrument(level = "trace", skip_all)]
-    pub fn unary(&mut self, token_t: TokenType, e: Expression) -> ValueType {
+    pub fn unary(&mut self, token_t: TokenType, e: Expression) -> UValueType {
         let line = 0;
         let operator_type = token_t;
         // Compile the operand.
@@ -90,11 +81,11 @@ impl EmitWalker {
         // Emit the operator instruction.
         match operator_type {
             TokenType::Minus =>
-                match t {
-                    ValueTypeK::Integer => {
+                match t.as_ref() {
+                    ValueType::Integer => {
                         self.function_compiler.func.chunk.write(Opcode::NegateInt.into(), line);
                     }
-                    ValueTypeK::Float => {
+                    ValueType::Float => {
                         self.function_compiler.func.chunk.write(Opcode::NegateFloat.into(), line);
                     }
                     _ => {
@@ -108,19 +99,19 @@ impl EmitWalker {
     }
 
     #[instrument(level = "trace", skip_all)]
-    pub fn deref(&mut self, e: Expression, at: bool) -> ValueType {
+    pub fn deref(&mut self, e: Expression, at: bool) -> UValueType {
         let line = 0;
         // Compile the operand.
         let raw_t = self.visit_expression(e, false);
-        let (t, _) = match raw_t.decay(self.custom_structs.clone().into()) {
-            &ValueTypeK::Pointer(pointee_type, is_const) => (pointee_type, is_const),
+        let (t, _) = match raw_t.decay(self.custom_structs.clone().into()).as_ref() {
+            &ValueType::Pointer(pointee_type, is_const) => (pointee_type, is_const),
             _ => {
                 error!(self, "Expected pointer type");
-                (ValueTypeK::Err.intern(), false)
+                (ValueType::Err.intern(), false)
             }
         };
 
-        if raw_t == ValueTypeK::String.intern() {
+        if raw_t == ValueType::String.intern() {
             self.function_compiler.func.chunk.write_constant(Value::Integer(1), line);
             self.function_compiler.func.chunk.write(Opcode::PointerAdd as u8, line);
         }
@@ -135,38 +126,38 @@ impl EmitWalker {
     }
 
     #[instrument(level = "trace", skip_all)]
-    pub fn addr_of(&mut self, e: Expression) -> ValueType {
+    pub fn addr_of(&mut self, e: Expression) -> UValueType {
         // Compile the operand.
         let t = self.visit_expression(e, true);
 
-        match t {
-            ValueTypeK::Pointer(_, _) => t,
+        match t.as_ref() {
+            ValueType::Pointer(_, _) => t,
             _ => {
                 error!(self, "Expected pointer type");
-                ValueTypeK::Err.intern()
+                ValueType::Err.intern()
             }
         }
     }
 
     #[instrument(level = "trace", skip_all)]
-    pub fn index(&mut self, e: Expression, i: Expression, at: bool) -> ValueType {
+    pub fn index(&mut self, e: Expression, i: Expression, at: bool) -> UValueType {
         let line = 0;
 
         // Compile the operand.
         let raw_t = self.visit_expression(e, false);
         let pointer_type = raw_t.decay(self.custom_structs.clone().into());
-        let &ValueTypeK::Pointer(pointee_type, _) = pointer_type else {
+        let &ValueType::Pointer(pointee_type, _) = pointer_type.as_ref() else {
             error!(self, "Expected pointer type");
-            return ValueTypeK::Err.intern();
+            return ValueType::Err.intern();
         };
 
-        if raw_t == ValueTypeK::String.intern() {
+        if raw_t == ValueType::String.intern() {
             self.function_compiler.func.chunk.write_constant(Value::Integer(1), line);
             self.function_compiler.func.chunk.write(Opcode::PointerAdd as u8, line);
         }
 
         let i_type = self.visit_expression(i, false);
-        if i_type != ValueTypeK::Integer.intern() {
+        if i_type != ValueType::Integer.intern() {
             error!(self, "Index must be an integer");
         }
 
@@ -187,7 +178,7 @@ impl EmitWalker {
     }
 
     #[instrument(level = "trace", skip_all)]
-    pub fn binary(&mut self, l: Expression, operator: TokenType, r: Expression) -> ValueType {
+    pub fn binary(&mut self, l: Expression, operator: TokenType, r: Expression) -> UValueType {
         let operator_type = operator;
         let line = 0;
 
@@ -200,35 +191,35 @@ impl EmitWalker {
         // Emit the operator instruction.
         match operator_type {
             TokenType::Plus =>
-                match (lt, rt) {
-                    (ValueTypeK::Integer, ValueTypeK::Integer) => {
+                match (lt.as_ref(), rt.as_ref()) {
+                    (ValueType::Integer, ValueType::Integer) => {
                         self.function_compiler.func.chunk.write(Opcode::AddInt.into(), line);
-                        return ValueTypeK::Integer.intern();
+                        return ValueType::Integer.intern();
                     }
-                    (ValueTypeK::Float, ValueTypeK::Float) => {
+                    (ValueType::Float, ValueType::Float) => {
                         self.function_compiler.func.chunk.write(Opcode::AddFloat.into(), line);
-                        return ValueTypeK::Float.intern();
+                        return ValueType::Float.intern();
                     }
-                    (ValueTypeK::Pointer(_, _), ValueTypeK::Integer) => {
+                    (ValueType::Pointer(_, _), ValueType::Integer) => {
                         self.function_compiler.func.chunk.write(Opcode::PointerAdd.into(), line);
                         return lt;
                     }
                     _ => {
                         error!(self, "Operands must be two numbers or a pointer and an integer.");
-                        return ValueTypeK::Err.intern();
+                        return ValueType::Err.intern();
                     }
                 }
             TokenType::Minus =>
-                match (lt, rt) {
-                    (ValueTypeK::Integer, ValueTypeK::Integer) => {
+                match (lt.as_ref(), rt.as_ref()) {
+                    (ValueType::Integer, ValueType::Integer) => {
                         self.function_compiler.func.chunk.write(Opcode::SubtractInt.into(), line);
-                        return ValueTypeK::Integer.intern();
+                        return ValueType::Integer.intern();
                     }
-                    (ValueTypeK::Float, ValueTypeK::Float) => {
+                    (ValueType::Float, ValueType::Float) => {
                         self.function_compiler.func.chunk.write(Opcode::SubtractFloat.into(), line);
-                        return ValueTypeK::Float.intern();
+                        return ValueType::Float.intern();
                     }
-                    (ValueTypeK::Pointer(_, _), ValueTypeK::Integer) => {
+                    (ValueType::Pointer(_, _), ValueType::Integer) => {
                         self.function_compiler.func.chunk.write(
                             Opcode::PointerSubtract.into(),
                             line
@@ -237,37 +228,37 @@ impl EmitWalker {
                     }
                     _ => {
                         error!(self, "Operands must be two numbers or a pointer and an integer.");
-                        return ValueTypeK::Err.intern();
+                        return ValueType::Err.intern();
                     }
                 }
             TokenType::Star =>
-                match (lt, rt) {
-                    (ValueTypeK::Integer, ValueTypeK::Integer) => {
+                match (lt.as_ref(), rt.as_ref()) {
+                    (ValueType::Integer, ValueType::Integer) => {
                         self.function_compiler.func.chunk.write(Opcode::MultiplyInt.into(), line);
-                        return ValueTypeK::Integer.intern();
+                        return ValueType::Integer.intern();
                     }
-                    (ValueTypeK::Float, ValueTypeK::Float) => {
+                    (ValueType::Float, ValueType::Float) => {
                         self.function_compiler.func.chunk.write(Opcode::MultiplyFloat.into(), line);
-                        return ValueTypeK::Float.intern();
+                        return ValueType::Float.intern();
                     }
                     _ => {
                         error!(self, "Operands must be two numbers.");
-                        return ValueTypeK::Err.intern();
+                        return ValueType::Err.intern();
                     }
                 }
             TokenType::Slash =>
-                match (lt, rt) {
-                    (ValueTypeK::Integer, ValueTypeK::Integer) => {
+                match (lt.as_ref(), rt.as_ref()) {
+                    (ValueType::Integer, ValueType::Integer) => {
                         self.function_compiler.func.chunk.write(Opcode::DivideInt.into(), line);
-                        return ValueTypeK::Integer.intern();
+                        return ValueType::Integer.intern();
                     }
-                    (ValueTypeK::Float, ValueTypeK::Float) => {
+                    (ValueType::Float, ValueType::Float) => {
                         self.function_compiler.func.chunk.write(Opcode::DivideFloat.into(), line);
-                        return ValueTypeK::Float.intern();
+                        return ValueType::Float.intern();
                     }
                     _ => {
                         error!(self, "Operands must be two numbers.");
-                        return ValueTypeK::Err.intern();
+                        return ValueType::Err.intern();
                     }
                 }
             TokenType::EqualEqual => {
@@ -282,10 +273,10 @@ impl EmitWalker {
                     self.function_compiler.func.chunk.write_pop(rt, line);
                     self.function_compiler.func.chunk.write_pop(lt, line);
                     self.function_compiler.func.chunk.write(Opcode::False.into(), line);
-                    return ValueTypeK::Bool.intern();
+                    return ValueType::Bool.intern();
                 }
                 self.function_compiler.func.chunk.write(Opcode::Equal.into(), line);
-                return ValueTypeK::Bool.intern();
+                return ValueType::Bool.intern();
             }
             TokenType::BangEqual => {
                 if rt != lt {
@@ -299,85 +290,85 @@ impl EmitWalker {
                     self.function_compiler.func.chunk.write_pop(rt, line);
                     self.function_compiler.func.chunk.write_pop(lt, line);
                     self.function_compiler.func.chunk.write(Opcode::True.into(), line);
-                    return ValueTypeK::Bool.intern();
+                    return ValueType::Bool.intern();
                 }
                 self.function_compiler.func.chunk.write(Opcode::Equal.into(), line);
                 self.function_compiler.func.chunk.write(Opcode::Not.into(), line);
-                return ValueTypeK::Bool.intern();
+                return ValueType::Bool.intern();
             }
             TokenType::Greater => {
-                match (lt, rt) {
-                    (ValueTypeK::Integer, ValueTypeK::Integer) => {
+                match (lt.as_ref(), rt.as_ref()) {
+                    (ValueType::Integer, ValueType::Integer) => {
                         self.function_compiler.func.chunk.write(Opcode::GreaterInt.into(), line);
                     }
-                    (ValueTypeK::Float, ValueTypeK::Float) => {
+                    (ValueType::Float, ValueType::Float) => {
                         self.function_compiler.func.chunk.write(Opcode::GreaterFloat.into(), line);
                     }
                     _ => {
                         error!(self, "Operands must be two numbers.");
-                        return ValueTypeK::Err.intern();
+                        return ValueType::Err.intern();
                     }
                 }
-                return ValueTypeK::Bool.intern();
+                return ValueType::Bool.intern();
             }
             TokenType::GreaterEqual => {
-                match (lt, rt) {
-                    (ValueTypeK::Integer, ValueTypeK::Integer) => {
+                match (lt.as_ref(), rt.as_ref()) {
+                    (ValueType::Integer, ValueType::Integer) => {
                         self.function_compiler.func.chunk.write(Opcode::LessInt.into(), line);
                         self.function_compiler.func.chunk.write(Opcode::Not.into(), line);
                     }
-                    (ValueTypeK::Float, ValueTypeK::Float) => {
+                    (ValueType::Float, ValueType::Float) => {
                         self.function_compiler.func.chunk.write(Opcode::LessFloat.into(), line);
                         self.function_compiler.func.chunk.write(Opcode::Not.into(), line);
                     }
                     _ => {
                         error!(self, "Operands must be two numbers.");
-                        return ValueTypeK::Err.intern();
+                        return ValueType::Err.intern();
                     }
                 }
-                return ValueTypeK::Bool.intern();
+                return ValueType::Bool.intern();
             }
             TokenType::Less => {
-                match (lt, rt) {
-                    (ValueTypeK::Integer, ValueTypeK::Integer) => {
+                match (lt.as_ref(), rt.as_ref()) {
+                    (ValueType::Integer, ValueType::Integer) => {
                         self.function_compiler.func.chunk.write(Opcode::LessInt.into(), line);
                     }
-                    (ValueTypeK::Float, ValueTypeK::Float) => {
+                    (ValueType::Float, ValueType::Float) => {
                         self.function_compiler.func.chunk.write(Opcode::LessFloat.into(), line);
                     }
                     _ => {
                         error!(self, "Operands must be two numbers.");
-                        return ValueTypeK::Err.intern();
+                        return ValueType::Err.intern();
                     }
                 }
-                return ValueTypeK::Bool.intern();
+                return ValueType::Bool.intern();
             }
             TokenType::LessEqual => {
-                match (lt, rt) {
-                    (ValueTypeK::Integer, ValueTypeK::Integer) => {
+                match (lt.as_ref(), rt.as_ref()) {
+                    (ValueType::Integer, ValueType::Integer) => {
                         self.function_compiler.func.chunk.write(Opcode::GreaterInt.into(), line);
                         self.function_compiler.func.chunk.write(Opcode::Not.into(), line);
                     }
-                    (ValueTypeK::Float, ValueTypeK::Float) => {
+                    (ValueType::Float, ValueType::Float) => {
                         self.function_compiler.func.chunk.write(Opcode::GreaterFloat.into(), line);
                         self.function_compiler.func.chunk.write(Opcode::Not.into(), line);
                     }
                     _ => {
                         error!(self, "Operands must be two numbers.");
-                        return ValueTypeK::Err.intern();
+                        return ValueType::Err.intern();
                     }
                 }
-                return ValueTypeK::Bool.intern();
+                return ValueType::Bool.intern();
             }
             _ => unreachable!(),
         }
     }
 
     #[instrument(level = "trace", skip_all)]
-    pub fn ternary(&mut self, c: Expression, t: Expression, f: Expression) -> ValueType {
+    pub fn ternary(&mut self, c: Expression, t: Expression, f: Expression) -> UValueType {
         let line = 0;
         let c_type = self.visit_expression(c, false);
-        if c_type != ValueTypeK::Bool.intern() {
+        if c_type != ValueType::Bool.intern() {
             error!(self, "Condition must be a boolean.");
         }
         // set up the jump to the else branch
@@ -404,7 +395,7 @@ impl EmitWalker {
     }
 
     #[instrument(level = "trace", skip_all)]
-    pub fn variable(&mut self, tok: Token, assignment_target: bool) -> ValueType {
+    pub fn variable(&mut self, tok: Token, assignment_target: bool) -> UValueType {
         let line = 0;
 
         let (arg, assignable) = self.resolve_local(0, &tok);
@@ -415,7 +406,7 @@ impl EmitWalker {
                 // }
                 self.function_compiler.func.chunk.write_local_ptr(i, line);
 
-                return ValueTypeK::Pointer(
+                return ValueType::Pointer(
                     self.function_compiler.locals[&i].local_type,
                     !assignable
                 ).intern();
@@ -441,7 +432,7 @@ impl EmitWalker {
                 //     error!(self, "Can't assign to const variable");
                 // }
                 self.function_compiler.func.chunk.write_local_ptr(i, line);
-                return ValueTypeK::Pointer(
+                return ValueType::Pointer(
                     self.function_compiler.locals[&i].local_type,
                     !assignable
                 ).intern();
@@ -461,7 +452,7 @@ impl EmitWalker {
                     Value::Pointer(Pointer::Static(*i)),
                     line
                 );
-                return ValueTypeK::Pointer(
+                return ValueType::Pointer(
                     self.global_types.get(i).unwrap().0,
                     self.global_types.get(i).unwrap().1
                 ).intern();
@@ -477,12 +468,12 @@ impl EmitWalker {
             }
         } else {
             error!(self, format!("Undefined variable '{}'.", tok.lexeme).as_str());
-            ValueTypeK::Err.intern()
+            ValueType::Err.intern()
         }
     }
 
     #[instrument(level = "trace", skip_all)]
-    pub fn assign(&mut self, l: Expression, r: Expression) -> ValueType {
+    pub fn assign(&mut self, l: Expression, r: Expression) -> UValueType {
         let line = 0;
         let _t = self.visit_expression(l, true);
 
@@ -497,36 +488,36 @@ impl EmitWalker {
     }
 
     #[instrument(level = "trace", skip_all)]
-    pub fn logical(&mut self, l: Expression, operator: TokenType, r: Expression) -> ValueType {
+    pub fn logical(&mut self, l: Expression, operator: TokenType, r: Expression) -> UValueType {
         let line = 0;
         let operator_type = operator;
         let t = self.visit_expression(l, false);
-        if t != ValueTypeK::Bool.intern() {
+        if t != ValueType::Bool.intern() {
             error!(self, "Operand must be a boolean.");
         }
         if operator_type == TokenType::Or {
             let jump_to_end = self.emit_jump(Opcode::JumpIfTrue.into());
             self.function_compiler.func.chunk.write_pop(t, line);
             let t2 = self.visit_expression(r, false);
-            if t2 != ValueTypeK::Bool.intern() {
+            if t2 != ValueType::Bool.intern() {
                 error!(self, "Operand must be a boolean.");
             }
             self.patch_jump(jump_to_end);
-            return ValueTypeK::Bool.intern();
+            return ValueType::Bool.intern();
         } else {
             let jump_to_else = self.emit_jump(Opcode::JumpIfFalse.into());
             self.function_compiler.func.chunk.write_pop(t, line);
             let t2 = self.visit_expression(r, false);
-            if t2 != ValueTypeK::Bool.intern() {
+            if t2 != ValueType::Bool.intern() {
                 error!(self, "Operand must be a boolean.");
             }
             self.patch_jump(jump_to_else);
-            return ValueTypeK::Bool.intern();
+            return ValueType::Bool.intern();
         }
     }
 
     #[instrument(level = "trace", skip_all)]
-    pub fn call(&mut self, callee: Expression, args: Vec<Expression>) -> ValueType {
+    pub fn call(&mut self, callee: Expression, args: Vec<Expression>) -> UValueType {
         let line = 0;
         let t = self.visit_expression(callee, false);
 
@@ -535,7 +526,7 @@ impl EmitWalker {
             ts.push(self.visit_expression(arg, false));
         }
 
-        if let ValueTypeK::Closure(f) = t {
+        if let ValueType::Closure(f) = t.as_ref() {
             self.function_compiler.func.chunk.write_pool_opcode(
                 Opcode::Call,
                 ts.iter().fold(0, |a, b| a + (b.num_words() as u32)),
@@ -543,32 +534,37 @@ impl EmitWalker {
             );
 
             let return_type = f.last().unwrap();
-            return return_type;
+            return *return_type;
         } else {
             error!(self, format!("Can only call function types, got {:?}", t).as_str());
-            return ValueTypeK::Err.intern();
+            return ValueType::Err.intern();
         }
     }
 
     #[instrument(level = "trace", skip_all)]
-    pub fn dot(&mut self, e: Expression, tok: Token, at: bool) -> ValueType {
+    pub fn dot(&mut self, e: Expression, tok: Token, at: bool) -> UValueType {
         let line = 0;
         let t = self.visit_expression(e, true);
 
-        let ValueTypeK::Pointer(ValueTypeK::Struct(s), _) = t.decay(
-            self.custom_structs.clone().into()
-        ) else {
+        let decayed = t.decay(self.custom_structs.clone().into());
+        let ValueType::Pointer(maybe_s, _) = decayed.as_ref() else {
             error!(self, format!("Can only access fields of struct types, got {:?}", t).as_str());
-            return ValueTypeK::Err.intern();
+            return ValueType::Err.intern();
         };
 
-        let temp = s.fields.borrow();
+        let ValueType::Struct(s) = maybe_s.as_ref() else {
+            error!(self, format!("Can only access fields of struct types, got {:?}", t).as_str());
+            return ValueType::Err.intern();
+        };
+
+        let l = s.fields.lock();
+        let temp = l.as_ref().unwrap();
         let Some(field) = temp.get(&tok.lexeme) else {
             error!(
                 self,
                 format!("Field '{}' not found have fields {:?}", tok.lexeme, s.fields).as_str()
             );
-            return ValueTypeK::Err.intern();
+            return ValueType::Err.intern();
         };
 
         if !at {
@@ -586,12 +582,12 @@ impl EmitWalker {
                 line
             );
             self.function_compiler.func.chunk.write(Opcode::PointerAdd.into(), line);
-            return ValueTypeK::Pointer(field.value, false).intern();
+            return ValueType::Pointer(field.value, false).intern();
         }
     }
 
     #[instrument(level = "trace", skip_all)]
-    pub fn function(&mut self, function_expr: FunctionExpression) -> ValueType {
+    pub fn function(&mut self, function_expr: FunctionExpression) -> UValueType {
         let c = FunctionCompiler::new(
             super::FunctionType::Function,
             Some(std::mem::take(&mut self.function_compiler)),
@@ -648,7 +644,7 @@ impl EmitWalker {
 
         let func_name = function_expr.name.clone();
 
-        let ft = ValueTypeK::Closure(param_types.clone().as_slice().into()).intern();
+        let ft = ValueType::Closure(param_types.clone().as_slice().into()).intern();
         self.function_compiler.locals.insert(0, Local {
             name: func_name,
             depth: 0,
@@ -664,7 +660,7 @@ impl EmitWalker {
             self.visit(d.clone());
         }
 
-        if self.function_compiler.func.return_type == ValueTypeK::Nil.intern() {
+        if self.function_compiler.func.return_type == ValueType::Nil.intern() {
             self.emit_return(return_type);
         }
         self.end_scope();
@@ -678,7 +674,7 @@ impl EmitWalker {
         let (rfunc, maybe_enclosing, upvalues) = c.recover_values();
         let Some(enclosing) = maybe_enclosing else {
             error!(self, "Cannot return from top-level code.");
-            return ValueTypeK::Err.intern();
+            return ValueType::Err.intern();
         };
         let func = Rc::new(rfunc);
 
@@ -700,59 +696,59 @@ impl EmitWalker {
     }
 
     #[instrument(level = "trace", skip_all)]
-    pub fn cast(&mut self, value: Expression, cast_type: ValueType) -> ValueType {
+    pub fn cast(&mut self, value: Expression, cast_type: UValueType) -> UValueType {
         // cast(value, type)
         let line = 0;
 
         let t = self.visit_expression(value, false);
 
-        match (t.decay(self.custom_structs.clone().into()), cast_type) {
-            (x, y) if x == y => x,
-            (ValueTypeK::Integer, ValueTypeK::Float) => {
+        match (t.decay(self.custom_structs.clone().into()).as_ref(), cast_type.as_ref()) {
+            (x, y) if x.intern() == y.intern() => x.intern(),
+            (ValueType::Integer, ValueType::Float) => {
                 self.function_compiler.func.chunk.write(Opcode::CastIntToFloat.into(), line);
-                ValueTypeK::Float.intern()
+                ValueType::Float.intern()
             }
-            (ValueTypeK::Float, ValueTypeK::Integer) => {
+            (ValueType::Float, ValueType::Integer) => {
                 self.function_compiler.func.chunk.write(Opcode::CastFloatToInt.into(), line);
-                ValueTypeK::Integer.intern()
+                ValueType::Integer.intern()
             }
-            (ValueTypeK::Integer, ValueTypeK::Bool) => {
+            (ValueType::Integer, ValueType::Bool) => {
                 self.function_compiler.func.chunk.write(Opcode::CastIntToBool.into(), line);
-                ValueTypeK::Bool.intern()
+                ValueType::Bool.intern()
             }
-            (ValueTypeK::Bool, ValueTypeK::Integer) => {
+            (ValueType::Bool, ValueType::Integer) => {
                 self.function_compiler.func.chunk.write(Opcode::CastBoolToInt.into(), line);
-                ValueTypeK::Integer.intern()
+                ValueType::Integer.intern()
             }
-            (ValueTypeK::Bool, ValueTypeK::Float) => {
+            (ValueType::Bool, ValueType::Float) => {
                 self.function_compiler.func.chunk.write(Opcode::CastBoolToFloat.into(), line);
-                ValueTypeK::Float.intern()
+                ValueType::Float.intern()
             }
-            (ValueTypeK::Integer, ValueTypeK::String) => {
+            (ValueType::Integer, ValueType::String) => {
                 self.function_compiler.func.chunk.write(Opcode::CastIntToString.into(), line);
-                ValueTypeK::String.intern()
+                ValueType::String.intern()
             }
-            (ValueTypeK::Float, ValueTypeK::String) => {
+            (ValueType::Float, ValueType::String) => {
                 self.function_compiler.func.chunk.write(Opcode::CastFloatToString.into(), line);
-                ValueTypeK::String.intern()
+                ValueType::String.intern()
             }
-            (ValueTypeK::Bool, ValueTypeK::String) => {
+            (ValueType::Bool, ValueType::String) => {
                 self.function_compiler.func.chunk.write(Opcode::CastBoolToString.into(), line);
-                ValueTypeK::String.intern()
+                ValueType::String.intern()
             }
-            (ValueTypeK::Array(x, _), ValueTypeK::Pointer(y, _)) if x == y => {
-                ValueTypeK::Pointer(x, false).intern()
+            (ValueType::Array(x, _), ValueType::Pointer(y, _)) if x == y => {
+                ValueType::Pointer(*x, false).intern()
             }
-            (ValueTypeK::Pointer(_, _), ValueTypeK::Pointer(_, _)) => cast_type,
+            (ValueType::Pointer(_, _), ValueType::Pointer(_, _)) => cast_type,
             _ => {
                 error!(self, &format!("Cannot cast {:?} to {:?}", t, cast_type));
-                ValueTypeK::Err.intern()
+                ValueType::Err.intern()
             }
         }
     }
 
     #[instrument(level = "trace", skip_all)]
-    pub fn array_literal(&mut self, elements: Vec<Expression>) -> ValueType {
+    pub fn array_literal(&mut self, elements: Vec<Expression>) -> UValueType {
         let _line = 0;
         let mut element_types = Vec::new();
         for e in elements {
@@ -765,7 +761,7 @@ impl EmitWalker {
                 error!(self, "All elements of an array must have the same type.");
             }
         }
-        let array_type = ValueTypeK::Array(array_type, element_types.len()).intern();
+        let array_type = ValueType::Array(array_type, element_types.len()).intern();
         array_type
     }
 
@@ -773,8 +769,9 @@ impl EmitWalker {
         &mut self,
         t: CustomStruct,
         fields: HashMap<String, Expression>
-    ) -> ValueType {
-        let temp = t.fields.borrow();
+    ) -> UValueType {
+        let l = t.fields.lock();
+        let temp = l.as_ref().unwrap();
         let mut orig_fields = temp.iter().collect::<Vec<_>>();
         orig_fields.sort_by(|a, b| a.1.offset.cmp(&b.1.offset));
         for (name, entry) in orig_fields.iter() {
@@ -790,14 +787,15 @@ impl EmitWalker {
                     self,
                     format!("Field {} has type {:?}, expected {:?}", name, ft, entry.value).as_str()
                 );
-                return ValueTypeK::Err.intern();
+                return ValueType::Err.intern();
             }
         }
         drop(temp);
-        ValueTypeK::Struct(t).intern()
+        drop(l);
+        ValueType::Struct(t).intern()
     }
 
-    fn emit_return(&mut self, t: ValueType) {
+    fn emit_return(&mut self, t: UValueType) {
         for _ in 0..t.num_words() {
             self.function_compiler.func.chunk.write(Opcode::Nil.into(), 0);
         }
@@ -845,7 +843,7 @@ impl EmitWalker {
                 return None;
             };
 
-            let Some(compiler) = Self::compiler_at(
+            let Some(_compiler) = Self::compiler_at(
                 compiler_level,
                 &mut self.function_compiler
             ) else {
@@ -871,7 +869,7 @@ impl EmitWalker {
         up_idx: usize,
         is_local: bool,
         compiler_level: u32,
-        upvalue_type: ValueType,
+        upvalue_type: UValueType,
         name: String
     ) -> (usize, usize) {
         let compiler = Self::compiler_at(compiler_level, &mut self.function_compiler).unwrap();
@@ -912,7 +910,6 @@ impl EmitWalker {
         compiler.upvalues.push(Upvalue {
             idx: up_idx,
             is_local: is_local,
-            upvalue_idx: compiler.func.upvalue_count,
             upvalue_type: upvalue_type,
             name: name.to_owned(),
         });

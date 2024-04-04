@@ -1,20 +1,22 @@
-use std::{cell::RefCell, collections::HashMap, rc::Rc, sync::Mutex};
+use std::{borrow::Borrow, cell::RefCell, collections::HashMap, rc::Rc, sync::{Arc, Mutex}};
 
 use pinvec::PinVec;
 use pow_of_2::PowOf2;
 use radix_trie::Trie;
+use lazy_static::lazy_static;
 
-pub type ValueType = &'static ValueTypeK;
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub struct UValueType(usize);
 
 #[derive(Clone, Debug)]
 pub struct CustomStruct {
     pub name: String,
-    pub fields: Rc<RefCell<HashMap<String, StructEntry>>>,
+    pub fields: Arc<Mutex<HashMap<String, StructEntry>>>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct StructEntry {
-    pub value: ValueType,
+    pub value: UValueType,
     pub offset: usize,
 }
 
@@ -26,17 +28,17 @@ pub enum Assignable {
 
 #[derive(Clone, Debug)]
 #[repr(usize)]
-pub enum ValueTypeK {
+pub enum ValueType {
     Float,
     Integer,
     Char,
     Bool,
     Nil,
     String,
-    Closure(Box<[ValueType]>),
+    Closure(Box<[UValueType]>),
     AnyFunction,
-    Pointer(ValueType, bool),
-    Array(ValueType, usize),
+    Pointer(UValueType, bool),
+    Array(UValueType, usize),
     Struct(CustomStruct),
     SelfStruct(String),
     AnyStruct,
@@ -45,7 +47,7 @@ pub enum ValueTypeK {
     Err,
 }
 
-impl ValueTypeK {
+impl ValueType {
 
     pub fn num_words(&self) -> usize {
         match self {
@@ -61,8 +63,8 @@ impl ValueTypeK {
             Self::Array(_, _c) => 1,
             Self::Struct(h) => {
                 let mut sum = 0;
-                for (_, v) in h.fields.borrow().iter() {
-                    sum += v.value.num_words();
+                for (_, v) in h.fields.lock().as_ref().unwrap().iter() {
+                    sum += v.value.as_ref().num_words();
                 }
                 sum
             },
@@ -81,11 +83,11 @@ impl ValueTypeK {
             Self::Bool => "3".into(),
             Self::Nil => "4".into(),
             Self::String => "5".into(),
-            Self::Closure(b) => format!("6{:?}", b.iter().map(|t| t.to_trie_string()).fold("".to_string(), |a, s| {let mut r = a; r.push_str(&s); r})).into(),
+            Self::Closure(b) => format!("6{}", b.iter().map(|t| t.as_ref().to_trie_string()).fold("".to_string(), |a, s| {let mut r = a; r.push_str(&s); r})).into(),
             Self::AnyFunction => "7".into(),
-            Self::Pointer(p, s) => format!("9{}{}", p.to_trie_string(), s),
-            Self::Array(p, c) => format!("10{};{}", p.to_trie_string(), c),
-            Self::Struct(h) => format!("E{:?}", h.fields.borrow().iter().map(|(k, v)| format!("{}:{}", k, v.value.to_trie_string())).fold("".to_string(), |a, s| {let mut r = a; r.push_str(&s); r})),
+            Self::Pointer(p, s) => format!("9{}{}", p.as_ref().to_trie_string(), s),
+            Self::Array(p, c) => format!("10{};{}", p.as_ref().to_trie_string(), c),
+            Self::Struct(h) => format!("E{}", h.fields.lock().as_ref().unwrap().iter().map(|(k, v)| format!("{}:{}", k, v.value.as_ref().to_trie_string())).fold("".to_string(), |a, s| {let mut r = a; r.push_str(&s); r})),
             Self::Undef => "A".into(),
             Self::All => "B".into(),
             Self::Err => "C".into(),
@@ -112,14 +114,14 @@ impl ValueTypeK {
                     && l0v
                         .iter()
                         .zip(r0v.iter())
-                        .all(|(l0, r0)| [(*l0), (*r0)].into_iter().any(Self::is_all) || l0 == r0)
+                        .all(|(l0, r0)| [(*l0), (*r0)].into_iter().any(|x| x.as_ref().is_all()) || l0 == r0)
             }
             (Self::Array(l0, l0c), Self::Array(r0, r0c)) => {
-                ([*l0, *r0].into_iter().any(Self::is_all) || l0 == r0)
+                ([*l0, *r0].into_iter().any(|x| x.as_ref().is_all()) || l0 == r0)
                     && ([l0c, r0c].into_iter().any(|u| *u == usize::MAX) || l0c == r0c)
             }
             (Self::Pointer(l0, _), Self::Pointer(r0, _)) => {
-                [*l0, *r0].into_iter().any(Self::is_all) || l0 == r0
+                [*l0, *r0].into_iter().any(|x| x.as_ref().is_all()) || l0 == r0
             }
             (Self::Pointer(_, _), Self::Nil) => true,
             (Self::Nil, Self::Pointer(_, _)) => true,
@@ -133,19 +135,24 @@ impl ValueTypeK {
     }
 }
 
-impl PartialEq for ValueTypeK{
+impl PartialEq for ValueType{
     fn eq(&self, other: &Self) -> bool {
         self.soft_compare(other)
     }
 }
 
 
-impl ValueTypeK {
+lazy_static! {
+    static ref USED_TYPES: Arc<Mutex<PinVec<ValueType>>> = Arc::new(Mutex::new(PinVec::new(PowOf2::from_exp(8))));
+    static ref USED_TYPES_INDECES: Arc<Mutex<Trie<String, usize>>> = Arc::new(Mutex::new(Trie::new()));
+}
+
+impl ValueType {
     pub fn cast_to(&self, other: &Self) -> bool {
         if [self, other].into_iter().any(Self::is_all) {
             return true;
         }
-        match (self.decay(None), other) {
+        match (self.decay(None).as_ref(), other) {
             (Self::Float, Self::Integer) => true,
             (Self::Integer, Self::Float) => true,
             (Self::Pointer(_l0, _), Self::Pointer(_r0, _)) => {
@@ -159,73 +166,121 @@ impl ValueTypeK {
         core::mem::discriminant(self) == core::mem::discriminant(&Self::All)
     }
 
-    pub fn decay(&self, custom_structs: Option<Rc<HashMap<String, CustomStruct>>>) -> ValueType {
+    pub fn decay(&self, custom_structs: Option<Rc<HashMap<String, CustomStruct>>>) -> UValueType {
         match (self, custom_structs) {
-            (Self::Array(p, _), _) => &Self::Pointer(p, true).clone().intern(),
-            (Self::String, _) => &Self::Pointer(&Self::Char, true).clone().intern(),
-            (Self::Pointer(Self::SelfStruct(s), _), Some(cs))  => {
-                if let Some(s) = cs.get(s) {
-                    &Self::Pointer(Self::Struct(s.clone()).intern(), false).clone().intern()
+            (Self::Array(p, _), _) => Self::Pointer(*p, true).clone().intern(),
+            (Self::String, _) => Self::Pointer(Self::Char.intern(), true).clone().intern(),
+            (Self::Pointer(maybe_ss, _), Some(cs))  => {
+                if let Self::SelfStruct(s) = maybe_ss.as_ref() {
+                    if let Some(s) = cs.get(s) {
+                        Self::Pointer(Self::Struct(s.clone()).intern(), false).clone().intern()
+                    } else {
+                        Self::Err.intern()
+                    }
                 } else {
-                    &Self::Err.intern()
+                    self.clone().intern()
                 }
             }
             _ => self.clone().intern(),
         }
     }
+    
+    pub fn intern(&self) -> UValueType {
 
-    pub fn intern(self) -> ValueType {
-        static LOCK: Mutex<()> = Mutex::new(());
+        let sid = self.to_trie_string();
 
-        if let Ok(_lock) = LOCK.lock() {
-            unsafe {
-                static mut USED_TYPES: Option<PinVec<ValueTypeK>> = None;
-                static mut USED_TYPES_INDECES: Option<Trie<String, usize>> = None;
-                if USED_TYPES.is_none() {
-                    USED_TYPES = Some(PinVec::new(PowOf2::from_exp(8)));
-                    USED_TYPES_INDECES = Some(Trie::new());
-                }
-                let used_vec = USED_TYPES.as_mut().unwrap();
-                let used_indeces = USED_TYPES_INDECES.as_mut().unwrap();
-
-                if let Some(idx) = used_indeces.get(&self.to_trie_string()) {
-                    return &used_vec.idx_ref(*idx).get_ref();
-                }
-
-                used_indeces.insert(self.to_trie_string(), used_vec.len());
-                used_vec.push(self);
-                &used_vec.idx_ref(used_vec.len() - 1).get_ref()
-            }
-        } else {
-            panic!("Could not lock type intern lock");
+        let mut used_vec = USED_TYPES.lock().unwrap();
+        let mut used_indeces = USED_TYPES_INDECES.lock().unwrap();
+        
+        if let Some(idx) = used_indeces.get(&sid) {
+            return UValueType(*idx);
         }
+        
+        let value = self.clone();
+        let idx = used_vec.len();
+        used_indeces.insert(sid, idx);
+        used_vec.push(value);
+        UValueType(idx)
+        //     unsafe {
+        //         static mut USED_TYPES: Option<Mutex<PinVec<ValueTypeK>>> = None;
+        //         static mut USED_TYPES_INDECES: Option<Mutex<Trie<String, usize>>> = None;
+        //         if USED_TYPES.is_none() {
+        //             USED_TYPES = Some(Mutex::new(PinVec::new(PowOf2::from_exp(8))));
+        //             USED_TYPES_INDECES = Some(Mutex::new(Trie::new()));
+        //         }
+        //         let mut used_vec = USED_TYPES.as_mut().unwrap().lock().unwrap();
+        //         let mut used_indeces = USED_TYPES_INDECES.as_mut().unwrap().lock().unwrap();
+
+        //         // println!("Checking: {:?}", self.to_trie_string());
+
+        //         if let Some(idx) = used_indeces.get(&self.to_trie_string()) {
+        //             return &*(used_vec.idx_ref(*idx).get_ref() as *const ValueTypeK);
+        //         }
+
+        //         // println!("Interning: {:?}", self.to_trie_string());
+
+        //         used_indeces.insert(self.to_trie_string(), used_vec.len());
+        //         used_vec.push(self);
+        //         // &used_vec.idx_ref(used_vec.len() - 1).get_ref()
+        //         &*(used_vec.idx_ref(used_vec.len() - 1).get_ref() as *const ValueTypeK)
+        //     }
+        // }
+    }
+}
+
+impl UValueType {
+    pub fn as_ref<'a>(&'a self) -> &'a ValueType {
+        let used_types = USED_TYPES.lock().unwrap();
+        let value_type = &used_types.idx_ref(self.0);
+        // Lock is released here, it is safe to dereference value_type
+        unsafe { &*(&**value_type as *const ValueType) }
+    }
+
+    pub fn decay(&self, custom_structs: Option<Rc<HashMap<String, CustomStruct>>>) -> UValueType {
+        self.as_ref().decay(custom_structs)
+    }
+
+    pub fn cast_to(&self, other: &Self) -> bool {
+        self.as_ref().cast_to(other.as_ref())
+    }
+
+    pub fn is_all(&self) -> bool {
+        self.as_ref().is_all()
+    }
+
+    pub fn soft_compare(&self, other: &Self) -> bool {
+        self.as_ref().soft_compare(other.as_ref())
+    }
+
+    pub fn num_words(&self) -> usize {
+        self.as_ref().num_words()
     }
 }
 
 #[derive(Clone, Debug)]
 pub struct ValueTypeSet {
-    set: Vec<ValueType>,
+    set: Vec<UValueType>,
 }
 
 impl ValueTypeSet {
-    pub fn new(types: Vec<ValueType>) -> ValueTypeSet {
+    pub fn new(types: Vec<UValueType>) -> ValueTypeSet {
         ValueTypeSet { set: types }
     }
 
-    pub fn contains(&self, value: ValueType) -> bool {
-        self.set.iter().any(|v| v.soft_compare(value))
+    pub fn contains(&self, value: UValueType) -> bool {
+        self.set.iter().any(|v| v.as_ref().soft_compare(value.as_ref()))
     }
 }
 
-impl From<String> for ValueType {
+impl From<String> for UValueType {
     fn from(s: String) -> Self {
         match s.as_str() {
-            "float" => ValueTypeK::Float.intern(),
-            "int" => ValueTypeK::Integer.intern(),
-            "bool" => ValueTypeK::Bool.intern(),
-            "nil" => ValueTypeK::Nil.intern(),
-            "string" => ValueTypeK::String.intern(),
-            _ => ValueTypeK::Err.intern(),
+            "float" => ValueType::Float.intern(),
+            "int" => ValueType::Integer.intern(),
+            "bool" => ValueType::Bool.intern(),
+            "nil" => ValueType::Nil.intern(),
+            "string" => ValueType::String.intern(),
+            _ => ValueType::Err.intern(),
         }
     }
 }

@@ -4,7 +4,7 @@ use crate::{
     common::ast::{
         ArrayDeclaration, Expression, FunctionDeclaration, StructDeclaration, VarDeclaration
     },
-    typing::ValueTypeK,
+    typing::ValueType,
 };
 
 use super::{TypeCheckWalker, Local};
@@ -86,7 +86,7 @@ impl TypeCheckWalker {
             .insert(name.clone(), id);
         self.global_types.insert(
             id,
-            (ValueTypeK::Undef.intern(), mutable),
+            (ValueType::Undef.intern(), mutable),
         );
         return *self.gloabls.get(&name).unwrap() as i64;
     }
@@ -117,7 +117,7 @@ impl TypeCheckWalker {
             mutable: mutable,
             assigned: false,
             captured: false,
-            local_type: ValueTypeK::Undef.intern(),
+            local_type: ValueType::Undef.intern(),
         };
         self.function_compiler
             .locals
@@ -175,7 +175,7 @@ impl TypeCheckWalker {
                 .locals
                 .get_mut(&last_local)
                 .unwrap()
-                .local_type = ValueTypeK::Array(var_type, n as usize).intern();
+                .local_type = ValueType::Array(var_type, n as usize).intern();
             self.function_compiler.locals.get_mut(&last_local).unwrap().mutable = false;
             self.function_compiler.locals.get_mut(&last_local).unwrap().assigned = true;
 
@@ -183,7 +183,7 @@ impl TypeCheckWalker {
             self.global_types.insert(
                 global_id as usize,
                 (
-                    ValueTypeK::Array(var_type, n as usize).intern(),
+                    ValueType::Array(var_type, n as usize).intern(),
                     false,
                     
                 ),
@@ -202,13 +202,13 @@ impl TypeCheckWalker {
 
             let last_local = self.last_local();
             let elem_type = self.function_compiler.locals.get(&last_local).unwrap().local_type;
-            let mut pointee_type = match elem_type.decay(self.custom_structs.clone().into()) {
-                ValueTypeK::Pointer(t, _) => t,
-                _ => ValueTypeK::Undef.intern(),
+            let mut pointee_type = match elem_type.decay(self.custom_structs.clone().into()).as_ref() {
+                ValueType::Pointer(t, _) => *t,
+                _ => ValueType::Undef.intern(),
             };
 
-            if let ValueTypeK::Array(_, n) =
-                self.function_compiler.locals.get(&last_local).unwrap().local_type
+            if let ValueType::Array(_, n) =
+                self.function_compiler.locals.get(&last_local).unwrap().local_type.as_ref()
             {
                 if *n != a.elements.len() {
                     error!(self, &format!(
@@ -223,7 +223,7 @@ impl TypeCheckWalker {
                     .locals
                     .get_mut(&last_local)
                     .unwrap()
-                    .local_type = ValueTypeK::Array(pointee_type, *n as usize).intern();
+                    .local_type = ValueType::Array(pointee_type, *n as usize).intern();
                 self.function_compiler.local_count += 1;
             } else {
                 let n = size.expect("size is none");
@@ -244,12 +244,12 @@ impl TypeCheckWalker {
 
             for v in &a.elements {
                 let pt = self.visit_expression(v.clone(), false);
-                if pointee_type == ValueTypeK::Undef.intern() {
+                if pointee_type == ValueType::Undef.intern() {
                     pointee_type = pt;
                 }
                 self.function_compiler.local_count += pointee_type.num_words() as usize;
 
-                if pt != pointee_type && pt != ValueTypeK::Nil.intern() {
+                if pt != pointee_type && pt != ValueType::Nil.intern() {
                     error!(self, 
                         format!(
                             "b Element must have type {:?}, got {:?} instead",
@@ -262,18 +262,18 @@ impl TypeCheckWalker {
         }else {
             // global array
             let elem_type = self.global_types.get(&(global_id as usize)).unwrap().0;
-            let mut pointee_type = match elem_type.decay(self.custom_structs.clone().into()) {
-                ValueTypeK::Pointer(t, _) => t,
-                _ => ValueTypeK::Undef.intern(),
+            let mut pointee_type = match elem_type.decay(self.custom_structs.clone().into()).as_ref() {
+                ValueType::Pointer(t, _) => *t,
+                _ => ValueType::Undef.intern(),
             };
 
             for v in a.elements.clone() {
                 let pt = self.visit_expression(v, false);
-                if pointee_type == ValueTypeK::Undef.intern() {
+                if pointee_type == ValueType::Undef.intern() {
                     pointee_type = pt;
                 }
 
-                if pt != pointee_type && pt != ValueTypeK::Nil.intern() {
+                if pt != pointee_type && pt != ValueType::Nil.intern() {
                     error!(self, 
                         format!(
                             "a Element must have type {:?}, got {:?} instead",
@@ -284,8 +284,8 @@ impl TypeCheckWalker {
                 }
             }
 
-            if let ValueTypeK::Array(_, n) =
-                self.global_types.get(&(global_id as usize)).unwrap().0
+            if let ValueType::Array(_, n) =
+                self.global_types.get(&(global_id as usize)).unwrap().0.as_ref()
             {
                 if *n != a.elements.len() {
                     error!(self, &format!(

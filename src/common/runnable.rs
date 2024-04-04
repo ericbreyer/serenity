@@ -1,16 +1,13 @@
-use std::{rc::Rc, fmt::Debug};
+use std::{ rc::Rc, fmt::Debug };
 
-use crate::chunk::Chunk;
-
-use crate::value::{Value, Word};
-use crate::typing::{ValueType, ValueTypeK};
+use crate::{ chunk::Chunk, typing::{ UValueType, ValueType }, value::{ Value, Word }, vm::VM };
 
 pub struct Function {
     pub arity: usize,
     pub chunk: Chunk,
     pub name: Rc<str>,
     pub upvalue_count: usize,
-    pub return_type: ValueType,
+    pub return_type: UValueType,
     pub return_size: usize,
 }
 
@@ -21,8 +18,8 @@ impl Default for Function {
             chunk: Chunk::new(),
             name: Rc::from(""),
             upvalue_count: 0,
-            return_type: ValueTypeK::Nil.intern(),
-            return_size: 0
+            return_type: ValueType::Nil.intern(),
+            return_size: 0,
         }
     }
 }
@@ -49,8 +46,8 @@ impl Function {
             chunk: Chunk::new(),
             name,
             upvalue_count: 0,
-            return_type: ValueTypeK::Nil.intern(),
-            return_size: 0
+            return_type: ValueType::Nil.intern(),
+            return_size: 0,
         }
     }
 }
@@ -58,7 +55,7 @@ impl Function {
 #[derive(Clone)]
 pub enum Runnable {
     Function(Rc<Function>),
-    NativeFunction(fn(&[Word]) -> Value),
+    NativeFunction(fn(&mut VM, &[Word]) -> Value),
 }
 
 impl PartialEq for Runnable {
@@ -68,7 +65,6 @@ impl PartialEq for Runnable {
             _ => false,
         }
     }
-
 }
 
 impl Debug for Runnable {

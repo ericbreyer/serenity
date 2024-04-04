@@ -5,16 +5,14 @@ mod statements;
 use tracing::{ debug, instrument, warn, Level };
 
 use crate::common::ast::{ ASTNode, Declaration, Expression, Statement };
-use crate::common::{ CompileResult, ParseResult };
-use crate::common::runnable::{ Function, Runnable };
+use crate::common::{ ParseResult };
+use crate::common::runnable::{ Function };
 use crate::error;
-use crate::value::pointer::Pointer;
-use crate::typing::{ CustomStruct, ValueType };
-use crate::typing::ValueTypeK;
-use crate::value::Value::{ self };
-use crate::value::Word;
 
-use std::array;
+use crate::typing::{ CustomStruct, UValueType };
+use crate::typing::ValueType;
+use crate::value::Value::{ self };
+
 use std::cell::Cell;
 
 use std::collections::HashMap;
@@ -28,7 +26,7 @@ pub struct OptimizationWalker {
     had_error: Cell<bool>,
     panic_mode: Cell<bool>,
     function_compiler: Box<FunctionCompiler>,
-    gloabls: HashMap<String, Option<Value>>,
+    _gloabls: HashMap<String, Option<Value>>,
 }
 
 impl Debug for OptimizationWalker {
@@ -40,14 +38,14 @@ impl Debug for OptimizationWalker {
 impl OptimizationWalker {
     fn new(
         compiler: Box<FunctionCompiler>,
-        native_functions: &HashMap<String, (usize, ValueType)>,
-        custom_structs: HashMap<String, CustomStruct>
+        _native_functions: &HashMap<String, (usize, UValueType)>,
+        _custom_structs: HashMap<String, CustomStruct>
     ) -> OptimizationWalker {
-        let mut c = OptimizationWalker {
+        let c = OptimizationWalker {
             had_error: false.into(),
             panic_mode: false.into(),
             function_compiler: compiler,
-            gloabls: HashMap::new(),
+            _gloabls: HashMap::new(),
         };
         c
     }
@@ -188,34 +186,20 @@ impl OptimizationWalker {
                 break;
             }
 
-            if self.function_compiler.locals.get(&last_local).unwrap().captured {
-                if self.function_compiler.locals.get(&last_local).unwrap().mutable {
-                    error!(self, "Cannot capture mutable variables.");
-                }
-                self.function_compiler.func.chunk.write_pool_opcode(
-                    Opcode::CloseUpvalue.into(),
-                    self.function_compiler.locals
-                        .get(&last_local)
-                        .unwrap()
-                        .local_type.num_words() as u32,
-                    line
-                );
-            } else {
-                self.function_compiler.func.chunk.write_pop(
-                    self.function_compiler.locals.get(&last_local).unwrap().local_type,
-                    line
-                );
-            }
+            self.function_compiler.func.chunk.write_pop(
+                self.function_compiler.locals.get(&last_local).unwrap().local_type,
+                line
+            );
 
             // if its an array, we need to pop the array off the stack
             if
-                let ValueTypeK::Array(t, n) = self.function_compiler.locals
+                let ValueType::Array(t, n) = self.function_compiler.locals
                     .get(&last_local)
-                    .unwrap().local_type
+                    .unwrap().local_type.as_ref()
             {
                 let words = t.num_words();
                 for _ in 0..*n {
-                    self.function_compiler.func.chunk.write_pop(t, line);
+                    self.function_compiler.func.chunk.write_pop(*t, line);
                     self.function_compiler.local_count -= words;
                 }
             }
@@ -228,25 +212,7 @@ impl OptimizationWalker {
         }
     }
 
-    fn emit_jump(&mut self, instruction: u8) -> usize {
-        let line = 0;
-        self.function_compiler.func.chunk.write(instruction, line);
-        self.function_compiler.func.chunk.write(0xff, line);
-        self.function_compiler.func.chunk.write(0xff, line);
-        self.function_compiler.func.chunk.code.len() - 2
-    }
-
-    fn patch_jump(&mut self, offset: usize) {
-        let jump = self.function_compiler.func.chunk.code.len() - offset - 2;
-        if jump > (std::u16::MAX as usize) {
-            error!(self, "Too much code to jump over.");
-        }
-
-        self.function_compiler.func.chunk.code[offset].0 = ((jump >> 8) & 0xff) as u8;
-        self.function_compiler.func.chunk.code[offset + 1].0 = (jump & 0xff) as u8;
-    }
-
-    fn define_variable(&mut self, global_id: u32, local_type: ValueType) {
+    fn define_variable(&mut self, global_id: u32, local_type: UValueType) {
         if self.function_compiler.scope_depth > 0 {
             self.mark_initialized();
             let last_local = self.last_local();
@@ -320,9 +286,8 @@ struct Local {
     name: String,
     depth: i32,
     mutable: bool,
-    assigned: bool,
     captured: bool,
-    local_type: ValueType,
+    local_type: UValueType,
 }
 
 #[derive(PartialEq, Clone, Copy)]
@@ -333,18 +298,12 @@ enum FunctionType {
 
 struct FunctionCompiler {
     func: Box<Function>,
-    upvalues: [Upvalue; u8::MAX as usize],
 
     locals: HashMap<usize, Local>,
     local_count: usize,
     scope_depth: i32,
 
     enclosing: Option<Box<FunctionCompiler>>,
-}
-struct Upvalue {
-    pub index: usize,
-    pub is_local: bool,
-    pub upvalue_type: ValueType,
 }
 
 impl Default for FunctionCompiler {
@@ -355,11 +314,6 @@ impl Default for FunctionCompiler {
             scope_depth: 0,
             func: Box::new(Function::new(0, Rc::from("script"))),
             enclosing: None,
-            upvalues: array::from_fn(|_| Upvalue {
-                index: 0,
-                is_local: false,
-                upvalue_type: ValueTypeK::Undef.intern(),
-            }),
         }
     }
 }
@@ -382,22 +336,14 @@ impl FunctionCompiler {
                 })
             ),
             enclosing: current.map(Box::new),
-            upvalues: array::from_fn(|_| Upvalue {
-                index: 0,
-                is_local: false,
-                upvalue_type: ValueTypeK::Undef.intern(),
-            }),
         };
-
 
         c.local_count += 3;
         c
     }
 
-    fn recover_values(
-        mut self
-    ) -> (Function, Option<Box<FunctionCompiler>>, [Upvalue; u8::MAX as usize]) {
-        (std::mem::take(&mut self.func), self.enclosing, self.upvalues)
+    fn recover_values(mut self) -> (Function, Option<Box<FunctionCompiler>>) {
+        (std::mem::take(&mut self.func), self.enclosing)
     }
 }
 
@@ -405,7 +351,7 @@ impl OptimizationWalker {
     #[instrument(skip_all, level = "info")]
     pub fn optimize(
         mut parsed: ParseResult,
-        native_functions: &HashMap<String, (usize, ValueType)>
+        native_functions: &HashMap<String, (usize, UValueType)>
     ) -> ParseResult {
         if parsed.had_errors {
             tracing::error!("Parsing failed.");
@@ -428,7 +374,7 @@ impl OptimizationWalker {
             had_err = comiler.had_error.get();
             compiler = *comiler.function_compiler;
         }
-        let (mut func, _, _) = compiler.recover_values();
+        let (mut func, _) = compiler.recover_values();
         let chunk = &mut func.chunk;
 
         chunk.dissassemble(
@@ -444,9 +390,9 @@ impl OptimizationWalker {
         chunk.write_pool_opcode(Opcode::Return.into(), 1, 0);
 
         if had_err {
-            tracing::error!("Compilation failed.");
+            tracing::error!("Optimization failed.");
         } else {
-            tracing::info!("Compilation succeeded.");
+            tracing::info!("Optimization succeeded.");
         }
         parsed
     }

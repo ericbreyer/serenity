@@ -1,0 +1,7 @@
+fun main() {
+  var v = sbrk(1);
+  var p = cast(v, int * );
+  *p = 2;
+  print p;
+  print *p;
+}

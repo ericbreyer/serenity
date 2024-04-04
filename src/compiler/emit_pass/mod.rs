@@ -9,12 +9,12 @@ use crate::common::{ CompileResult, ParseResult };
 use crate::common::runnable::{ Function, Runnable };
 use crate::error;
 use crate::value::pointer::Pointer;
-use crate::typing::{ CustomStruct, ValueType };
-use crate::typing::ValueTypeK;
+use crate::typing::{ CustomStruct, UValueType };
+use crate::typing::ValueType;
 use crate::value::Value::{ self };
 use crate::value::Word;
 
-use std::array;
+
 use std::cell::Cell;
 
 use std::collections::HashMap;
@@ -32,7 +32,7 @@ pub struct EmitWalker {
     function_segment: Vec<Runnable>,
     num_functions: usize,
     gloabls: HashMap<String, usize>,
-    global_types: HashMap<usize, (ValueType, bool, bool)>,
+    global_types: HashMap<usize, (UValueType, bool, bool)>,
     custom_structs: Rc<HashMap<String, CustomStruct>>,
 }
 
@@ -45,7 +45,7 @@ impl Debug for EmitWalker {
 impl EmitWalker {
     fn new(
         compiler: Box<FunctionCompiler>,
-        native_functions: &HashMap<String, (usize, ValueType)>,
+        native_functions: &HashMap<String, (usize, UValueType)>,
         custom_structs: HashMap<String, CustomStruct>
     ) -> EmitWalker {
         let mut c = EmitWalker {
@@ -60,11 +60,14 @@ impl EmitWalker {
             custom_structs: custom_structs.into(),
         };
         for (name, (id, t)) in native_functions.iter() {
-            c.static_data_segment.extend(Value::Pointer(Pointer::Function(*id)).to_words());
-            c.static_data_segment.push((0).into());
-            c.static_data_segment.push(
-                (Box::into_raw(Box::new(Vec::<Upvalue>::new())) as u64).into()
-            );
+            c.static_data_segment.extend(Value::Closure(
+                crate::value::Closure {
+                    func: Pointer::Function(*id),
+                    upvalue_count: 0,
+                    upvalue_segment: Rc::new(Vec::new()),
+                }
+            ).to_words());
+
             c.gloabls.insert(name.clone(), c.static_data_segment.len() - 3);
             c.global_types.insert(c.static_data_segment.len() - 3, (*t, false, true));
             c.num_functions += 1;
@@ -122,10 +125,18 @@ impl EmitWalker {
                     *s
                 );
             }
-            Statement::Break => todo!(),
-            Statement::Continue => todo!(),
+            Statement::Break => {
+                self.function_compiler.func.chunk.write(Opcode::Break.into(), 0);
+                self.function_compiler.func.chunk.write(0xff, 0);
+            self.function_compiler.func.chunk.write(0xff, 0);
+            }
+            Statement::Continue => {
+                self.function_compiler.func.chunk.write(Opcode::Continue.into(), 0);
+                self.function_compiler.func.chunk.write(0xff, 0);
+                self.function_compiler.func.chunk.write(0xff, 0);
+            }
             Statement::Return(s) => {
-                let mut t = ValueTypeK::Nil.intern();
+                let mut t = ValueType::Nil.intern();
                 if let Some(e) = s {
                     t = self.visit_expression(*e, false);
                 }
@@ -140,7 +151,7 @@ impl EmitWalker {
     }
 
     #[instrument(skip_all, level = "trace")]
-    fn visit_expression(&mut self, node: Expression, assignment_target: bool) -> ValueType {
+    fn visit_expression(&mut self, node: Expression, assignment_target: bool) -> UValueType {
         if assignment_target {
             match node {
                 Expression::Deref(_) => (),
@@ -149,7 +160,7 @@ impl EmitWalker {
                 Expression::Dot(_, _) => (),
                 _ => {
                     error!(self, "Invalid in assignment target expression.");
-                    return ValueTypeK::Err.intern();
+                    return ValueType::Err.intern();
                 }
             }
         }
@@ -172,12 +183,12 @@ impl EmitWalker {
             Expression::Cast(e, t, _) => self.cast(*e, t),
             Expression::ArrayLiteral(a) => self.array_literal(a),
             Expression::StructInitializer(t, v) => self.struct_literal(t, v),
-            Expression::Empty => ValueTypeK::Nil.intern(),
-            Expression::Nil => ValueTypeK::Nil.intern(),
-            _ => ValueTypeK::Err.intern(),
+            Expression::Empty => ValueType::Nil.intern(),
+            Expression::Nil => ValueType::Nil.intern(),
+            _ => ValueType::Err.intern(),
         };
         // // if t2 is a function, we need to copy the function
-        if let ValueTypeK::Closure(_) = t {
+        if let ValueType::Closure(_) = t.as_ref() {
             self.function_compiler.func.chunk.write(Opcode::CopyClosure.into(), 0);
         }
         t
@@ -216,13 +227,13 @@ impl EmitWalker {
 
             // if its an array, we need to pop the array off the stack
             if
-                let ValueTypeK::Array(t, n) = self.function_compiler.locals
+                let ValueType::Array(t, n) = self.function_compiler.locals
                     .get(&last_local)
-                    .unwrap().local_type
+                    .unwrap().local_type.as_ref()
             {
                 let words = t.num_words();
                 for _ in 0..*n {
-                    self.function_compiler.func.chunk.write_pop(t, line);
+                    self.function_compiler.func.chunk.write_pop(*t, line);
                     self.function_compiler.local_count -= words;
                 }
             }
@@ -253,7 +264,7 @@ impl EmitWalker {
         self.function_compiler.func.chunk.code[offset + 1].0 = (jump & 0xff) as u8;
     }
 
-    fn define_variable(&mut self, global_id: u32, local_type: ValueType) {
+    fn define_variable(&mut self, global_id: u32, local_type: UValueType) {
         if self.function_compiler.scope_depth > 0 {
             self.mark_initialized();
             let last_local = self.last_local();
@@ -330,7 +341,7 @@ struct Local {
     mutable: bool,
     assigned: bool,
     captured: bool,
-    local_type: ValueType,
+    local_type: UValueType,
 }
 
 impl Debug for Local {
@@ -356,11 +367,10 @@ struct FunctionCompiler {
     enclosing: Option<Box<FunctionCompiler>>,
 }
 struct Upvalue {
-    pub upvalue_type: ValueType,
+    pub upvalue_type: UValueType,
     pub name: String,
     pub idx: usize,
     pub is_local: bool,
-    pub upvalue_idx: usize,
 }
 
 impl Default for FunctionCompiler {
@@ -402,7 +412,7 @@ impl FunctionCompiler {
             mutable: false,
             assigned: false,
             captured: false,
-            local_type: ValueTypeK::Nil.intern(),
+            local_type: ValueType::Nil.intern(),
         });
 
         c.local_count += 3;
@@ -418,7 +428,7 @@ impl EmitWalker {
     #[instrument(skip_all, level = "info")]
     pub fn emit(
         parsed: ParseResult,
-        native_functions: &HashMap<String, (usize, ValueType)>
+        native_functions: &HashMap<String, (usize, UValueType)>
     ) -> CompileResult {
         if parsed.had_errors {
             tracing::error!("Parsing failed.");

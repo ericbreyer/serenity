@@ -27,9 +27,14 @@ fn repl(mut vm: vm::VM) {
     }
 }
 
-fn run_file(mut vm: vm::VM, path: String) {
+fn run_file(mut vm: vm::VM, path: String) -> Result<(), std::io::Error>{
     let source = std::fs::read_to_string(path).expect("Failed to read file");
-    vm.interpret::<SerenityParser>(source);
+    let result = vm.interpret::<SerenityParser>(source);
+    match result {
+        vm::InterpretResult::Ok => Ok(()),
+        vm::InterpretResult::CompileError => Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Compile error")),
+        vm::InterpretResult::RuntimeError => Err(std::io::Error::new(std::io::ErrorKind::Interrupted, "Runtime error"))
+    }
 }
 
 fn main() -> std::io::Result<()> {
@@ -84,10 +89,11 @@ fn main() -> std::io::Result<()> {
     let vm = vm::VM::new();
     if matches.free.len() == 0 {
         repl(vm);
+        Ok(())
     } else if matches.free.len() == 1 {
-        run_file(vm, matches.free[0].clone());
+        return run_file(vm, matches.free[0].clone());
     } else {
-        panic!("Usage: {} [path]", prog);
+        // panic!("Usage: {} [path]", prog);
+        Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Usage: serenity [path]"))
     }
-    Ok(())
 }
