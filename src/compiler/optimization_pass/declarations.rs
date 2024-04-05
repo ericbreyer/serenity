@@ -34,7 +34,7 @@ impl OptimizationWalker {
             return None;
         }
 
-        return Some(name);
+        Some(name)
     }
 
     pub fn declare_variable(&mut self, name: String, mutable: bool) {
@@ -43,7 +43,7 @@ impl OptimizationWalker {
         }
 
         for i in self.function_compiler.locals.keys() {
-            let local = &self.function_compiler.locals.get(&i).unwrap();
+            let local = &self.function_compiler.locals.get(i).unwrap();
             if local.depth != -1 && local.depth < self.function_compiler.scope_depth {
                 break;
             }
@@ -56,12 +56,10 @@ impl OptimizationWalker {
         self.add_local(name, mutable);
     }
 
-    fn add_local(&mut self, name: String, mutable: bool) {
+    fn add_local(&mut self, name: String, _mutable: bool) {
         let local = Local {
             name: name.clone(),
             depth: -1,
-            mutable: mutable,
-            captured: false,
             local_type: ValueType::Undef.intern(),
         };
         self.function_compiler.locals.insert(self.function_compiler.local_count, local);

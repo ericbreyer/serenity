@@ -114,6 +114,7 @@ impl EmitWalker {
         if raw_t == ValueType::String.intern() {
             self.function_compiler.func.chunk.write_constant(Value::Integer(1), line);
             self.function_compiler.func.chunk.write(Opcode::PointerAdd as u8, line);
+            self.function_compiler.func.chunk.write(1, line);
         }
 
         if !at {
@@ -154,6 +155,8 @@ impl EmitWalker {
         if raw_t == ValueType::String.intern() {
             self.function_compiler.func.chunk.write_constant(Value::Integer(1), line);
             self.function_compiler.func.chunk.write(Opcode::PointerAdd as u8, line);
+            self.function_compiler.func.chunk.write(1, line);
+
         }
 
         let i_type = self.visit_expression(i, false);
@@ -161,12 +164,13 @@ impl EmitWalker {
             error!(self, "Index must be an integer");
         }
 
-        self.function_compiler.func.chunk.write_constant(
-            Value::Integer(pointee_type.num_words() as i64),
-            line
-        );
-        self.function_compiler.func.chunk.write(Opcode::MultiplyInt as u8, line);
+        // self.function_compiler.func.chunk.write_constant(
+        //     Value::Integer(pointee_type.num_words() as i64),
+        //     line
+        // );
+        // self.function_compiler.func.chunk.write(Opcode::MultiplyInt as u8, line);
         self.function_compiler.func.chunk.write(Opcode::PointerAdd as u8, line);
+        self.function_compiler.func.chunk.write(pointee_type.num_words() as u8, line);
 
         if !at {
             self.function_compiler.func.chunk.write(Opcode::DerefGet.into(), line);
@@ -200,8 +204,9 @@ impl EmitWalker {
                         self.function_compiler.func.chunk.write(Opcode::AddFloat.into(), line);
                         return ValueType::Float.intern();
                     }
-                    (ValueType::Pointer(_, _), ValueType::Integer) => {
+                    (ValueType::Pointer(pointee_t, _), ValueType::Integer) => {
                         self.function_compiler.func.chunk.write(Opcode::PointerAdd.into(), line);
+                        self.function_compiler.func.chunk.write(pointee_t.num_words() as u8, line);
                         return lt;
                     }
                     _ => {
@@ -219,11 +224,13 @@ impl EmitWalker {
                         self.function_compiler.func.chunk.write(Opcode::SubtractFloat.into(), line);
                         return ValueType::Float.intern();
                     }
-                    (ValueType::Pointer(_, _), ValueType::Integer) => {
+                    (ValueType::Pointer(pointee_t, _), ValueType::Integer) => {
                         self.function_compiler.func.chunk.write(
                             Opcode::PointerSubtract.into(),
                             line
                         );
+                        self.function_compiler.func.chunk.write(pointee_t.num_words() as u8, line);
+
                         return lt;
                     }
                     _ => {
@@ -265,9 +272,7 @@ impl EmitWalker {
                 if rt != lt {
                     self.warn(
                         &format!(
-                            "Comparison of different types ({:?} and {:?}) is always false, please cast to the same type",
-                            lt,
-                            rt
+                            "Comparison of different types ({lt:?} and {rt:?}) is always false, please cast to the same type"
                         )
                     );
                     self.function_compiler.func.chunk.write_pop(rt, line);
@@ -282,9 +287,7 @@ impl EmitWalker {
                 if rt != lt {
                     self.warn(
                         &format!(
-                            "Comparison of different types ({:?} and {:?}) is always true, please cast to the same type",
-                            lt,
-                            rt
+                            "Comparison of different types ({lt:?} and {rt:?}) is always true, please cast to the same type"
                         )
                     );
                     self.function_compiler.func.chunk.write_pop(rt, line);
@@ -536,7 +539,7 @@ impl EmitWalker {
             let return_type = f.last().unwrap();
             return *return_type;
         } else {
-            error!(self, format!("Can only call function types, got {:?}", t).as_str());
+            error!(self, format!("Can only call function types, got {t:?}").as_str());
             return ValueType::Err.intern();
         }
     }
@@ -548,12 +551,12 @@ impl EmitWalker {
 
         let decayed = t.decay(self.custom_structs.clone().into());
         let ValueType::Pointer(maybe_s, _) = decayed.as_ref() else {
-            error!(self, format!("Can only access fields of struct types, got {:?}", t).as_str());
+            error!(self, format!("Can only access fields of struct types, got {t:?}").as_str());
             return ValueType::Err.intern();
         };
 
         let ValueType::Struct(s) = maybe_s.as_ref() else {
-            error!(self, format!("Can only access fields of struct types, got {:?}", t).as_str());
+            error!(self, format!("Can only access fields of struct types, got {t:?}").as_str());
             return ValueType::Err.intern();
         };
 
@@ -573,6 +576,7 @@ impl EmitWalker {
                 line
             );
             self.function_compiler.func.chunk.write(Opcode::PointerAdd.into(), line);
+            self.function_compiler.func.chunk.write(1, line);
             self.function_compiler.func.chunk.write(Opcode::DerefGet.into(), line);
             self.function_compiler.func.chunk.write(field.value.num_words() as u8, line);
             return field.value;
@@ -582,6 +586,7 @@ impl EmitWalker {
                 line
             );
             self.function_compiler.func.chunk.write(Opcode::PointerAdd.into(), line);
+            self.function_compiler.func.chunk.write(1, line);
             return ValueType::Pointer(field.value, false).intern();
         }
     }
@@ -619,7 +624,7 @@ impl EmitWalker {
         //     }
         // }
         self.function_compiler.func.arity = function_expr.params.len();
-        for (_, param) in function_expr.params.iter().enumerate() {
+        for param in &function_expr.params {
             let _mutable = true;
 
             let p_type = param.1;
@@ -633,8 +638,8 @@ impl EmitWalker {
 
         let return_type = function_expr.return_type;
 
-        self.function_compiler.func.return_type = return_type.into();
-        self.function_compiler.func.return_size = return_type.num_words() as usize;
+        self.function_compiler.func.return_type = return_type;
+        self.function_compiler.func.return_size = return_type.num_words();
 
         let mut param_types = function_expr.params
             .iter()
@@ -668,7 +673,7 @@ impl EmitWalker {
         let c = std::mem::take(&mut self.function_compiler);
         let name = c.func.name.clone();
         // if self.had_error.get() {
-        c.func.chunk.dissassemble(&name, Level::DEBUG);
+        c.func.chunk.disassemble(&name, Level::DEBUG);
         // }
 
         let (rfunc, maybe_enclosing, upvalues) = c.recover_values();
@@ -686,10 +691,10 @@ impl EmitWalker {
         self.function_compiler.func.chunk.write_pool_opcode(Opcode::Closure, f_id as u32, 0);
         self.function_compiler.func.chunk.write(upvalues.len() as u8, 0);
 
-        for i in 0..upvalues.len() {
-            self.function_compiler.func.chunk.write(upvalues[i].idx as u8, 0);
-            self.function_compiler.func.chunk.write(upvalues[i].is_local as u8, 0);
-            self.function_compiler.func.chunk.write(upvalues[i].upvalue_type.num_words() as u8, 0);
+        for u in upvalues {
+            self.function_compiler.func.chunk.write(u.idx as u8, 0);
+            self.function_compiler.func.chunk.write(u8::from(u.is_local), 0);
+            self.function_compiler.func.chunk.write(u.upvalue_type.num_words() as u8, 0);
         }
 
         ft
@@ -741,7 +746,7 @@ impl EmitWalker {
             }
             (ValueType::Pointer(_, _), ValueType::Pointer(_, _)) => cast_type,
             _ => {
-                error!(self, &format!("Cannot cast {:?} to {:?}", t, cast_type));
+                error!(self, &format!("Cannot cast {t:?} to {cast_type:?}"));
                 ValueType::Err.intern()
             }
         }
@@ -761,8 +766,8 @@ impl EmitWalker {
                 error!(self, "All elements of an array must have the same type.");
             }
         }
-        let array_type = ValueType::Array(array_type, element_types.len()).intern();
-        array_type
+        
+        ValueType::Array(array_type, element_types.len()).intern()
     }
 
     pub fn struct_literal(
@@ -774,7 +779,7 @@ impl EmitWalker {
         let temp = l.as_ref().unwrap();
         let mut orig_fields = temp.iter().collect::<Vec<_>>();
         orig_fields.sort_by(|a, b| a.1.offset.cmp(&b.1.offset));
-        for (name, entry) in orig_fields.iter() {
+        for (name, entry) in &orig_fields {
             let Some(exp) = fields.get(*name) else {
                 for _ in 0..entry.value.num_words() {
                     self.function_compiler.func.chunk.write(Opcode::Nil.into(), 0);
@@ -790,7 +795,6 @@ impl EmitWalker {
                 return ValueType::Err.intern();
             }
         }
-        drop(temp);
         drop(l);
         ValueType::Struct(t).intern()
     }
@@ -799,13 +803,11 @@ impl EmitWalker {
         for _ in 0..t.num_words() {
             self.function_compiler.func.chunk.write(Opcode::Nil.into(), 0);
         }
-        self.function_compiler.func.chunk.write_pool_opcode(Opcode::Return.into(), 1, 0);
+        self.function_compiler.func.chunk.write_pool_opcode(Opcode::Return, 1, 0);
     }
 
     fn resolve_upvalue(&mut self, compiler_level: u32, token: &Token) -> Option<(usize, usize)> {
-        if let None = Self::compiler_at(compiler_level + 1, &mut self.function_compiler) {
-            return None;
-        }
+        Self::compiler_at(compiler_level + 1, &mut self.function_compiler)?;
 
         if let (Some(local), _) = self.resolve_local(compiler_level + 1, token) {
             let Some(compiler) = Self::compiler_at(
@@ -858,7 +860,7 @@ impl EmitWalker {
 
     fn compiler_at(level: u32, compiler: &mut FunctionCompiler) -> Option<&mut FunctionCompiler> {
         if level == 0 {
-            return Some(compiler);
+            Some(compiler)
         } else {
             return compiler.enclosing.as_mut().and_then(|e| Self::compiler_at(level - 1, e));
         }
@@ -889,7 +891,7 @@ impl EmitWalker {
 
         if compiler.locals.contains_key(&compiler.local_count) {
             compiler.locals.insert(
-                compiler.local_count + (upvalue_type.num_words() as usize),
+                compiler.local_count + upvalue_type.num_words(),
                 compiler.locals.get(&compiler.local_count).unwrap().clone()
             );
         }
@@ -899,7 +901,7 @@ impl EmitWalker {
         }
 
         compiler.locals.insert(compiler.local_count, Local {
-            name: name.to_owned(),
+            name: name.clone(),
             depth: compiler.scope_depth,
             mutable: false,
             assigned: true,
@@ -909,29 +911,29 @@ impl EmitWalker {
 
         compiler.upvalues.push(Upvalue {
             idx: up_idx,
-            is_local: is_local,
-            upvalue_type: upvalue_type,
-            name: name.to_owned(),
+            is_local,
+            upvalue_type,
+            name: name.clone(),
         });
 
-        compiler.local_count += upvalue_type.num_words() as usize;
+        compiler.local_count += upvalue_type.num_words();
 
-        compiler.func.upvalue_count += upvalue_type.num_words() as usize;
+        compiler.func.upvalue_count += upvalue_type.num_words();
 
-        return (
+        (
             compiler.func.upvalue_count - upvalue_type.num_words(),
-            compiler.local_count - (upvalue_type.num_words() as usize),
-        );
+            compiler.local_count - upvalue_type.num_words(),
+        )
     }
 
     fn resolve_local(&mut self, compiler_level: u32, token: &Token) -> (Option<usize>, bool) {
         let Some(compiler) = Self::compiler_at(compiler_level, &mut self.function_compiler) else {
             return (None, false);
         };
-        if compiler.locals.len() == 0 {
+        if compiler.locals.is_empty() {
             return (None, true);
         }
-        for (k, local) in compiler.locals.iter() {
+        for (k, local) in &compiler.locals {
             if token.lexeme == local.name {
                 if local.depth == -1 {
                     error!(self, "Cannot read local variable in its own initializer.");
@@ -940,6 +942,6 @@ impl EmitWalker {
                 return (Some(*k), local.mutable || !local.assigned);
             }
         }
-        return (None, true);
+        (None, true)
     }
 }

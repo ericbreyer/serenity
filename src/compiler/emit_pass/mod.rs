@@ -59,7 +59,7 @@ impl EmitWalker {
             num_functions: 0,
             custom_structs: custom_structs.into(),
         };
-        for (name, (id, t)) in native_functions.iter() {
+        for (name, (id, t)) in native_functions {
             c.static_data_segment.extend(Value::Closure(
                 crate::value::Closure {
                     func: Pointer::Function(*id),
@@ -167,7 +167,6 @@ impl EmitWalker {
         let t = match node {
             Expression::Literal(v) => self.literal(v),
             Expression::StringLiteral(s) => self.string(s),
-            Expression::Grouping(e) => self.visit_expression(*e, false),
             Expression::Unary(t, e) => self.unary(t, *e),
             Expression::Deref(e) => self.deref(*e, assignment_target),
             Expression::Ref(e) => self.addr_of(*e),
@@ -184,8 +183,6 @@ impl EmitWalker {
             Expression::ArrayLiteral(a) => self.array_literal(a),
             Expression::StructInitializer(t, v) => self.struct_literal(t, v),
             Expression::Empty => ValueType::Nil.intern(),
-            Expression::Nil => ValueType::Nil.intern(),
-            _ => ValueType::Err.intern(),
         };
         // // if t2 is a function, we need to copy the function
         if let ValueType::Closure(_) = t.as_ref() {
@@ -211,7 +208,7 @@ impl EmitWalker {
     fn end_scope(&mut self) {
         let line = 0;
         self.function_compiler.scope_depth -= 1;
-        while self.function_compiler.locals.len() > 0 {
+        while !self.function_compiler.locals.is_empty() {
             let last_local = self.last_local();
             if
                 self.function_compiler.locals.get(&last_local).unwrap().depth <=
@@ -462,7 +459,7 @@ impl EmitWalker {
         let (mut func, _, _) = compiler.recover_values();
         let chunk = &mut func.chunk;
 
-        chunk.dissassemble(
+        chunk.disassemble(
             if func.name != "".into() {
                 &func.name
             } else {
@@ -472,7 +469,7 @@ impl EmitWalker {
         );
 
         chunk.write(Opcode::Nil.into(), 0);
-        chunk.write_pool_opcode(Opcode::Return.into(), 1, 0);
+        chunk.write_pool_opcode(Opcode::Return, 1, 0);
 
         if had_err {
             tracing::error!("Compilation failed.");
@@ -485,8 +482,8 @@ impl EmitWalker {
             tracing::info!("Compilation succeeded.");
             return CompileResult {
                 function: Some(func),
-                static_data_segment: static_data_segment,
-                function_segment: function_segment,
+                static_data_segment,
+                function_segment,
             };
         }
     }

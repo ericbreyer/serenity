@@ -23,7 +23,7 @@ impl TypeCheckWalker {
             ValueType::Closure(_) |
             ValueType::Char => {}
             _ => {
-                error!(self, format!("Cannot print this type. {:?}", t).as_str());
+                error!(self, format!("Cannot print this type. {t:?}").as_str());
             }
         };
         false
@@ -81,6 +81,8 @@ impl TypeCheckWalker {
         let mut both_return = self.visit_statement(t);
         if let Some(e) = e {
             both_return = both_return && self.visit_statement(e);
+        } else {
+            both_return = false;
         }
         both_return
     }

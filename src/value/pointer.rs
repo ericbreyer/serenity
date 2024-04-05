@@ -12,23 +12,23 @@ pub enum Pointer {
 
 impl Pointer {
 
-    pub fn to_word(&self) -> Word {
+    pub fn to_word(self) -> Word {
         // most significant two bits are to identify the type of pointer
 
         Word::new(match self {
-            Pointer::Local(n) => *n as u64,
-            Pointer::Static(n) => (1 << 62) | *n as u64,
-            Pointer::Heap(n) => (2 << 62) | *n as u64,
-            Pointer::Function(n) => (3 << 62) | *n as u64,
+            Pointer::Local(n) => n as u64,
+            Pointer::Static(n) => (1 << 62) | n as u64,
+            Pointer::Heap(n) => (2 << 62) | n as u64,
+            Pointer::Function(n) => (3 << 62) | n as u64,
         })
     }
 
     pub fn from_word(word: u64) -> Pointer {
         match word >> 62 {
-            0 => Pointer::Local((word & 0x3FFFFFFFFFFFFFFF) as usize),
-            1 => Pointer::Static((word & 0x3FFFFFFFFFFFFFFF) as usize),
-            2 => Pointer::Heap((word & 0x3FFFFFFFFFFFFFFF) as usize),
-            3 => Pointer::Function((word & 0x3FFFFFFFFFFFFFFF) as usize),
+            0 => Pointer::Local((word & 0x3FFF_FFFF_FFFF_FFFF) as usize),
+            1 => Pointer::Static((word & 0x3FFF_FFFF_FFFF_FFFF) as usize),
+            2 => Pointer::Heap((word & 0x3FFF_FFFF_FFFF_FFFF) as usize),
+            3 => Pointer::Function((word & 0x3FFF_FFFF_FFFF_FFFF) as usize),
             _ => panic!("invalid pointer type, {:x}", word >> 62),
         }
     }
@@ -38,7 +38,7 @@ impl ops::Add<i64> for Pointer {
     type Output = Self;
 
     fn add(self, rhs: i64) -> Self::Output {
-        let inc = rhs as i64;
+        let inc = rhs;
         match self {
             Pointer::Local(n) => Pointer::Local((n as i64 + inc) as usize),
             Pointer::Static(n) => Pointer::Static((n as i64 + inc) as usize),
@@ -51,10 +51,10 @@ impl ops::Add<i64> for Pointer {
 impl Debug for Pointer {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Pointer::Local(i) => write!(f, "local *{:x}", i),
-            Pointer::Static(i) => write!(f, "global *{:x}", i),
-            Pointer::Heap(i) => write!(f, "heap *{:x}", i),
-            Pointer::Function(i) => write!(f, "function *{:x}", i),
+            Pointer::Local(i) => write!(f, "local *{i:x}"),
+            Pointer::Static(i) => write!(f, "global *{i:x}"),
+            Pointer::Heap(i) => write!(f, "heap *{i:x}"),
+            Pointer::Function(i) => write!(f, "function *{i:x}"),
         }
     }
 }

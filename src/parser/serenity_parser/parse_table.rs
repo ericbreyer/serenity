@@ -327,27 +327,3 @@ impl SerenityParser {
         self.parse_table = type_set_rules;
     }
 }
-
-// let type_set_all: Rc<ValueTypeSet> =
-//             Rc::new(ValueTypeSet::new(vec![ValueTypeK::All.intern()]));
-//         let type_set_none: Rc<ValueTypeSet> = Rc::new(ValueTypeSet::new(vec![]));
-//         let type_set_func: Rc<ValueTypeSet> =
-//             Rc::new(ValueTypeSet::new(vec![ValueTypeK::AnyFunction.intern()]));
-//         let type_set_num: Rc<ValueTypeSet> = Rc::new(ValueTypeSet::new(vec![
-//             ValueTypeK::Float.intern(),
-//             ValueTypeK::Integer.intern(),
-//         ]));
-//         let type_set_add: Rc<ValueTypeSet> = Rc::new(ValueTypeSet::new(vec![
-//             ValueTypeK::Float.intern(),
-//             ValueTypeK::Integer.intern(),
-//             ValueTypeK::String.intern(),
-//         ]));
-//         let type_set_bool: Rc<ValueTypeSet> =
-//             Rc::new(ValueTypeSet::new(vec![ValueTypeK::Bool.intern()]));
-//         let type_set_ptr: Rc<ValueTypeSet> = Rc::new(ValueTypeSet::new(vec![
-//             ValueTypeK::Pointer(ValueTypeK::All.intern(), false).intern(),
-//             ValueTypeK::Array(ValueTypeK::All.intern(), usize::MAX).intern(),
-//             ValueTypeK::String.intern(),
-//         ]));
-//         let type_set_struct: Rc<ValueTypeSet> =
-//             Rc::new(ValueTypeSet::new(vec![ValueTypeK::AnyStruct.intern()]));

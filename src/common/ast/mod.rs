@@ -40,7 +40,6 @@ pub enum Statement {
 pub enum Expression {
     Literal(Value),
     StringLiteral(String),
-    Grouping(Box<Expression>),
     Unary(TokenType, Box<Expression>),
     Deref(Box<Expression>),
     Ref(Box<Expression>),
@@ -52,19 +51,14 @@ pub enum Expression {
     Logical(Box<Expression>, TokenType, Box<Expression>),
     Call(Box<Expression>, Vec<Expression>),
     Dot(Box<Expression>, Token),
-    Set(Box<Expression>, Token, Box<Expression>),
-    This(Token),
-    Super(Token, Token),
     Function(FunctionExpression),
     Cast(Box<Expression>, UValueType, Cell<UValueType>),
     ArrayLiteral(Vec<Expression>),
     StructInitializer(CustomStruct, HashMap<String, Expression>),
     Empty,
-    Nil,
 }
 
 pub enum HalfExpression {
-    Nil,
     Binary(TokenType, Box<Expression>),
     Dot(Token),
     DerefDot(Token),
@@ -79,7 +73,6 @@ pub enum HalfExpression {
 impl HalfExpression {
     pub fn fill(self, left: Expression) -> Expression {
         match self {
-            HalfExpression::Nil => Expression::Nil,
             HalfExpression::Binary(t, r) => Expression::Binary(Box::new(left), t, r),
             HalfExpression::Dot(t) => Expression::Dot(Box::new(left), t),
             HalfExpression::And(r) => Expression::Logical(Box::new(left), TokenType::And, r),

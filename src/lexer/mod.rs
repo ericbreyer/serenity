@@ -63,18 +63,19 @@ pub enum TokenType {
     SimpleType,
     Cast,
     Char,
-    EOF,
+    Eof,
     #[default]
     Error,
 }
 
-const KEYWORDS: [(&str, TokenType); 25] = [
+const KEYWORDS: [(&str, TokenType); 28] = [
     ("and", TokenType::And),
     ("struct", TokenType::Struct),
     ("else", TokenType::Else),
     ("false", TokenType::False),
     ("for", TokenType::For),
     ("fun", TokenType::Fun),
+    ("fn", TokenType::Fun),
     ("if", TokenType::If),
     ("nil", TokenType::Nil),
     ("or", TokenType::Or),
@@ -84,11 +85,13 @@ const KEYWORDS: [(&str, TokenType); 25] = [
     ("this", TokenType::This),
     ("true", TokenType::True),
     ("var", TokenType::Var),
+    ("let", TokenType::Var),
     ("const", TokenType::Const),
     ("while", TokenType::While),
     ("break", TokenType::Break),
     ("continue", TokenType::Continue),
     ("lambda", TokenType::Lambda),
+    ("λ", TokenType::Lambda),
     ("int", TokenType::SimpleType),
     ("float", TokenType::SimpleType),
     ("string", TokenType::SimpleType),
@@ -106,13 +109,13 @@ pub struct Token {
 impl Lexer {
     pub fn new(source: String) -> Lexer {
         Lexer {
-            source: source,
+            source,
             lexeme_start: 0,
             lexeme_current: 0,
             line: 1,
             keywords: {
                 let mut tb = TrieBuilder::new();
-                for (k, _) in KEYWORDS.iter() {
+                for (k, _) in &KEYWORDS {
                     tb.push(k.as_bytes());
                 }
                 tb.build()
@@ -124,7 +127,7 @@ impl Lexer {
         self.lexeme_start = self.lexeme_current;
 
         if self.is_at_end() {
-            return self.make_token(TokenType::EOF);
+            return self.make_token(TokenType::Eof);
         };
 
         let c = self.advance();
@@ -149,51 +152,51 @@ impl Lexer {
         }
 
         match c {
-            '(' => return self.make_token(TokenType::LeftParen),
-            ')' => return self.make_token(TokenType::RightParen),
-            '{' => return self.make_token(TokenType::LeftBrace),
-            '}' => return self.make_token(TokenType::RightBrace),
-            ';' => return self.make_token(TokenType::Semicolon),
-            ',' => return self.make_token(TokenType::Comma),
-            '.' => return self.make_token(TokenType::Dot),
+            '(' => self.make_token(TokenType::LeftParen),
+            ')' => self.make_token(TokenType::RightParen),
+            '{' => self.make_token(TokenType::LeftBrace),
+            '}' => self.make_token(TokenType::RightBrace),
+            ';' => self.make_token(TokenType::Semicolon),
+            ',' => self.make_token(TokenType::Comma),
+            '.' => self.make_token(TokenType::Dot),
             '-' => {
-                return if self.advance_if_match('>') {
+                if self.advance_if_match('>') {
                     self.make_token(TokenType::RightArrow)
                 } else {
                     self.make_token(TokenType::Minus)
                 }
             }
-            '+' => return self.make_token(TokenType::Plus),
-            '/' => return self.make_token(TokenType::Slash),
-            '*' => return self.make_token(TokenType::Star),
-            '?' => return self.make_token(TokenType::QuestionMark),
-            ':' => return self.make_token(TokenType::Colon),
-            '&' => return self.make_token(TokenType::Amp),
-            '[' => return self.make_token(TokenType::LeftBracket),
-            ']' => return self.make_token(TokenType::RightBracket),
+            '+' => self.make_token(TokenType::Plus),
+            '/' => self.make_token(TokenType::Slash),
+            '*' => self.make_token(TokenType::Star),
+            '?' => self.make_token(TokenType::QuestionMark),
+            ':' => self.make_token(TokenType::Colon),
+            '&' => self.make_token(TokenType::Amp),
+            '[' => self.make_token(TokenType::LeftBracket),
+            ']' => self.make_token(TokenType::RightBracket),
             '!' => {
-                return if self.advance_if_match('=') {
+                if self.advance_if_match('=') {
                     self.make_token(TokenType::BangEqual)
                 } else {
                     self.make_token(TokenType::Bang)
                 }
             }
             '=' => {
-                return if self.advance_if_match('=') {
+                if self.advance_if_match('=') {
                     self.make_token(TokenType::EqualEqual)
                 } else {
                     self.make_token(TokenType::Equal)
                 }
             }
             '<' => {
-                return if self.advance_if_match('=') {
+                if self.advance_if_match('=') {
                     self.make_token(TokenType::LessEqual)
                 } else {
                     self.make_token(TokenType::Less)
                 }
             }
             '>' => {
-                return if self.advance_if_match('=') {
+                if self.advance_if_match('=') {
                     self.make_token(TokenType::GreaterEqual)
                 } else {
                     self.make_token(TokenType::Greater)
@@ -210,7 +213,7 @@ impl Lexer {
                     return self.error_token("Unterminated string.");
                 }
                 self.advance();
-                return self.make_token(TokenType::String);
+                self.make_token(TokenType::String)
             }
             '\'' => {
                 if self.peek() == '\\' {
@@ -221,10 +224,10 @@ impl Lexer {
                     return self.error_token("Unterminated char.");
                 }
                 self.advance();
-                return self.make_token(TokenType::Char);
+                self.make_token(TokenType::Char)
             }
 
-            _ => return self.error_token("Unexpected character."),
+            _ => self.error_token("Unexpected character."),
         }
     }
     fn is_at_end(&self) -> bool {
@@ -233,7 +236,7 @@ impl Lexer {
 
     fn make_token(&self, token_type: TokenType) -> Token {
         Token {
-            token_type: token_type,
+            token_type,
             lexeme: String::from(&self.source[self.lexeme_start..self.lexeme_current]),
             line: self.line,
         }

@@ -167,9 +167,7 @@ impl OptimizationWalker {
                     _ => {
                         self.warn(
                             &format!(
-                                "Comparison of different types ({:?} and {:?}) is always false, please cast to the same type",
-                                lv,
-                                rv
+                                "Comparison of different types ({lv:?} and {rv:?}) is always false, please cast to the same type"
                             )
                         );
                         Value::Bool(false)
@@ -193,9 +191,7 @@ impl OptimizationWalker {
                     _ => {
                         self.warn(
                             &format!(
-                                "Comparison of different types ({:?} and {:?}) is always true, please cast to the same type",
-                                lv,
-                                rv
+                                "Comparison of different types ({lv:?} and {rv:?}) is always true, please cast to the same type"
                             )
                         );
                         Value::Bool(true)
@@ -322,9 +318,9 @@ impl OptimizationWalker {
 
         let t2 = self.visit_expression(r, false);
 
-        let status_quo = Expression::Assign(Box::new(t), Box::new(t2));
+        
 
-        status_quo
+        Expression::Assign(Box::new(t), Box::new(t2))
     }
 
     #[instrument(level = "trace", skip_all)]
@@ -336,7 +332,8 @@ impl OptimizationWalker {
 
         let status_quo = Expression::Logical(Box::new(lv.clone()), operator, Box::new(rv.clone()));
 
-        let l = match operator_type {
+        
+        match operator_type {
             TokenType::Or => {
                 if let Expression::Literal(Value::Bool(l)) = lv {
                     if l {
@@ -364,8 +361,7 @@ impl OptimizationWalker {
                 }
             }
             _ => unreachable!(),
-        };
-        l
+        }
     }
 
     #[instrument(level = "trace", skip_all)]
@@ -420,7 +416,7 @@ impl OptimizationWalker {
         //     }
         // }
         self.function_compiler.func.arity = function_expr.params.len();
-        for (_, param) in function_expr.params.iter().enumerate() {
+        for param in &function_expr.params {
             let _mutable = true;
 
             let p_type = param.1;
@@ -434,8 +430,8 @@ impl OptimizationWalker {
 
         let return_type = function_expr.return_type;
 
-        self.function_compiler.func.return_type = return_type.into();
-        self.function_compiler.func.return_size = return_type.num_words() as usize;
+        self.function_compiler.func.return_type = return_type;
+        self.function_compiler.func.return_size = return_type.num_words();
 
         let mut param_types = function_expr.params
             .iter()
@@ -449,8 +445,6 @@ impl OptimizationWalker {
         self.function_compiler.locals.insert(0, Local {
             name: func_name.clone(),
             depth: 0,
-            mutable: false,
-            captured: false,
             local_type: ft,
         });
 
@@ -462,7 +456,7 @@ impl OptimizationWalker {
         let c = std::mem::take(&mut self.function_compiler);
         let name = c.func.name.clone();
         // if self.had_error.get() {
-        c.func.chunk.dissassemble(&name, Level::DEBUG);
+        c.func.chunk.disassemble(&name, Level::DEBUG);
         // }
 
         let (rfunc, maybe_enclosing) = c.recover_values();
@@ -510,22 +504,22 @@ impl OptimizationWalker {
                 Value::Char(i as u8)
             }
             (Value::Char(c), ValueType::Integer) => {
-                Value::Integer(c as u8 as i64)
+                Value::Integer(i64::from(c))
             }
             (Value::Char(c), ValueType::Float) => {
-                Value::Float(c as u8 as f64)
+                Value::Float(f64::from(c))
             }
             (Value::Float(f), ValueType::Char) => {
-                Value::Char(f as f64 as u8)
+                Value::Char(f as u8)
             }
             (Value::Char(c), ValueType::Bool) => {
                 Value::Bool(c != 0)
             }
             (Value::Bool(b), ValueType::Char) => {
-                Value::Char(if b { 1 } else { 0 })
+                Value::Char(u8::from(b))
             }
             (Value::Bool(b), ValueType::Integer) => {
-                Value::Integer(if b { 1 } else { 0 })
+                Value::Integer(i64::from(b))
             }
             (Value::Integer(i), ValueType::Bool) => {
                 Value::Bool(i != 0)
@@ -537,7 +531,7 @@ impl OptimizationWalker {
                 Value::Float(if b { 1.0 } else { 0.0 })
             }
             _ => {
-                error!(self, format!("Cannot cast {:?} to {:?}", t, cast_type).as_str());
+                error!(self, format!("Cannot cast {t:?} to {cast_type:?}").as_str());
                 return status_quo;
             }
         };

@@ -46,8 +46,7 @@ impl TypeCheckWalker {
             if let Some(var_type) = v.tipe {
                 if expr_type != var_type {
                     error!(self, &format!(
-                        "Type mismatch, expected {:?} got {:?}",
-                        var_type, expr_type
+                        "Type mismatch, expected {var_type:?} got {expr_type:?}"
                     ));
                 }
             }
@@ -97,7 +96,7 @@ impl TypeCheckWalker {
         }
 
         for i in self.function_compiler.locals.keys() {
-            let local = &self.function_compiler.locals.get(&i).unwrap();
+            let local = &self.function_compiler.locals.get(i).unwrap();
             if local.depth != -1 && local.depth < self.function_compiler.scope_depth {
                 break;
             }
@@ -114,7 +113,7 @@ impl TypeCheckWalker {
         let local = Local {
             name: name.clone(),
             depth: -1,
-            mutable: mutable,
+            mutable,
             assigned: false,
             captured: false,
             local_type: ValueType::Undef.intern(),
@@ -175,7 +174,7 @@ impl TypeCheckWalker {
                 .locals
                 .get_mut(&last_local)
                 .unwrap()
-                .local_type = ValueType::Array(var_type, n as usize).intern();
+                .local_type = ValueType::Array(var_type, n).intern();
             self.function_compiler.locals.get_mut(&last_local).unwrap().mutable = false;
             self.function_compiler.locals.get_mut(&last_local).unwrap().assigned = true;
 
@@ -183,7 +182,7 @@ impl TypeCheckWalker {
             self.global_types.insert(
                 global_id as usize,
                 (
-                    ValueType::Array(var_type, n as usize).intern(),
+                    ValueType::Array(var_type, n).intern(),
                     false,
                     
                 ),
@@ -223,7 +222,7 @@ impl TypeCheckWalker {
                     .locals
                     .get_mut(&last_local)
                     .unwrap()
-                    .local_type = ValueType::Array(pointee_type, *n as usize).intern();
+                    .local_type = ValueType::Array(pointee_type, *n).intern();
                 self.function_compiler.local_count += 1;
             } else {
                 let n = size.expect("size is none");
@@ -247,13 +246,12 @@ impl TypeCheckWalker {
                 if pointee_type == ValueType::Undef.intern() {
                     pointee_type = pt;
                 }
-                self.function_compiler.local_count += pointee_type.num_words() as usize;
+                self.function_compiler.local_count += pointee_type.num_words();
 
                 if pt != pointee_type && pt != ValueType::Nil.intern() {
                     error!(self, 
                         format!(
-                            "b Element must have type {:?}, got {:?} instead",
-                            pointee_type, pt
+                            "b Element must have type {pointee_type:?}, got {pt:?} instead"
                         )
                         .as_str()
                     );
@@ -276,8 +274,7 @@ impl TypeCheckWalker {
                 if pt != pointee_type && pt != ValueType::Nil.intern() {
                     error!(self, 
                         format!(
-                            "a Element must have type {:?}, got {:?} instead",
-                            pointee_type, pt
+                            "a Element must have type {pointee_type:?}, got {pt:?} instead"
                         )
                         .as_str()
                     );

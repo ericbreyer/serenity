@@ -23,5 +23,5 @@ pub fn compile(
 ) -> CompileResult {
     parsed = TypeCheckWalker::type_check(parsed, native_functions);
     parsed = OptimizationWalker::optimize(parsed, native_functions);
-    return EmitWalker::emit(parsed, native_functions);
+    EmitWalker::emit(parsed, native_functions)
 }

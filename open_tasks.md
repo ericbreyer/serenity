@@ -1,11 +1,2 @@
-- Implicit return nil type is interesting, how to know if all code paths return?
-  - requiring a return runs into the same issue
-  - unless you require a return in the outer scope which is easy but dumb
-- constants, constant pass?
-- don't allow top level scripts (main function)
-  - requires a notion of constexprs (and optimization pass?)
-    - parse
-    - type-check
-    - optimize
-    - emit bytecode
-- Modules
+- Const function param
+- unsigned ints

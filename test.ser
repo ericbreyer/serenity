@@ -8,8 +8,13 @@ fun cumtrapz(f : fun(float) -> float, start:float, num_steps: int, step : float,
   }
 }
 
-fun main() {
 var buf : float[21];
+fun main() {
+
+
+//let buf = cast(sbrk(21), float*);
+let sentinal = cast(sbrk(1), float*);
+sentinal[0] = 69.0;
 
 cumtrapz(lambda(x : float) -> float {return cast(2, float) * x;}, 0.0, 20, 0.1, buf);
 
@@ -17,18 +22,7 @@ for (var i = 0; i < 21; i = i + 1) {
   print cast(cast(buf[i] * 100.0, int), float) / 100.0;
 }
 
-  fun outer(const x: float) -> fun() -> float {
-    fun inner() -> float {
-      return x;
-    }
-
-    return inner;
-  }
-
-
-  var f = outer(100.0);
-  print "hi";
-  print f();
+print sentinal[0];
 
   var s = "hello\nworld";
   s[0] = 'H';

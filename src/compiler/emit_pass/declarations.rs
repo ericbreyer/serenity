@@ -23,7 +23,7 @@ impl EmitWalker {
         let line = v.line;
 
         let name = v.name.clone();
-        let global_id = self.parse_variable(v.name, v.mutable);
+        let mut global_id = self.parse_variable(v.name, v.mutable);
 
         if let Some(var_type) = v.tipe {
             if global_id == -1 {
@@ -42,7 +42,7 @@ impl EmitWalker {
                 if expr_type != var_type {
                     error!(
                         self,
-                        &format!("Type mismatch, expected {:?} got {:?}", var_type, expr_type)
+                        &format!("Type mismatch, expected {var_type:?} got {expr_type:?}")
                     );
                 }
             }
@@ -55,6 +55,8 @@ impl EmitWalker {
                 self.function_compiler.locals.get_mut(&last_local).unwrap().local_type = expr_type;
                 // self.function_compiler.local_count += expr_type.num_words() as usize;
             } else {
+                global_id = self.static_data_segment.len() as i64;
+
                 self.gloabls.insert(name, global_id as usize);
                 self.global_types.insert(global_id as usize, (expr_type, v.mutable, true));
             }
@@ -95,7 +97,7 @@ impl EmitWalker {
         }
 
         for i in self.function_compiler.locals.keys() {
-            let local = &self.function_compiler.locals.get(&i).unwrap();
+            let local = &self.function_compiler.locals.get(i).unwrap();
             if local.depth != -1 && local.depth < self.function_compiler.scope_depth {
                 break;
             }
@@ -112,7 +114,7 @@ impl EmitWalker {
         let local = Local {
             name: name.clone(),
             depth: -1,
-            mutable: mutable,
+            mutable,
             assigned: false,
             captured: false,
             local_type: ValueType::Undef.intern(),
@@ -169,12 +171,12 @@ impl EmitWalker {
         if global_id == -1 {
             let last_local = self.last_local();
             self.function_compiler.locals.get_mut(&last_local).unwrap().local_type =
-                ValueType::Array(var_type, n as usize).intern();
+                ValueType::Array(var_type, n).intern();
             self.function_compiler.locals.get_mut(&last_local).unwrap().mutable = false;
             self.function_compiler.locals.get_mut(&last_local).unwrap().assigned = true;
         } else {
             self.global_types.insert(global_id as usize, (
-                ValueType::Array(var_type, n as usize).intern(),
+                ValueType::Array(var_type, n).intern(),
                 false,
                 true,
             ));
@@ -213,7 +215,7 @@ impl EmitWalker {
                 }
 
                 self.function_compiler.locals.get_mut(&last_local).unwrap().local_type =
-                    ValueType::Array(pointee_type, *n as usize).intern();
+                    ValueType::Array(pointee_type, *n).intern();
                 self.function_compiler.local_count += 1;
             } else {
                 let n = size.expect("size is none");
@@ -240,15 +242,13 @@ impl EmitWalker {
                 if pointee_type == ValueType::Undef.intern() {
                     pointee_type = pt;
                 }
-                self.function_compiler.local_count += pointee_type.num_words() as usize;
+                self.function_compiler.local_count += pointee_type.num_words();
 
                 if pt != pointee_type && pt != ValueType::Nil.intern() {
                     error!(
                         self,
                         format!(
-                            "b Element must have type {:?}, got {:?} instead",
-                            pointee_type,
-                            pt
+                            "b Element must have type {pointee_type:?}, got {pt:?} instead"
                         ).as_str()
                     );
                 }
@@ -279,9 +279,7 @@ impl EmitWalker {
                     error!(
                         self,
                         format!(
-                            "a Element must have type {:?}, got {:?} instead",
-                            pointee_type,
-                            pt
+                            "a Element must have type {pointee_type:?}, got {pt:?} instead"
                         ).as_str()
                     );
                 }
@@ -308,9 +306,8 @@ impl EmitWalker {
 
             let words = Value::Pointer(Pointer::Static(self.static_data_segment.len())).to_words();
 
-            for word in 0..words.len() {
-                self.static_data_segment[(global_id as usize) + word] = words[word];
-            }
+            self.static_data_segment[(global_id as usize)..(global_id as usize + words.len())].copy_from_slice(&words);
+                
             for _ in 0..size.unwrap() {
                 for _ in 0..pointee_type.num_words() {
                     self.static_data_segment.extend(Value::Nil.to_words());

@@ -1,16 +1,11 @@
-  fun outer(const x: int) -> fun(int) -> fun(int) -> int {
-    fun inner(const y: int) -> fun(int) -> int {
-      fun inner2(const z: int) -> int {
+  let outer = lambda( x: int) -> fun(int) -> fun(int) -> int {
+    return lambda( y: int) -> fun(int) -> int {
+      return lambda( z: int) -> int {
         print "return x*y";
-        
         return x * y * z;
-      }
-      print "return inner2";
-      return inner2;
-    }
-    print "return inner";
-    return inner;
-  }
+      };
+    };
+  };
 
 fun main() {
         var f = outer(5)(3);

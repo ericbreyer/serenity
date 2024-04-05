@@ -69,7 +69,7 @@ impl TypeCheckWalker {
         let (t, _is_const) = match raw_t.decay(self.custom_structs.clone().into()).as_ref() {
             &ValueType::Pointer(pointee_type, is_const) => (pointee_type, is_const),
             _ => {
-                error!(self, "Expected pointer type");
+                error!(self, format!("Expected pointer type, got {:?}", *raw_t).as_str());
                 (ValueType::Err.intern(), false)
             }
         };
@@ -143,7 +143,7 @@ impl TypeCheckWalker {
                         return lt;
                     }
                     _ => {
-                        error!(self, format!("Operands must be two numbers or a pointer and an integer got {:?} and {:?}", lt, rt).as_str());
+                        error!(self, format!("Operands must be two numbers or a pointer and an integer got {lt:?} and {rt:?}").as_str());
                         return ValueType::Err.intern();
                     }
                 }
@@ -193,9 +193,7 @@ impl TypeCheckWalker {
                 if rt != lt {
                     self.warn(
                         &format!(
-                            "Comparison of different types ({:?} and {:?}) is always false, please cast to the same type",
-                            lt,
-                            rt
+                            "Comparison of different types ({lt:?} and {rt:?}) is always false, please cast to the same type"
                         )
                     );
 
@@ -208,9 +206,7 @@ impl TypeCheckWalker {
                 if rt != lt {
                     self.warn(
                         &format!(
-                            "Comparison of different types ({:?} and {:?}) is always true, please cast to the same type",
-                            lt,
-                            rt
+                            "Comparison of different types ({lt:?} and {rt:?}) is always true, please cast to the same type"
                         )
                     );
 
@@ -352,7 +348,7 @@ impl TypeCheckWalker {
 
         let decayed = t.decay(self.custom_structs.clone().into());
         let ValueType::Pointer(s, assignable) = decayed.as_ref() else {
-            error!(self, format!("Can only assign to a pointer type, got {:?}", t).as_str());
+            error!(self, format!("Can only assign to a pointer type, got {t:?}").as_str());
             return ValueType::Err.intern();
         };
 
@@ -409,7 +405,7 @@ impl TypeCheckWalker {
             let return_type = f.last().unwrap();
             return *return_type;
         } else {
-            error!(self, format!("Can only call function types, got {:?}", t).as_str());
+            error!(self, format!("Can only call function types, got {t:?}").as_str());
             return ValueType::Err.intern();
         }
     }
@@ -421,12 +417,12 @@ impl TypeCheckWalker {
 
         let decayed = t.decay(self.custom_structs.clone().into());
         let ValueType::Pointer(maybe_s, _) = decayed.as_ref() else {
-            error!(self, format!("Can only access fields of struct types, got {:?}", t).as_str());
+            error!(self, format!("Can only access fields of struct types, got {t:?}").as_str());
             return ValueType::Err.intern();
         };
 
         let ValueType::Struct(s) = maybe_s.as_ref() else {
-            error!(self, format!("Can only access fields of struct types, got {:?}", t).as_str());
+            error!(self, format!("Can only access fields of struct types, got {t:?}").as_str());
             return ValueType::Err.intern();
         };
 
@@ -456,7 +452,7 @@ impl TypeCheckWalker {
         self.function_compiler = Box::new(c);
         self.function_compiler.scope_depth += 1;
 
-        for (_, param) in function_expr.params.iter().enumerate() {
+        for param in &function_expr.params {
             let _mutable = true;
 
             let p_type = param.1;
@@ -556,7 +552,7 @@ impl TypeCheckWalker {
             }
             (ValueType::Pointer(_, _), ValueType::Pointer(_, _)) => cast_type,
             _ => {
-                error!(self, &format!("Cannot cast {:?} to {:?}", t, cast_type));
+                error!(self, &format!("Cannot cast {t:?} to {cast_type:?}"));
                 ValueType::Err.intern()
             }
         }
@@ -576,8 +572,8 @@ impl TypeCheckWalker {
                 error!(self, "All elements of an array must have the same type.");
             }
         }
-        let array_type = ValueType::Array(array_type, element_types.len()).intern();
-        array_type
+        
+        ValueType::Array(array_type, element_types.len()).intern()
     }
 
     #[instrument(level = "trace", skip_all)]
@@ -590,7 +586,7 @@ impl TypeCheckWalker {
         let temp = l.as_mut().unwrap().borrow_mut();
         let mut orig_fields = temp.iter().collect::<Vec<_>>();
         orig_fields.sort_by(|a, b| a.1.offset.cmp(&b.1.offset));
-        for (name, entry) in orig_fields.iter() {
+        for (name, entry) in &orig_fields {
             let Some(exp) = fields.get(*name) else {
                 for _ in 0..entry.value.num_words() {
                 }
@@ -605,15 +601,12 @@ impl TypeCheckWalker {
                 return ValueType::Err.intern();
             }
         }
-        drop(temp);
         drop(l);
         ValueType::Struct(t).intern()
     }
 
     fn resolve_upvalue(&mut self, compiler_level: u32, token: &Token) -> Option<usize> {
-        if let None = Self::compiler_at(compiler_level + 1, &mut self.function_compiler) {
-            return None;
-        }
+        Self::compiler_at(compiler_level + 1, &mut self.function_compiler)?;
 
         if let (Some(local), _) = self.resolve_local(compiler_level + 1, token) {
             let Some(compiler) = Self::compiler_at(
@@ -648,7 +641,7 @@ impl TypeCheckWalker {
 
     fn compiler_at(level: u32, compiler: &mut FunctionCompiler) -> Option<&mut FunctionCompiler> {
         if level == 0 {
-            return Some(compiler);
+            Some(compiler)
         } else {
             return compiler.enclosing.as_mut().and_then(|e| Self::compiler_at(level - 1, e));
         }
@@ -677,11 +670,11 @@ impl TypeCheckWalker {
         }
         
         if compiler.locals.contains_key(&compiler.local_count) {
-            compiler.locals.insert(compiler.local_count + upvalue_type.num_words() as usize, compiler.locals.get(&compiler.local_count).unwrap().clone());
+            compiler.locals.insert(compiler.local_count + upvalue_type.num_words(), compiler.locals.get(&compiler.local_count).unwrap().clone());
         }
         
         compiler.locals.insert(compiler.local_count, Local {
-            name: name.to_owned(),
+            name: name.clone(),
             depth: compiler.scope_depth,
             mutable: true,
             assigned: true,
@@ -691,23 +684,23 @@ impl TypeCheckWalker {
 
         compiler.upvalues.push(Upvalue {
             local_idx: up_idx,
-            name: name.to_owned(),
+            name: name.clone(),
         });
-        compiler.local_count += upvalue_type.num_words() as usize;
+        compiler.local_count += upvalue_type.num_words();
 
-        compiler.upvalue_count += upvalue_type.num_words() as usize;
+        compiler.upvalue_count += upvalue_type.num_words();
 
-        return (compiler.upvalue_count - upvalue_type.num_words(), compiler.local_count - upvalue_type.num_words() as usize);
+        (compiler.upvalue_count - upvalue_type.num_words(), compiler.local_count - upvalue_type.num_words())
     }
 
     fn resolve_local(&mut self, compiler_level: u32, token: &Token) -> (Option<usize>, bool) {
         let Some(compiler) = Self::compiler_at(compiler_level, &mut self.function_compiler) else {
             return (None, false);
         };
-        if compiler.locals.len() == 0 {
+        if compiler.locals.is_empty() {
             return (None, true);
         }
-        for (k, local) in compiler.locals.iter() {
+        for (k, local) in &compiler.locals {
             if token.lexeme == local.name {
                 if local.depth == -1 {
                     error!(self, "Cannot read local variable in its own initializer.");
@@ -716,6 +709,6 @@ impl TypeCheckWalker {
                 return (Some(*k), local.mutable || !local.assigned);
             }
         }
-        return (None, true);
+        (None, true)
     }
 }

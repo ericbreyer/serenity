@@ -5,8 +5,8 @@ mod statements;
 use tracing::{ debug, instrument, warn, Level };
 
 use crate::common::ast::{ ASTNode, Declaration, Expression, Statement };
-use crate::common::{ ParseResult };
-use crate::common::runnable::{ Function };
+use crate::common::ParseResult;
+use crate::common::runnable::Function;
 use crate::error;
 
 use crate::typing::{ CustomStruct, UValueType };
@@ -26,7 +26,7 @@ pub struct OptimizationWalker {
     had_error: Cell<bool>,
     panic_mode: Cell<bool>,
     function_compiler: Box<FunctionCompiler>,
-    _gloabls: HashMap<String, Option<Value>>,
+    _globals: HashMap<String, Option<Value>>,
 }
 
 impl Debug for OptimizationWalker {
@@ -41,13 +41,13 @@ impl OptimizationWalker {
         _native_functions: &HashMap<String, (usize, UValueType)>,
         _custom_structs: HashMap<String, CustomStruct>
     ) -> OptimizationWalker {
-        let c = OptimizationWalker {
+        
+        OptimizationWalker {
             had_error: false.into(),
             panic_mode: false.into(),
             function_compiler: compiler,
-            _gloabls: HashMap::new(),
-        };
-        c
+            _globals: HashMap::new(),
+        }
     }
 
     #[instrument(skip_all, level = "trace")]
@@ -61,7 +61,7 @@ impl OptimizationWalker {
             ASTNode::Statement(s, _) => self.visit_statement(s),
             ASTNode::Expression(e, l) => {
                 self.visit_expression(e.clone(), false);
-                *node = ASTNode::Expression(e.clone(), l.clone());
+                *node = ASTNode::Expression(e.clone(), *l);
             }
             ASTNode::Declaration(d, _) => {
                 self.visit_declaration(d);
@@ -130,10 +130,11 @@ impl OptimizationWalker {
                 }
             }
         }
-        let t = match node {
+        
+
+        match node {
             Expression::Literal(v) => self.literal(v),
             Expression::StringLiteral(s) => self.string(s),
-            Expression::Grouping(e) => self.visit_expression(*e, false),
             Expression::Unary(t, e) => self.unary(t, *e),
             Expression::Deref(e) => self.deref(*e, assignment_target),
             Expression::Ref(e) => self.addr_of(*e),
@@ -150,14 +151,7 @@ impl OptimizationWalker {
             Expression::ArrayLiteral(a) => self.array_literal(a),
             Expression::StructInitializer(t, v) => self.struct_literal(t, v),
             Expression::Empty => Expression::Empty,
-            Expression::Nil => Expression::Nil,
-            _ => {
-                error!(self, "Invalid expression.");
-                Expression::Empty
-            }
-        };
-
-        t
+        }
     }
 
     #[instrument(skip_all, level = "trace")]
@@ -177,7 +171,7 @@ impl OptimizationWalker {
     fn end_scope(&mut self) {
         let line = 0;
         self.function_compiler.scope_depth -= 1;
-        while self.function_compiler.locals.len() > 0 {
+        while !self.function_compiler.locals.is_empty() {
             let last_local = self.last_local();
             if
                 self.function_compiler.locals.get(&last_local).unwrap().depth <=
@@ -285,8 +279,6 @@ impl OptimizationWalker {
 struct Local {
     name: String,
     depth: i32,
-    mutable: bool,
-    captured: bool,
     local_type: UValueType,
 }
 
@@ -377,7 +369,7 @@ impl OptimizationWalker {
         let (mut func, _) = compiler.recover_values();
         let chunk = &mut func.chunk;
 
-        chunk.dissassemble(
+        chunk.disassemble(
             if func.name != "".into() {
                 &func.name
             } else {
@@ -387,7 +379,7 @@ impl OptimizationWalker {
         );
 
         chunk.write(Opcode::Nil.into(), 0);
-        chunk.write_pool_opcode(Opcode::Return.into(), 1, 0);
+        chunk.write_pool_opcode(Opcode::Return, 1, 0);
 
         if had_err {
             tracing::error!("Optimization failed.");

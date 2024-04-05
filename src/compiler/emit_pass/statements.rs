@@ -68,7 +68,7 @@ impl EmitWalker {
                     .write(Opcode::PrintChar.into(), line);
             }
             _ => {
-                error!(self, format!("Cannot print this type. {:?}", t).as_str());
+                error!(self, format!("Cannot print this type. {t:?}").as_str());
             }
         }
     }

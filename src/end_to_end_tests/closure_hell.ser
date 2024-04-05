@@ -1,0 +1,16 @@
+  let outer = lambda(x: int) -> fun(int) -> fun(int) -> int {
+    return lambda(y: int) -> fun(int) -> int {
+      return lambda(z: int) -> int {
+        print "return x*y";
+        return x * y * z;
+      };
+    };
+  };
+
+fun main() {
+        var f = outer(5)(3);
+        print f(2);
+        print f(2);
+        print 5 + 3;
+        print 5 * 3;
+}

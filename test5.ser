@@ -12,13 +12,14 @@ fun decrement(c : struct counter *) {
 
 var closures: (fun(int) -> int)[2];
 
+var c: struct counter;
+        
+
 fun make_counter() {
-        var c: struct counter;
         c.count = 0;
         closures[0] = lambda(x: int) -> int {
-                var d = c;
-                d.count = d.count + x;
-                return d.count;
+                c.count = c.count + x;
+                return c.count;
         };
         closures[1] = lambda(x: int) -> int {
                 c.count = c.count - x;
@@ -40,10 +41,16 @@ fun main() {
 
         make_counter();
         print "here";
-        print closures[0](1);
-        print closures[0](1);
-        print closures[1](1);
-        print closures[1](1);
-        print closures[0](1);
-        print closures[1](1);
+
+        let add = closures[0];
+        let sub = closures[1];
+
+        print add(1);
+        print add(2);
+        print add(3);
+        print add(1);
+        print sub(1);
+        print sub(2);
+        print sub(3);
+        print sub(1);
 }
