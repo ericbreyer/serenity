@@ -1,0 +1,21 @@
+include "./test8.ser";
+
+
+fn main() {
+  let i : struct int_counter;
+  let f : struct float_counter;
+
+  init_int_counter(&i);
+  init_float_counter(&f);
+
+  do_some_stuff(cast(&i, struct aritmetic_vtable *));
+  do_some_stuff(&f.vtable);
+
+  print i.x;
+  print f.x;
+
+  (&f.vtable)|->inc();
+  f.vtable|.add(5);
+  print f.x;
+  
+}

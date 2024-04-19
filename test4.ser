@@ -22,7 +22,7 @@ fun fast_fib(x : int) -> int {
 
 fun main() {
   var i = 0;
-  while(i < 25) {
+  while(i < 31) {
     print i;
     print fib(i);
     print fast_fib(i);

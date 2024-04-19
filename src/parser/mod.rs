@@ -1,9 +1,9 @@
-use crate::{common::ParseResult, lexer::Lexer};
+use crate::{common::ParseResult};
 
 mod serenity_parser;
 
 pub trait Parser {
-    fn parse(lexer: Lexer) -> ParseResult;
+    fn parse(source: String, name: String) -> ParseResult;
 }
 
 pub use serenity_parser::SerenityParser;

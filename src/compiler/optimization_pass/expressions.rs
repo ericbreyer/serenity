@@ -106,6 +106,9 @@ impl OptimizationWalker {
                     (Value::Float(l), Value::Float(r)) => {
                         Value::Float(l + r)
                     }
+                    (Value::UInteger(l), Value::UInteger(r)) => {
+                        Value::UInteger(l + r)
+                    }
                     _ => {
                         error!(self, "Operands must be two numbers.");
                         return status_quo;
@@ -116,6 +119,10 @@ impl OptimizationWalker {
                     (Value::Integer(l), Value::Integer(r)) => {
                         Value::Integer(l - r)
                     }
+                    (Value::UInteger(l), Value::UInteger(r)) => {
+                        Value::UInteger(l - r)
+                    }
+                    
                     (Value::Float(l), Value::Float(r)) => {
                         Value::Float(l - r)
                     }
@@ -128,6 +135,9 @@ impl OptimizationWalker {
                 match (lv, rv) {
                     (Value::Integer(l), Value::Integer(r)) => {
                         Value::Integer(l * r)
+                    }
+                    (Value::UInteger(l), Value::UInteger(r)) => {
+                        Value::UInteger(l * r)
                     }
                     (Value::Float(l), Value::Float(r)) => {
                         Value::Float(l * r)
@@ -142,6 +152,9 @@ impl OptimizationWalker {
                     (Value::Integer(l), Value::Integer(r)) => {
                         Value::Integer(l / r)
                     }
+                    (Value::UInteger(l), Value::UInteger(r)) => {
+                        Value::UInteger(l / r)
+                    }
                     (Value::Float(l), Value::Float(r)) => {
                         Value::Float(l / r)
                     }
@@ -153,6 +166,9 @@ impl OptimizationWalker {
             TokenType::EqualEqual => {
                 match (lv.clone(), rv.clone()) {
                     (Value::Integer(l), Value::Integer(r)) => {
+                        Value::Bool(l == r)
+                    }
+                    (Value::UInteger(l), Value::UInteger(r)) => {
                         Value::Bool(l == r)
                     }
                     (Value::Float(l), Value::Float(r)) => {
@@ -179,6 +195,9 @@ impl OptimizationWalker {
                     (Value::Integer(l), Value::Integer(r)) => {
                         Value::Bool(l != r)
                     }
+                    (Value::UInteger(l), Value::UInteger(r)) => {
+                        Value::Bool(l != r)
+                    }
                     (Value::Float(l), Value::Float(r)) => {
                         Value::Bool(l != r)
                     }
@@ -203,6 +222,9 @@ impl OptimizationWalker {
                     (Value::Integer(l), Value::Integer(r)) => {
                         Value::Bool(l > r)
                     }
+                    (Value::UInteger(l), Value::UInteger(r)) => {
+                        Value::Bool(l > r)
+                    }
                     (Value::Float(l), Value::Float(r)) => {
                         Value::Bool(l > r)
                     }
@@ -215,6 +237,9 @@ impl OptimizationWalker {
             TokenType::GreaterEqual => {
                 match (lv, rv) {
                     (Value::Integer(l), Value::Integer(r)) => {
+                        Value::Bool(l >= r)
+                    }
+                    (Value::UInteger(l), Value::UInteger(r)) => {
                         Value::Bool(l >= r)
                     }
                     (Value::Float(l), Value::Float(r)) => {
@@ -232,6 +257,9 @@ impl OptimizationWalker {
                     (Value::Integer(l), Value::Integer(r)) => {
                         Value::Bool(l < r)
                     }
+                    (Value::UInteger(l), Value::UInteger(r)) => {
+                        Value::Bool(l < r)
+                    }
                     (Value::Float(l), Value::Float(r)) => {
                         Value::Bool(l < r)
                     }
@@ -244,6 +272,9 @@ impl OptimizationWalker {
             TokenType::LessEqual => {
                 match (lv, rv) {
                     (Value::Integer(l), Value::Integer(r)) => {
+                        Value::Bool(l <= r)
+                    }
+                    (Value::UInteger(l), Value::UInteger(r)) => {
                         Value::Bool(l <= r)
                     }
                     (Value::Float(l), Value::Float(r)) => {
@@ -435,7 +466,7 @@ impl OptimizationWalker {
 
         let mut param_types = function_expr.params
             .iter()
-            .map(|(_, t)| *t)
+            .map(|(_, t, _)| *t)
             .collect::<Vec<_>>();
         param_types.push(return_type);
 
@@ -529,6 +560,18 @@ impl OptimizationWalker {
             }
             (Value::Bool(b), ValueType::Float) => {
                 Value::Float(if b { 1.0 } else { 0.0 })
+            }
+            (Value::Integer(i), ValueType::UInteger) => {
+                Value::UInteger(i as u64)
+            }
+            (Value::UInteger(u), ValueType::Integer) => {
+                Value::Integer(u as i64)
+            }
+            (Value::UInteger(u), ValueType::Float) => {
+                Value::Float(u as f64)
+            }
+            (Value::Float(f), ValueType::UInteger) => {
+                Value::UInteger(f as u64)
             }
             _ => {
                 error!(self, format!("Cannot cast {t:?} to {cast_type:?}").as_str());

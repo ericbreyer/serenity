@@ -1,18 +1,35 @@
-use std::{ collections::HashMap, ops::Deref, rc::Rc, sync::{ Arc, Mutex } };
+use std::{ collections::HashMap, fmt::Debug, ops::Deref, rc::Rc, sync::{ Arc, Mutex, RwLock } };
 
 use pinvec::PinVec;
 use pow_of_2::PowOf2;
-use radix_trie::Trie;
 use lazy_static::lazy_static;
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone)]
 pub struct UValueType(usize);
 
-#[derive(Clone, Debug)]
+impl PartialEq for UValueType {
+  fn eq(&self, other: &Self) -> bool {
+    self.as_ref().eq(other.as_ref())
+  }
+}
+
+#[derive(Clone)]
 pub struct CustomStruct {
   pub name: String,
-  pub fields: Arc<Mutex<HashMap<String, StructEntry>>>,
+  pub fields: Arc<RwLock<HashMap<String, StructEntry>>>,
 }
+
+impl Debug for CustomStruct {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    write!(f, "struct {}", self.name)
+  }
+}
+
+// impl Debug for CustomStruct {
+//   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//     write!(f, "struct {}", self.name)
+//   }
+// }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct StructEntry {
@@ -25,6 +42,7 @@ pub struct StructEntry {
 pub enum ValueType {
   Float,
   Integer,
+  UInteger,
   Char,
   Bool,
   Nil,
@@ -45,6 +63,7 @@ impl ValueType {
     match self {
       | Self::Float
       | Self::Integer
+        | Self::UInteger
       | Self::Char
       | Self::Bool
       | Self::Nil
@@ -58,7 +77,7 @@ impl ValueType {
       Self::AnyFunction => panic!("cannot convert anyfunction to word"),
       Self::Struct(h) => {
         let mut sum = 0;
-        for (_, v) in h.fields.lock().as_ref().unwrap().iter() {
+        for (_, v) in h.fields.read().as_ref().unwrap().iter() {
           sum += v.value.as_ref().num_words();
         }
         sum
@@ -71,6 +90,7 @@ impl ValueType {
     match self {
       Self::Float => "1".into(),
       Self::Integer => "2".into(),
+        Self::UInteger => "8".into(),
       Self::Bool => "3".into(),
       Self::Nil => "4".into(),
       Self::String => "5".into(),
@@ -93,7 +113,7 @@ impl ValueType {
         format!(
           "E{}",
           h.fields
-            .lock()
+            .read()
             .as_ref()
             .unwrap()
             .iter()
@@ -154,7 +174,7 @@ impl PartialEq for ValueType {
 
 lazy_static! {
     static ref USED_TYPES: Arc<Mutex<PinVec<ValueType>>> = Arc::new(Mutex::new(PinVec::new(PowOf2::from_exp(8))));
-    static ref USED_TYPES_INDECES: Arc<Mutex<Trie<String, usize>>> = Arc::new(Mutex::new(Trie::new()));
+    static ref USED_TYPES_INDECES: Arc<Mutex<HashMap<String, usize>>> = Arc::new(Mutex::new(HashMap::new()));
 }
 
 impl ValueType {
@@ -196,30 +216,6 @@ impl ValueType {
     used_indeces.insert(sid, idx);
     used_vec.push(value);
     UValueType(idx)
-    //     unsafe {
-    //         static mut USED_TYPES: Option<Mutex<PinVec<ValueTypeK>>> = None;
-    //         static mut USED_TYPES_INDECES: Option<Mutex<Trie<String, usize>>> = None;
-    //         if USED_TYPES.is_none() {
-    //             USED_TYPES = Some(Mutex::new(PinVec::new(PowOf2::from_exp(8))));
-    //             USED_TYPES_INDECES = Some(Mutex::new(Trie::new()));
-    //         }
-    //         let mut used_vec = USED_TYPES.as_mut().unwrap().lock().unwrap();
-    //         let mut used_indeces = USED_TYPES_INDECES.as_mut().unwrap().lock().unwrap();
-
-    //         // println!("Checking: {:?}", self.to_trie_string());
-
-    //         if let Some(idx) = used_indeces.get(&self.to_trie_string()) {
-    //             return &*(used_vec.idx_ref(*idx).get_ref() as *const ValueTypeK);
-    //         }
-
-    //         // println!("Interning: {:?}", self.to_trie_string());
-
-    //         used_indeces.insert(self.to_trie_string(), used_vec.len());
-    //         used_vec.push(self);
-    //         // &used_vec.idx_ref(used_vec.len() - 1).get_ref()
-    //         &*(used_vec.idx_ref(used_vec.len() - 1).get_ref() as *const ValueTypeK)
-    //     }
-    // }
   }
 }
 
@@ -242,11 +238,18 @@ impl Deref for UValueType {
   }
 }
 
+impl Debug for UValueType {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    self.as_ref().fmt(f)
+  }
+}
+
 impl From<String> for UValueType {
   fn from(s: String) -> Self {
     match s.as_str() {
       "float" => ValueType::Float.intern(),
       "int" => ValueType::Integer.intern(),
+        "uint" => ValueType::UInteger.intern(),
       "bool" => ValueType::Bool.intern(),
       "nil" => ValueType::Nil.intern(),
       "string" => ValueType::String.intern(),

@@ -1,15 +1,84 @@
-fn inter() -> int {
-  if (false) {
-    return 1;
-  } 
+// fefnown
+struct aritmetic_vtable {
+  inc: fn(*struct aritmetic_vtable),
+  add: fn(*struct aritmetic_vtable, int),
+  dec: fn(*struct aritmetic_vtable),
+  sub: fn(*struct aritmetic_vtable, int)
+};
 
-  while (true) {
-    break;
-    return 2;
-  }
+struct int_counter {
+  struct aritmetic_vtable,
+  x: int,
+};
 
-  return 3;
+fn int_counter_inc(s: *struct aritmetic_vtable) {
+  let c = cast(s, *struct int_counter);
+  c->x = c->x + 1;
+}
+// fefnown
+fn int_counter_add(s: *struct aritmetic_vtable, n: int) {
+  let c = cast(s, *struct int_counter);
+  c->x = c->x + n;
 }
 
-fn main() {
+fn int_counter_dec(s: *struct aritmetic_vtable) {
+  let c = cast(s, *struct int_counter);
+  c->x = c->x - 1;
+}
+
+fn int_counter_sub(s: *struct aritmetic_vtable, n: int) {
+  let c = cast(s, *struct int_counter);
+  c->x = c->x - n;
+}
+
+struct float_counter {
+  vtable : struct aritmetic_vtable,
+  x: float,
+};
+
+fn float_counter_inc(s: *struct aritmetic_vtable) {
+  let c = cast(s, *struct float_counter);
+  c->x = c->x + 1.0;
+}
+
+fn float_counter_add(s: *struct aritmetic_vtable, n: int) {
+  let c = cast(s, *struct float_counter);
+  c->x = c->x + cast(n, float);
+}
+
+fn float_counter_dec(s: *struct aritmetic_vtable) {
+  let c = cast(s, *struct float_counter);
+  c->x = c->x - 1.0;
+}
+
+fn float_counter_sub(s: *struct aritmetic_vtable, n: int) {
+  let c = cast(s, *struct float_counter);
+  c->x = c->x - cast(n, float);
+}
+
+fn init_float_counter(f : *struct float_counter) {
+  f->vtable = struct aritmetic_vtable {
+    inc: float_counter_inc,
+    add: float_counter_add,
+    dec: float_counter_dec,
+    sub: float_counter_sub
+  };
+  f->x = 0.0;
+}
+
+fn init_int_counter(i : *struct int_counter) {
+  *cast(i, *struct aritmetic_vtable) = struct aritmetic_vtable {
+    inc: int_counter_inc,
+    add: int_counter_add,
+    dec: int_counter_dec,
+    sub: int_counter_sub
+  };
+  i->x = 0;
+}
+
+fn do_some_stuff(c: *struct aritmetic_vtable) {
+  c|->inc();
+  c|->add(5);
+  c|->dec();
+  c|->sub(3);
 }

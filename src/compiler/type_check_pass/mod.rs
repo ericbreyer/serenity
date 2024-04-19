@@ -2,23 +2,19 @@ mod declarations;
 mod expressions;
 mod statements;
 
+
 use tracing::{ debug, instrument, warn };
 
-use crate::common::ast::{ ASTNode, Declaration, Expression, Statement };
-use crate::common::ParseResult;
+use crate::{
+  error,
+  typing::{ CustomStruct, UValueType, ValueType },
+  common::{
+    ParseResult,
+    ast::{ ASTNode, Declaration, Expression, Statement },
+  },
+};
 
-use crate::error;
-
-use crate::typing::{ CustomStruct, UValueType };
-use crate::typing::ValueType;
-
-use std::cell::Cell;
-
-use std::collections::HashMap;
-
-use std::fmt::Debug;
-use std::rc::Rc;
-use std::sync::atomic::AtomicU64;
+use std::{cell::Cell, collections::HashMap, fmt::Debug, rc::Rc, sync::atomic::AtomicU64};
 
 pub struct TypeCheckWalker {
   had_error: Cell<bool>,
@@ -60,26 +56,32 @@ impl TypeCheckWalker {
   fn visit(&mut self, node: ASTNode) -> (ASTNode, bool) {
     let mut has_return = false;
     match node.clone() {
-      ASTNode::Module(nodes) => {
-        for n in &nodes[0..nodes.len() - 1] {
-          let ASTNode::Declaration(_, _) = n else {
-            error!(self, "Only declarations are allowed at the top level.");
-            return (ASTNode::Err, false);
-          };
+      ASTNode::Module(_, nodes) => {
+        for n in &nodes[0..nodes.len()] {
+          match n {
+            ASTNode::Declaration(_) => (),
+            ASTNode::Module(_, _) => (),
+            ASTNode::CallMain(_) => (),
+            _ => {
+              error!(self, "Only declarations are allowed at the top level.");
+              return (ASTNode::Err, false);
+            }
+          }
 
           self.visit(n.clone());
         }
-        let last = nodes.last().unwrap();
-        self.visit(last.clone());
       }
-      ASTNode::Statement(s, _) => {
+      ASTNode::Statement(s) => {
         has_return = self.visit_statement(s);
       }
-      ASTNode::Expression(e, _) => {
+      ASTNode::Expression(e) => {
         self.visit_expression(e, false);
       }
-      ASTNode::Declaration(d, _) => {
+      ASTNode::Declaration(d) => {
         self.visit_declaration(d);
+      }
+      ASTNode::CallMain(c) => {
+        self.visit(c.as_ref().clone());
       }
       _ => (),
     }
@@ -91,8 +93,8 @@ impl TypeCheckWalker {
     static LOOP_NEST: AtomicU64 = AtomicU64::new(0);
 
     match node {
-      Statement::Print(e) => { self.print(*e) }
-      Statement::Block(nodes) => {
+      Statement::Print(e, line) => { self.print(*e, line) }
+      Statement::Block(nodes, _line) => {
         self.begin_scope();
         let mut has_return = false;
         for n in nodes {
@@ -102,8 +104,9 @@ impl TypeCheckWalker {
           if
             matches!(
               n_prime,
-              ASTNode::Statement(Statement::Break | Statement::Return(_) |
-Statement::Continue, _)
+              ASTNode::Statement(
+                Statement::Break(_) | Statement::Return(_, _) | Statement::Continue(_)
+              )
             )
           {
             break;
@@ -113,43 +116,43 @@ Statement::Continue, _)
 
         has_return
       }
-      Statement::If(e, s, o) => {
+      Statement::If(e, s, o, line) => {
         self.if_statement(
           *e,
           *s,
-          o.map(|x| *x)
+          o.map(|x| *x), line
         )
       }
-      Statement::While(e, s) => {
+      Statement::While(e, s, line) => {
         LOOP_NEST.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-        let r = self.while_statement(*e, *s);
+        let r = self.while_statement(*e, *s, line);
         LOOP_NEST.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
         r
       }
-      Statement::For(i, c, u, s) => {
+      Statement::For(i, c, u, s, line) => {
         LOOP_NEST.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         let r = self.for_statement(
           i.map(|x| *x),
           c.map(|x| *x),
           u.map(|x| *x),
-          *s
+          *s, line
         );
         LOOP_NEST.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
         r
       }
-      Statement::Break => {
+      Statement::Break(line) => {
         if LOOP_NEST.load(std::sync::atomic::Ordering::SeqCst) == 0 {
-          error!(self, "Cannot break outside of loop.");
+          error!(self, &format!("[line {line}] Cannot break outside of loop."));
         }
         false
       }
-      Statement::Continue => {
+      Statement::Continue(line) => {
         if LOOP_NEST.load(std::sync::atomic::Ordering::SeqCst) == 0 {
-          error!(self, "Cannot continue outside of loop.");
+          error!(self, &format!("[line {line}] Cannot continue outside of loop."));
         }
         false
       }
-      Statement::Return(s) => {
+      Statement::Return(s, line) => {
         let mut t = ValueType::Nil.intern();
         if let Some(e) = s {
           t = self.visit_expression(*e, false);
@@ -158,7 +161,7 @@ Statement::Continue, _)
           error!(
             self,
             format!(
-              "Expected return type {:?}, got {:?}",
+              "[line {line}] Expected return type {:?}, got {:?}",
               self.function_compiler.return_type,
               t
             ).as_str()
@@ -167,7 +170,7 @@ Statement::Continue, _)
 
         true
       }
-      Statement::Expression(e) => {
+      Statement::Expression(e, _line) => {
         self.visit_expression(*e, false);
         false
       }
@@ -190,34 +193,34 @@ Statement::Continue, _)
     // }
 
     match node {
-      Expression::Literal(v) => self.literal(v),
-      Expression::StringLiteral(s) => self.string(s),
-      Expression::Unary(t, e) => self.unary(t, *e),
-      Expression::Deref(e) => self.deref(*e, assignment_target),
-      Expression::Ref(e) => self.addr_of(*e),
-      Expression::Index(e, i) => self.index(*e, *i, assignment_target),
-      Expression::Binary(l, t, r) => self.binary(*l, t, *r),
-      Expression::Ternary(c, t, f) => self.ternary(*c, *t, *f),
-      Expression::Variable(t) => self.variable(t, assignment_target),
-      Expression::Assign(l, r) => self.assign(*l, *r),
-      Expression::Logical(l, t, r) => self.logical(*l, t, *r),
-      Expression::Call(c, a) => self.call(*c, a),
-      Expression::Dot(e, t) => self.dot(*e, t, assignment_target),
-      Expression::Function(f) => self.function(f),
-      Expression::Cast(e, t, ref from_t) => self.cast(*e, t, from_t),
-      Expression::ArrayLiteral(a) => self.array_literal(a),
-      Expression::StructInitializer(t, v) => self.struct_literal(t, v),
-      Expression::Empty => ValueType::Nil.intern(),
+      Expression::Literal(v, line) => self.literal(v, line),
+      Expression::StringLiteral(s, line) => self.string(s, line),
+      Expression::Unary(t, e, line) => self.unary(t, *e, line),
+      Expression::Deref(e, line) => self.deref(*e, assignment_target, line),
+      Expression::Ref(e, line) => self.addr_of(*e, line),
+      Expression::Index(e, i, line) => self.index(*e, *i, assignment_target, line),
+      Expression::Binary(l, t, r, line) => self.binary(*l, t, *r, line),
+      Expression::Ternary(c, t, f, line) => self.ternary(*c, *t, *f, line),
+      Expression::Variable(t, line) => self.variable(t, assignment_target, line),
+      Expression::Assign(l, r, line) => self.assign(*l, *r, line),
+      Expression::Logical(l, t, r, line) => self.logical(*l, t, *r, line),
+      Expression::Call(c, a, line) => self.call(*c, a, line),
+      Expression::Dot(e, t, line) => self.dot(*e, t, assignment_target, line),
+      Expression::Function(f, line) => self.function(f, line),
+      Expression::Cast(e, t, ref from_t, line) => self.cast(*e, t, from_t, line),
+      Expression::ArrayLiteral(a, line) => self.array_literal(a, line),
+      Expression::StructInitializer(t, v, line) => self.struct_literal(t, v, line),
+      _ => ValueType::Nil.intern(),
     }
   }
 
   #[instrument(skip_all, level = "trace")]
   fn visit_declaration(&mut self, node: Declaration) {
     match node {
-      Declaration::Var(v) => self.var_declaration(v),
-      Declaration::Function(f) => self.fun_declaration(f),
-      Declaration::Struct(s) => self.struct_declaration(s),
-      Declaration::Array(a) => self.array_declaration(a),
+      Declaration::Var(v, line) => self.var_declaration(v, line),
+      Declaration::Function(f, line) => self.fun_declaration(f, line),
+      Declaration::Struct(s, line) => self.struct_declaration(s, line),
+      Declaration::Array(a, line) => self.array_declaration(a, line),
     }
   }
 

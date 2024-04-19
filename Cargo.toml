@@ -11,11 +11,13 @@ num_enum = "*"
 lazy_static = "*"
 pinvec = "0.1.0"
 pow_of_2 = "0.1.2"
-radix_trie = "0.2"
 getopts = "0.2"
-tracing = "0.1.40"
+tracing = {version = "0.1.40", features = ["release_max_level_off"]}
 tracing-subscriber = "0.3.18"
 tracing-appender = "0.2.3"
 
 [dev-dependencies]
 test-case = "*"
+
+[profile.release]
+debug = true

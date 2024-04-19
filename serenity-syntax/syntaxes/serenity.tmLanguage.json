@@ -1,0 +1,188 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "serenity",
+	"scopeName": "source.serenity",
+	"patterns": [
+		{
+			"include": "#statement"
+		},
+		{
+			"include": "#comments"
+		},
+		{
+			"include": "#builtin-types"
+		}
+	],
+	"repository": {
+		"statement": {
+			"patterns": [
+				{
+					"include": "#function-declaration"
+				},
+				{
+					"include": "#struct-declaration"
+				},
+				{
+					"include": "#statement-keyword"
+				}
+			]
+		},
+		"comments": {
+			"patterns": [
+				{
+					"name": "comment.line.double-slash.serenity",
+					"match": "//.*"
+				}
+			]
+		},
+		"statement-keyword": {
+			"patterns": [
+				{
+					"name": "storage.type.function.serenity",
+					"match": "\\b(fun|fn)\\b"
+				},
+				{
+					"name": "keyword.control.flow.serenity",
+					"match": "\\b(if|else|while|for|break|continue|return)\\b"
+				},
+				{
+					"name": "storage.modifier.declaration.serenity",
+					"match": "\\b(var|const|let)\\b"
+				}
+			]
+		},
+		"function-declaration": {
+			"name": "meta.function.serenity",
+			"begin": "\\b(fun|fn)\\s+(?=[a-z_]*\\s*\\()",
+			"end": "{",
+			"beginCaptures": {
+				"1": {
+					"name": "storage.type.function.serenity"
+				}
+			},
+			"patterns": [
+				{
+					"include": "#parameters"
+				},
+				{
+					"include": "#function-declaration-name"
+				}
+			]
+		},
+		"function-declaration-name": {
+			"patterns": [
+				{
+					"name": "entity.name.function.serenity",
+					"match": "\\b([a-z_]*)\\b"
+				}
+			]
+		},
+		"parameters": {
+			"name": "meta.function.parameters.serenity",
+			"begin": "(\\()",
+			"end": "(\\))",
+			"beginCaptures": {
+				"1": {
+					"name": "punctuation.definition.parameters.begin.serenity"
+				}
+			},
+			"endCaptures": {
+				"1": {
+					"name": "punctuation.definition.parameters.end.serenity"
+				}
+			},
+			"patterns": [
+				{
+					"match": "([a-zA-Z_][a-zA-Z0-9_]*)\\s*(:)\\s*([^,\\)]*)(?:\\s*,)?",
+					"captures": {
+						"1": {
+							"name": "variable.parameter.function.language.serenity"
+						},
+						"2": {
+							"name": "punctuation.separator.parameter-type.serenity"
+						},
+						"3": {
+							"patterns": [
+								{
+									"include": "#type"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		"struct-declaration": {
+			"name": "meta.structure.serenity",
+			"begin": "\\b(struct)\\s+(?=[a-z_]*\\s*)",
+			"end": "\\{",
+			"beginCaptures": {
+				"1": {
+					"name": "storage.type.structure.serenity"
+				}
+			},
+			"patterns": [
+				{
+					"include": "#struct-declaration-name"
+				}
+			]
+		},
+		"struct-declaration-name": {
+			"patterns": [
+				{
+					"name": "entity.name.type.serenity",
+					"match": "\\b([a-z_]*)\\b"
+				}
+			]
+		},
+		"member": {
+			"name": "meta.type.annotation.member.serentity",
+			"match": "([a-zA-Z_][a-zA-Z0-9_]*)\\s*(:)\\s*([^,]*)(?:\\s*,)?",
+			"captures": {
+				"1": {
+					"name": "variable.member.struct.language.serenity"
+				},
+				"2": {
+					"name": "punctuation.separator.member-type.serenity"
+				},
+				"3": {
+					"patterns": [
+						{
+							"include": "#type"
+						}
+					]
+				}
+			}
+		},
+		"type": {
+			"patterns": [
+				{
+					"name": "meta.type.annotation",
+					"match": "\\b(\\*)?\\s*(struct)?\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\b",
+					"captures": {
+						"1": {
+							"name": "punctuation.definition.type.serenity"
+						},
+						"2": {
+							"name": "storage.type.struct.serenity"
+						},
+						"3": {
+							"name": "entity.name.type.serenity"
+						}
+					}
+				},
+				{
+					"include": "#builtin-types"
+				}
+			]
+		},
+		"builtin-types": {
+			"patterns": [
+				{
+					"name": "entity.name.type.serenity",
+					"match": "\\b(int|uint|float)\\b"
+				}
+			]
+		}
+	}
+}

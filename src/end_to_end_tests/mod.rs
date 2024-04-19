@@ -1,6 +1,6 @@
 
 use test_case::test_case;
-use crate::{parser::SerenityParser, vm::{InterpretResult, VM}};
+use crate::{parser::{Parser, SerenityParser}, vm::{InterpretResult, VM}};
 
 #[test_case("int", "2" ; "int")]
 #[test_case("float", "2.0" ; "float")]
@@ -11,7 +11,8 @@ use crate::{parser::SerenityParser, vm::{InterpretResult, VM}};
 #[test_case("fun(int, int) -> int", "lambda(x : int, y : int) -> int {return x + y;}" ; "fun with params")]
 fn good_assignment_type_tests_locals(typ: &str, val : &str) {
     let mut vm = VM::new();
-    let res = vm.interpret::<SerenityParser>(format!("fun main() {{ var x : {} = {}; }}", typ, val));
+    let parsed = SerenityParser::parse(format!("fun main() {{ var x : {} = {}; }}", typ, val), "test".to_string());
+    let res = vm.interpret(parsed);
     assert!(if let InterpretResult::Ok = res {true} else {false});
 }
 
@@ -24,7 +25,8 @@ fn good_assignment_type_tests_locals(typ: &str, val : &str) {
 #[test_case("fun(int, int) -> int", "fun(float, bool) -> int" ; "fun with params")]
 fn bad_assignment_type_tests_locals(typ: &str, val : &str) {
     let mut vm = VM::new();
-    let res = vm.interpret::<SerenityParser>(format!("fun main()  {{ var x : {} = {}; }}();", typ, val));
+    let parsed = SerenityParser::parse(format!("fun main()  {{ var x : {} = {}; }}();", typ, val), "test".to_string());
+    let res = vm.interpret(parsed);
     assert!(if let InterpretResult::CompileError = res {true} else {false});
 }
 
@@ -37,7 +39,8 @@ fn bad_assignment_type_tests_locals(typ: &str, val : &str) {
 #[test_case("fun(int, int) -> int", "lambda(x : int, y : int) -> int {return x + y;}" ; "fun with params")]
 fn good_return_type_tests(typ: &str, val : &str) {
     let mut vm = VM::new();
-    let res = vm.interpret::<SerenityParser>(format!("fun t() -> {} {{ return {}; }} fun main() {{}}", typ, val));
+    let parsed = SerenityParser::parse(format!("fun t() -> {} {{ return {}; }} fun main() {{}}", typ, val), "test".to_string());
+    let res = vm.interpret(parsed);
     assert!(if let InterpretResult::Ok = res {true} else {false});
 }
 
@@ -51,7 +54,8 @@ fn good_return_type_tests(typ: &str, val : &str) {
 #[test_case("fun(int, int) -> int", "2" ; "fun with params")]
 fn bad_return_type_tests(typ: &str, val : &str) {
     let mut vm = VM::new();
-    let res = vm.interpret::<SerenityParser>(format!("fun t() -> {} {{ return {}; }} fun main(){{}}", typ, val));
+    let parsed = SerenityParser::parse(format!("fun t() -> {} {{ return {}; }} fun main(){{}}", typ, val), "test".to_string());
+    let res = vm.interpret(parsed);
     assert!(if let InterpretResult::CompileError = res {true} else {false});
 }
 
@@ -61,7 +65,8 @@ fn bad_return_type_tests(typ: &str, val : &str) {
 #[test_case("true", "2.0", "3.0" ; "valid types 3")]
 fn ternary_operator_valid_types(cond_val: &str, true_val: &str, false_val: &str) {
     let mut vm = VM::new();
-    let res = vm.interpret::<SerenityParser>(format!("fun main() {{ var result = {} ? {} : {}; }}", cond_val, true_val, false_val));
+    let parsed = SerenityParser::parse(format!("fun main() {{ var result = {} ? {} : {}; }}", cond_val, true_val, false_val), "test".to_string());
+    let res = vm.interpret(parsed);
     assert!(if let InterpretResult::Ok = res {true} else {false});
 }
 
@@ -71,7 +76,8 @@ fn ternary_operator_valid_types(cond_val: &str, true_val: &str, false_val: &str)
 #[test_case("false", "3.14", "2" ; "invalid false branch type for bool condition")]
 fn ternary_operator_invalid_types(cond_val: &str, true_val: &str, false_val: &str) {
     let mut vm = VM::new();
-    let res = vm.interpret::<SerenityParser>(format!("fun main() {{ var result = {} ? {} : {}; }}", cond_val, true_val, false_val));
+    let parsed = SerenityParser::parse(format!("fun main() {{ var result = {} ? {} : {}; }}", cond_val, true_val, false_val), "test".to_string());
+    let res = vm.interpret(parsed);
     assert!(if let InterpretResult::CompileError = res {true} else {false});
 }
 
@@ -83,7 +89,8 @@ fn ternary_operator_invalid_types(cond_val: &str, true_val: &str, false_val: &st
 fn full_files_succeed(f: &str) {
     let mut vm = VM::new();
     let source = std::fs::read_to_string(f).expect("Failed to read file");
-    let res = vm.interpret::<SerenityParser>(source);
+    let parsed = SerenityParser::parse(source, f.to_string());
+    let res = vm.interpret(parsed);
     println!("{:?}", res);
     assert!(if let InterpretResult::Ok = res {true} else {false});
 }
@@ -93,7 +100,8 @@ fn full_files_succeed(f: &str) {
 fn full_files_fail(f: &str) {
     let mut vm = VM::new();
     let source = std::fs::read_to_string(f).expect("Failed to read file");
-    let res = vm.interpret::<SerenityParser>(source);
+    let parsed = SerenityParser::parse(source, f.to_string());
+    let res = vm.interpret(parsed);
     assert!(if let InterpretResult::Ok = res {false} else {true});
 }
 

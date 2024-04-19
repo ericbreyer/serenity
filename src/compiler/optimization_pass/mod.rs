@@ -150,7 +150,7 @@ impl OptimizationWalker {
             Expression::Cast(e, t, o) => self.cast(*e, t, o),
             Expression::ArrayLiteral(a) => self.array_literal(a),
             Expression::StructInitializer(t, v) => self.struct_literal(t, v),
-            Expression::Empty => Expression::Empty,
+            _ => Expression::Empty,
         }
     }
 

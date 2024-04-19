@@ -5,10 +5,11 @@ use std::rc::Rc;
 
 use crate::chunk::Opcode;
 
+use crate::common::{ParseResult};
 use crate::compiler;
 
-use crate::lexer::Lexer;
-use crate::parser;
+
+
 use crate::common::runnable::{ Function, Runnable };
 
 use crate::value::pointer::Pointer;
@@ -123,9 +124,7 @@ impl VM {
     vm
   }
 
-  pub fn interpret<P>(&mut self, source: String) -> InterpretResult where P: parser::Parser {
-    let lexer = Lexer::new(source);
-    let parsed = P::parse(lexer);
+  pub fn interpret(&mut self, parsed: ParseResult) -> InterpretResult {
     let compiled = compiler::compile(parsed, &self.natives);
 
     let Some(func) = compiled.function else {
@@ -160,10 +159,13 @@ impl VM {
 
       let instruction = self.frames[frame_no].read_byte();
 
-      self.frames[frame_no].function.chunk.disassemble_instruction(
-        self.frames[frame_no].ip - 1,
-        Level::DEBUG
-      );
+      // only run this if the tracing level allows debug statemnts
+      if tracing::event_enabled!(Level::DEBUG) {
+        self.frames[frame_no].function.chunk.disassemble_instruction(
+          self.frames[frame_no].ip - 1,
+          Level::DEBUG
+        );
+      }
 
       match Opcode::from(instruction) {
         Opcode::NoOp => {
@@ -209,6 +211,11 @@ impl VM {
           let b = self.pop().to_i64();
           let a = self.peek(0).to_i64();
           self.stack[self.stack_top - 1] = Value::Integer(a + b).to_word();
+        }
+        Opcode::AddUint => {
+          let b = self.pop().to_u64();
+          let a = self.peek(0).to_u64();
+          self.stack[self.stack_top - 1] = Value::UInteger(a.wrapping_add(b)).to_word();
         }
         Opcode::AddFloat => {
           let b = self.pop().to_float();
@@ -264,6 +271,11 @@ impl VM {
           let a = self.peek(0).to_i64();
           self.stack[self.stack_top - 1] = Value::Integer(a - b).to_word();
         }
+        Opcode::SubtractUint => {
+          let b = self.pop().to_u64();
+          let a = self.peek(0).to_u64();
+          self.stack[self.stack_top - 1] = Value::UInteger(a.wrapping_sub(b)).to_word();
+        }
         Opcode::SubtractFloat => {
           let b = self.pop().to_float();
           let a = self.peek(0).to_float();
@@ -295,6 +307,11 @@ impl VM {
           let a = self.peek(0).to_i64();
           self.stack[self.stack_top - 1] = Value::Integer(a * b).to_word();
         }
+        Opcode::MultiplyUint => {
+          let b = self.pop().to_u64();
+          let a = self.peek(0).to_u64();
+          self.stack[self.stack_top - 1] = Value::UInteger(a * b).to_word();
+        }
         Opcode::MultiplyFloat => {
           let b = self.pop().to_float();
           let a = self.peek(0).to_float();
@@ -304,6 +321,11 @@ impl VM {
           let a = self.pop().to_i64();
           let b = self.peek(0).to_i64();
           self.stack[self.stack_top - 1] = Value::Integer(b / a).to_word();
+        }
+        Opcode::DivideUint => {
+          let a = self.pop().to_u64();
+          let b = self.peek(0).to_u64();
+          self.stack[self.stack_top - 1] = Value::UInteger(b / a).to_word();
         }
         Opcode::DivideFloat => {
           let a = self.pop().to_float();
@@ -354,6 +376,12 @@ impl VM {
           let a = self.peek(0).to_i64();
           self.stack[self.stack_top - 1] = Bool(a > b).to_word();
         }
+        Opcode::GreaterUint => {
+          // Greater
+          let b = self.pop().to_u64();
+          let a = self.peek(0).to_u64();
+          self.stack[self.stack_top - 1] = Bool(a > b).to_word();
+        }
         Opcode::GreaterFloat => {
           // Greater
           let b = self.pop().to_float();
@@ -366,6 +394,12 @@ impl VM {
           let a = self.peek(0).to_i64();
           self.stack[self.stack_top - 1] = Bool(a < b).to_word();
         }
+        Opcode::LessUint => {
+          // Less
+          let b = self.pop().to_u64();
+          let a = self.peek(0).to_u64();
+          self.stack[self.stack_top - 1] = Bool(a < b).to_word();
+        }
         Opcode::LessFloat => {
           // Less
           let b = self.pop().to_float();
@@ -375,6 +409,11 @@ impl VM {
         Opcode::PrintInt => {
           // Print
           let v = self.pop().to_i64();
+          println!("{v:?}");
+        }
+        Opcode::PrintUint => {
+          // Print
+          let v = self.pop().to_u64();
           println!("{v:?}");
         }
         Opcode::PrintFloat => {
@@ -427,7 +466,7 @@ impl VM {
           let global_id = self.frames[frame_no].read_byte() as usize;
           let slize = self.frames[frame_no].read_byte() as usize;
           let v = self.pop_many(slize);
-          
+
           self.static_segment[global_id..global_id + slize].copy_from_slice(&v);
           self.heap[self.brk..self.brk + slize].copy_from_slice(&v);
           self.brk += slize;
@@ -729,6 +768,7 @@ impl VM {
 
           self.push(Bool(n != 0).to_word());
         }
+
         Opcode::GetField => {
           // get field
           let slize = self.frames[frame_no].read_byte() as usize;
@@ -737,22 +777,35 @@ impl VM {
           let s = self.pop_many(slize);
           self.push_many(&s[offset..offset + f_slize]);
         }
-        // Opcode::SetField => {
-        //     // set field
-        //     let slize = self.frames[frame_no].read_byte() as usize;
-        //     let offset = self.frames[frame_no].read_byte() as usize;
-        //     let f_slize = self.frames[frame_no].read_byte() as usize;
-        //     let v = self.pop_many(f_slize);
-        //     let mut s = self.pop_many(slize);
-        //     for i in 0..f_slize {
-        //         s[offset + i] = v[i];
-        //     }
-        //     self.push_many(&v);
-        //     self.push_many(&s);
-        // }
-        _ => {
-          println!("Unknown opcode {instruction}");
+        Opcode::CastBoolToUint => {
+          // cast bool to uint
+          let b = self.peek(0).to_bool();
+          self.place(0, Value::UInteger(i64::from(b) as u64).to_word());
         }
+        Opcode::CastUintToBool => {
+          // cast uint to bool
+          let n = self.peek(0).to_u64();
+          self.place(0, Value::Bool(n != 0).to_word());
+        }
+        Opcode::CastUintToInt => {
+          // cast uint to int
+          let n = self.pop().to_u64();
+          self.push(Value::Integer(n as i64).to_word());
+        }
+        Opcode::CastIntToUint => {
+          // cast int to uint
+          let n = self.pop().to_i64();
+          self.push(Value::UInteger(n as u64).to_word());
+        }
+        Opcode::CastUintToFloat => {
+          // cast uint to float
+          let n = self.pop().to_u64();
+          self.push(Value::Float(n as f64).to_word());
+        }
+        Opcode::Break | Opcode::Continue =>
+          unreachable!(
+            "Break and Continue are 'sudo instructions' and should be stripped by the compiler"
+          ),
       }
     }
   }
@@ -797,7 +850,7 @@ impl VM {
       runtime_error!(self, "Stack overflow.");
       return false;
     }
-    
+
     self.frames.push(CallFrame {
       closure: c,
       function: func,

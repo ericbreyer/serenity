@@ -1,0 +1,1539 @@
+ INFO parse{name="test9.ser"}: serenity::parser::serenity_parser: enter
+DEBUG parse{name="test9.ser"}: serenity::parser::serenity_parser: before Struct: aritmetic_vtable
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=Some("aritmetic_vtable")}: serenity::parser::serenity_parser: enter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=Some("aritmetic_vtable")}:parse_complex_type{struct_name=Some("aritmetic_vtable")}: serenity::parser::serenity_parser: enter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=Some("aritmetic_vtable")}:parse_complex_type{struct_name=Some("aritmetic_vtable")}: serenity::parser::serenity_parser: exit
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=Some("aritmetic_vtable")}: serenity::parser::serenity_parser: exit
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=Some("aritmetic_vtable")}: serenity::parser::serenity_parser: enter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=Some("aritmetic_vtable")}:parse_complex_type{struct_name=Some("aritmetic_vtable")}: serenity::parser::serenity_parser: enter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=Some("aritmetic_vtable")}:parse_complex_type{struct_name=Some("aritmetic_vtable")}: serenity::parser::serenity_parser: exit
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=Some("aritmetic_vtable")}:parse_complex_type{struct_name=Some("aritmetic_vtable")}: serenity::parser::serenity_parser: enter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=Some("aritmetic_vtable")}:parse_complex_type{struct_name=Some("aritmetic_vtable")}: serenity::parser::serenity_parser: exit
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=Some("aritmetic_vtable")}: serenity::parser::serenity_parser: exit
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=Some("aritmetic_vtable")}: serenity::parser::serenity_parser: enter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=Some("aritmetic_vtable")}:parse_complex_type{struct_name=Some("aritmetic_vtable")}: serenity::parser::serenity_parser: enter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=Some("aritmetic_vtable")}:parse_complex_type{struct_name=Some("aritmetic_vtable")}: serenity::parser::serenity_parser: exit
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=Some("aritmetic_vtable")}: serenity::parser::serenity_parser: exit
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=Some("aritmetic_vtable")}: serenity::parser::serenity_parser: enter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=Some("aritmetic_vtable")}:parse_complex_type{struct_name=Some("aritmetic_vtable")}: serenity::parser::serenity_parser: enter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=Some("aritmetic_vtable")}:parse_complex_type{struct_name=Some("aritmetic_vtable")}: serenity::parser::serenity_parser: exit
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=Some("aritmetic_vtable")}:parse_complex_type{struct_name=Some("aritmetic_vtable")}: serenity::parser::serenity_parser: enter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=Some("aritmetic_vtable")}:parse_complex_type{struct_name=Some("aritmetic_vtable")}: serenity::parser::serenity_parser: exit
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=Some("aritmetic_vtable")}: serenity::parser::serenity_parser: exit
+DEBUG parse{name="test9.ser"}: serenity::parser::serenity_parser: after Struct: struct aritmetic_vtable
+DEBUG parse{name="test9.ser"}: serenity::parser::serenity_parser: before Struct: int_counter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=Some("int_counter")}: serenity::parser::serenity_parser: enter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=Some("int_counter")}: serenity::parser::serenity_parser: exit
+DEBUG parse{name="test9.ser"}: serenity::parser::serenity_parser: after Struct: struct int_counter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: enter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: exit
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: enter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: exit
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: enter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: exit
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: enter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: exit
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: enter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: exit
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: enter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: exit
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: enter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: exit
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: enter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: exit
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: enter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: exit
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: enter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: exit
+DEBUG parse{name="test9.ser"}: serenity::parser::serenity_parser: before Struct: float_counter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=Some("float_counter")}: serenity::parser::serenity_parser: enter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=Some("float_counter")}: serenity::parser::serenity_parser: exit
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=Some("float_counter")}: serenity::parser::serenity_parser: enter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=Some("float_counter")}: serenity::parser::serenity_parser: exit
+DEBUG parse{name="test9.ser"}: serenity::parser::serenity_parser: after Struct: struct float_counter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: enter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: exit
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: enter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: exit
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: enter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: exit
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: enter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: exit
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: enter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: exit
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: enter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: exit
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: enter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: exit
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: enter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: exit
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: enter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: exit
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: enter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: exit
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: enter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: exit
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: enter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: exit
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: enter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: exit
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: enter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: exit
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: enter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: exit
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: enter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: exit
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: enter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: exit
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: enter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: exit
+ INFO parse{name="test9.ser"}: serenity::parser::serenity_parser: Parse success
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: enter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: exit
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: enter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: exit
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: enter
+ INFO parse{name="test9.ser"}:parse_complex_type{struct_name=None}: serenity::parser::serenity_parser: exit
+ INFO parse{name="test9.ser"}: serenity::parser::serenity_parser: Parse success
+ INFO parse{name="test9.ser"}: serenity::parser::serenity_parser: exit
+ INFO type_check: serenity::compiler::type_check_pass: enter
+DEBUG type_check: serenity::compiler::type_check_pass: ast 
+[         ] Module: test9.ser
+[         ] ├─── Module: ./test8.ser
+[line    2] │    ├─── Struct Declaration:
+[line    2] │    │         Name aritmetic_vtable
+[line    2] │    │              dec: StructEntry { value: Closure([Pointer(SelfStruct("aritmetic_vtable"), true), Nil]), offset: 6 }
+[line    2] │    │              add: StructEntry { value: Closure([Pointer(SelfStruct("aritmetic_vtable"), true), Integer, Nil]), offset: 3 }
+[line    2] │    │              sub: StructEntry { value: Closure([Pointer(SelfStruct("aritmetic_vtable"), true), Integer, Nil]), offset: 9 }
+[line    2] │    │              inc: StructEntry { value: Closure([Pointer(SelfStruct("aritmetic_vtable"), true), Nil]), offset: 0 }
+[line    9] │    ├─── Struct Declaration:
+[line    9] │    │         Name int_counter
+[line    9] │    │              sub: StructEntry { value: Closure([Pointer(SelfStruct("aritmetic_vtable"), true), Integer, Nil]), offset: 6 }
+[line    9] │    │              add: StructEntry { value: Closure([Pointer(SelfStruct("aritmetic_vtable"), true), Integer, Nil]), offset: 3 }
+[line    9] │    │              inc: StructEntry { value: Closure([Pointer(SelfStruct("aritmetic_vtable"), true), Nil]), offset: 9 }
+[line    9] │    │              dec: StructEntry { value: Closure([Pointer(SelfStruct("aritmetic_vtable"), true), Nil]), offset: 0 }
+[line    9] │    │              x: StructEntry { value: Integer, offset: 12 }
+[line   14] │    ├─── Fun Declaration: int_counter_inc
+[line   14] │    │    ╰─── Function Expression:[line   14] │    │         ├─── Params:
+[line   14] │    │         │    ╰─── s: Pointer(Struct(struct aritmetic_vtable), true)
+[line   14] │    │         ╰─── Body: 
+[line   15] │    │              ├─── Var Declaration: c
+[line   15] │    │              │    ╰───  Initializer
+[line   15] │    │              │         ╰─── Cast: Pointer(Struct(struct int_counter), true)
+[line   15] │    │              │              ╰─── Variable: s
+[line   16] │    │              ╰─── Expression: 
+[line   16] │    │                   ╰─── Assign:
+[line   16] │    │                        ├─── Get: x
+[line   16] │    │                        │    ╰─── Deref: 
+[line   16] │    │                        │         ╰─── Variable: c
+[line   16] │    │                        ╰─── Binary: Plus 
+[line   16] │    │                             ├─── Get: x
+[line   16] │    │                             │    ╰─── Deref: 
+[line   16] │    │                             │         ╰─── Variable: c
+[line   16] │    │                             ╰─── Literal: 1
+[line   19] │    ├─── Fun Declaration: int_counter_add
+[line   19] │    │    ╰─── Function Expression:[line   19] │    │         ├─── Params:
+[line   19] │    │         │    ├─── s: Pointer(Struct(struct aritmetic_vtable), true)
+[line   19] │    │         │    ╰─── n: Integer
+[line   19] │    │         ╰─── Body: 
+[line   20] │    │              ├─── Var Declaration: c
+[line   20] │    │              │    ╰───  Initializer
+[line   20] │    │              │         ╰─── Cast: Pointer(Struct(struct int_counter), true)
+[line   20] │    │              │              ╰─── Variable: s
+[line   21] │    │              ╰─── Expression: 
+[line   21] │    │                   ╰─── Assign:
+[line   21] │    │                        ├─── Get: x
+[line   21] │    │                        │    ╰─── Deref: 
+[line   21] │    │                        │         ╰─── Variable: c
+[line   21] │    │                        ╰─── Binary: Plus 
+[line   21] │    │                             ├─── Get: x
+[line   21] │    │                             │    ╰─── Deref: 
+[line   21] │    │                             │         ╰─── Variable: c
+[line   21] │    │                             ╰─── Variable: n
+[line   24] │    ├─── Fun Declaration: int_counter_dec
+[line   24] │    │    ╰─── Function Expression:[line   24] │    │         ├─── Params:
+[line   24] │    │         │    ╰─── s: Pointer(Struct(struct aritmetic_vtable), true)
+[line   24] │    │         ╰─── Body: 
+[line   25] │    │              ├─── Var Declaration: c
+[line   25] │    │              │    ╰───  Initializer
+[line   25] │    │              │         ╰─── Cast: Pointer(Struct(struct int_counter), true)
+[line   25] │    │              │              ╰─── Variable: s
+[line   26] │    │              ╰─── Expression: 
+[line   26] │    │                   ╰─── Assign:
+[line   26] │    │                        ├─── Get: x
+[line   26] │    │                        │    ╰─── Deref: 
+[line   26] │    │                        │         ╰─── Variable: c
+[line   26] │    │                        ╰─── Binary: Minus 
+[line   26] │    │                             ├─── Get: x
+[line   26] │    │                             │    ╰─── Deref: 
+[line   26] │    │                             │         ╰─── Variable: c
+[line   26] │    │                             ╰─── Literal: 1
+[line   29] │    ├─── Fun Declaration: int_counter_sub
+[line   29] │    │    ╰─── Function Expression:[line   29] │    │         ├─── Params:
+[line   29] │    │         │    ├─── s: Pointer(Struct(struct aritmetic_vtable), true)
+[line   29] │    │         │    ╰─── n: Integer
+[line   29] │    │         ╰─── Body: 
+[line   30] │    │              ├─── Var Declaration: c
+[line   30] │    │              │    ╰───  Initializer
+[line   30] │    │              │         ╰─── Cast: Pointer(Struct(struct int_counter), true)
+[line   30] │    │              │              ╰─── Variable: s
+[line   31] │    │              ╰─── Expression: 
+[line   31] │    │                   ╰─── Assign:
+[line   31] │    │                        ├─── Get: x
+[line   31] │    │                        │    ╰─── Deref: 
+[line   31] │    │                        │         ╰─── Variable: c
+[line   31] │    │                        ╰─── Binary: Minus 
+[line   31] │    │                             ├─── Get: x
+[line   31] │    │                             │    ╰─── Deref: 
+[line   31] │    │                             │         ╰─── Variable: c
+[line   31] │    │                             ╰─── Variable: n
+[line   34] │    ├─── Struct Declaration:
+[line   34] │    │         Name float_counter
+[line   34] │    │              vtable: StructEntry { value: Struct(struct aritmetic_vtable), offset: 0 }
+[line   34] │    │              x: StructEntry { value: Float, offset: 12 }
+[line   39] │    ├─── Fun Declaration: float_counter_inc
+[line   39] │    │    ╰─── Function Expression:[line   39] │    │         ├─── Params:
+[line   39] │    │         │    ╰─── s: Pointer(Struct(struct aritmetic_vtable), true)
+[line   39] │    │         ╰─── Body: 
+[line   40] │    │              ├─── Var Declaration: c
+[line   40] │    │              │    ╰───  Initializer
+[line   40] │    │              │         ╰─── Cast: Pointer(Struct(struct float_counter), true)
+[line   40] │    │              │              ╰─── Variable: s
+[line   41] │    │              ╰─── Expression: 
+[line   41] │    │                   ╰─── Assign:
+[line   41] │    │                        ├─── Get: x
+[line   41] │    │                        │    ╰─── Deref: 
+[line   41] │    │                        │         ╰─── Variable: c
+[line   41] │    │                        ╰─── Binary: Plus 
+[line   41] │    │                             ├─── Get: x
+[line   41] │    │                             │    ╰─── Deref: 
+[line   41] │    │                             │         ╰─── Variable: c
+[line   41] │    │                             ╰─── Literal: 1
+[line   44] │    ├─── Fun Declaration: float_counter_add
+[line   44] │    │    ╰─── Function Expression:[line   44] │    │         ├─── Params:
+[line   44] │    │         │    ├─── s: Pointer(Struct(struct aritmetic_vtable), true)
+[line   44] │    │         │    ╰─── n: Integer
+[line   44] │    │         ╰─── Body: 
+[line   45] │    │              ├─── Var Declaration: c
+[line   45] │    │              │    ╰───  Initializer
+[line   45] │    │              │         ╰─── Cast: Pointer(Struct(struct float_counter), true)
+[line   45] │    │              │              ╰─── Variable: s
+[line   46] │    │              ╰─── Expression: 
+[line   46] │    │                   ╰─── Assign:
+[line   46] │    │                        ├─── Get: x
+[line   46] │    │                        │    ╰─── Deref: 
+[line   46] │    │                        │         ╰─── Variable: c
+[line   46] │    │                        ╰─── Binary: Plus 
+[line   46] │    │                             ├─── Get: x
+[line   46] │    │                             │    ╰─── Deref: 
+[line   46] │    │                             │         ╰─── Variable: c
+[line   46] │    │                             ╰─── Cast: Float
+[line   46] │    │                                  ╰─── Variable: n
+[line   49] │    ├─── Fun Declaration: float_counter_dec
+[line   49] │    │    ╰─── Function Expression:[line   49] │    │         ├─── Params:
+[line   49] │    │         │    ╰─── s: Pointer(Struct(struct aritmetic_vtable), true)
+[line   49] │    │         ╰─── Body: 
+[line   50] │    │              ├─── Var Declaration: c
+[line   50] │    │              │    ╰───  Initializer
+[line   50] │    │              │         ╰─── Cast: Pointer(Struct(struct float_counter), true)
+[line   50] │    │              │              ╰─── Variable: s
+[line   51] │    │              ╰─── Expression: 
+[line   51] │    │                   ╰─── Assign:
+[line   51] │    │                        ├─── Get: x
+[line   51] │    │                        │    ╰─── Deref: 
+[line   51] │    │                        │         ╰─── Variable: c
+[line   51] │    │                        ╰─── Binary: Minus 
+[line   51] │    │                             ├─── Get: x
+[line   51] │    │                             │    ╰─── Deref: 
+[line   51] │    │                             │         ╰─── Variable: c
+[line   51] │    │                             ╰─── Literal: 1
+[line   54] │    ├─── Fun Declaration: float_counter_sub
+[line   54] │    │    ╰─── Function Expression:[line   54] │    │         ├─── Params:
+[line   54] │    │         │    ├─── s: Pointer(Struct(struct aritmetic_vtable), true)
+[line   54] │    │         │    ╰─── n: Integer
+[line   54] │    │         ╰─── Body: 
+[line   55] │    │              ├─── Var Declaration: c
+[line   55] │    │              │    ╰───  Initializer
+[line   55] │    │              │         ╰─── Cast: Pointer(Struct(struct float_counter), true)
+[line   55] │    │              │              ╰─── Variable: s
+[line   56] │    │              ╰─── Expression: 
+[line   56] │    │                   ╰─── Assign:
+[line   56] │    │                        ├─── Get: x
+[line   56] │    │                        │    ╰─── Deref: 
+[line   56] │    │                        │         ╰─── Variable: c
+[line   56] │    │                        ╰─── Binary: Minus 
+[line   56] │    │                             ├─── Get: x
+[line   56] │    │                             │    ╰─── Deref: 
+[line   56] │    │                             │         ╰─── Variable: c
+[line   56] │    │                             ╰─── Cast: Float
+[line   56] │    │                                  ╰─── Variable: n
+[line   59] │    ├─── Fun Declaration: init_float_counter
+[line   59] │    │    ╰─── Function Expression:[line   59] │    │         ├─── Params:
+[line   59] │    │         │    ╰─── f: Pointer(Struct(struct float_counter), true)
+[line   59] │    │         ╰─── Body: 
+[line   65] │    │              ├─── Expression: 
+[line   60] │    │              │    ╰─── Assign:
+[line   60] │    │              │         ├─── Get: vtable
+[line   60] │    │              │         │    ╰─── Deref: 
+[line   60] │    │              │         │         ╰─── Variable: f
+[line   60] │    │              │         ╰─── StructInitializer: struct aritmetic_vtable
+[line   60] │    │              │         ╰      ├───  inc: 
+[line   61] │    │              │              │    ╰─── Variable: float_counter_inc
+[line   60] │    │              │         ╰      ├───  add: 
+[line   62] │    │              │              │    ╰─── Variable: float_counter_add
+[line   60] │    │              │         ╰      ├───  dec: 
+[line   63] │    │              │              │    ╰─── Variable: float_counter_dec
+[line   60] │    │              │         ╰      ╰───  sub: 
+[line   64] │    │              │                   ╰─── Variable: float_counter_sub
+[line   66] │    │              ╰─── Expression: 
+[line   66] │    │                   ╰─── Assign:
+[line   66] │    │                        ├─── Get: x
+[line   66] │    │                        │    ╰─── Deref: 
+[line   66] │    │                        │         ╰─── Variable: f
+[line   66] │    │                        ╰─── Literal: 0
+[line   69] │    ├─── Fun Declaration: init_int_counter
+[line   69] │    │    ╰─── Function Expression:[line   69] │    │         ├─── Params:
+[line   69] │    │         │    ╰─── i: Pointer(Struct(struct int_counter), true)
+[line   69] │    │         ╰─── Body: 
+[line   75] │    │              ├─── Expression: 
+[line   70] │    │              │    ╰─── Assign:
+[line   70] │    │              │         ├─── Deref: 
+[line   70] │    │              │         │    ╰─── Cast: Pointer(Struct(struct aritmetic_vtable), true)
+[line   70] │    │              │         │         ╰─── Variable: i
+[line   70] │    │              │         ╰─── StructInitializer: struct aritmetic_vtable
+[line   70] │    │              │         ╰      ├───  add: 
+[line   72] │    │              │              │    ╰─── Variable: int_counter_add
+[line   70] │    │              │         ╰      ├───  sub: 
+[line   74] │    │              │              │    ╰─── Variable: int_counter_sub
+[line   70] │    │              │         ╰      ├───  dec: 
+[line   73] │    │              │              │    ╰─── Variable: int_counter_dec
+[line   70] │    │              │         ╰      ╰───  inc: 
+[line   71] │    │              │                   ╰─── Variable: int_counter_inc
+[line   76] │    │              ╰─── Expression: 
+[line   76] │    │                   ╰─── Assign:
+[line   76] │    │                        ├─── Get: x
+[line   76] │    │                        │    ╰─── Deref: 
+[line   76] │    │                        │         ╰─── Variable: i
+[line   76] │    │                        ╰─── Literal: 0
+[line   79] │    ╰─── Fun Declaration: do_some_stuff
+[line   79] │         ╰─── Function Expression:[line   79] │              ├─── Params:
+[line   79] │              │    ╰─── c: Pointer(Struct(struct aritmetic_vtable), true)
+[line   79] │              ╰─── Body: 
+[line   80] │                   ├─── Expression: 
+[line   80] │                   │    ╰─── Call:
+[line   80] │                   │         ├─── Get: inc
+[line   80] │                   │         │    ╰─── Deref: 
+[line   80] │                   │         │         ╰─── Variable: c
+[line   80] │                   │         ╰─── Variable: c
+[line   81] │                   ├─── Expression: 
+[line   81] │                   │    ╰─── Call:
+[line   81] │                   │         ├─── Get: add
+[line   81] │                   │         │    ╰─── Deref: 
+[line   81] │                   │         │         ╰─── Variable: c
+[line   81] │                   │         ├─── Variable: c
+[line   81] │                   │         ╰─── Literal: 5
+[line   82] │                   ├─── Expression: 
+[line   82] │                   │    ╰─── Call:
+[line   82] │                   │         ├─── Get: dec
+[line   82] │                   │         │    ╰─── Deref: 
+[line   82] │                   │         │         ╰─── Variable: c
+[line   82] │                   │         ╰─── Variable: c
+[line   83] │                   ╰─── Expression: 
+[line   83] │                        ╰─── Call:
+[line   83] │                             ├─── Get: sub
+[line   83] │                             │    ╰─── Deref: 
+[line   83] │                             │         ╰─── Variable: c
+[line   83] │                             ├─── Variable: c
+[line   83] │                             ╰─── Literal: 3
+[line    4] ├─── Fun Declaration: main
+[line    4] │    ╰─── Function Expression:
+[line    4] │         ╰─── Body: 
+[line    5] │              ├─── Var Declaration: i
+[line    6] │              ├─── Var Declaration: f
+[line    8] │              ├─── Expression: 
+[line    8] │              │    ╰─── Call:
+[line    8] │              │         ├─── Variable: init_int_counter
+[line    8] │              │         ╰─── Ref: 
+[line    8] │              │              ╰─── Variable: i
+[line    9] │              ├─── Expression: 
+[line    9] │              │    ╰─── Call:
+[line    9] │              │         ├─── Variable: init_float_counter
+[line    9] │              │         ╰─── Ref: 
+[line    9] │              │              ╰─── Variable: f
+[line   11] │              ├─── Expression: 
+[line   11] │              │    ╰─── Call:
+[line   11] │              │         ├─── Variable: do_some_stuff
+[line   11] │              │         ╰─── Cast: Pointer(Struct(struct aritmetic_vtable), true)
+[line   11] │              │              ╰─── Ref: 
+[line   11] │              │                   ╰─── Variable: i
+[line   12] │              ├─── Expression: 
+[line   12] │              │    ╰─── Call:
+[line   12] │              │         ├─── Variable: do_some_stuff
+[line   12] │              │         ╰─── Ref: 
+[line   12] │              │              ╰─── Get: vtable
+[line   12] │              │                   ╰─── Variable: f
+[line   14] │              ├─── Print: 
+[line   14] │              │    ╰─── Get: x
+[line   14] │              │         ╰─── Variable: i
+[line   15] │              ├─── Print: 
+[line   15] │              │    ╰─── Get: x
+[line   15] │              │         ╰─── Variable: f
+[line   17] │              ├─── Expression: 
+[line   17] │              │    ╰─── Call:
+[line   17] │              │         ├─── Get: inc
+[line   17] │              │         │    ╰─── Deref: 
+[line   17] │              │         │         ╰─── Ref: 
+[line   17] │              │         │              ╰─── Get: vtable
+[line   17] │              │         │                   ╰─── Variable: f
+[line   17] │              │         ╰─── Ref: 
+[line   17] │              │              ╰─── Get: vtable
+[line   17] │              │                   ╰─── Variable: f
+[line   18] │              ├─── Expression: 
+[line   18] │              │    ╰─── Call:
+[line   18] │              │         ├─── Get: add
+[line   18] │              │         │    ╰─── Get: vtable
+[line   18] │              │         │         ╰─── Variable: f
+[line   18] │              │         ├─── Ref: 
+[line   18] │              │         │    ╰─── Get: vtable
+[line   18] │              │         │         ╰─── Variable: f
+[line   18] │              │         ╰─── Literal: 5
+[line   19] │              ╰─── Print: 
+[line   19] │                   ╰─── Get: x
+[line   19] │                        ╰─── Variable: f
+[line    0] ╰─── Call:
+[line    0]      ╰─── Variable: main
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=s assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=c assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=c assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=s assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=c assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=c assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=n assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=s assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=c assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=c assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=s assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=c assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=c assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=n assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=s assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=c assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=c assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=s assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=c assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=c assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=n assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=s assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=c assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=c assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=s assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=c assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=c assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=n assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=f assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=float_counter_inc assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=float_counter_add assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=float_counter_dec assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=float_counter_sub assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=f assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=i assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=int_counter_inc assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=int_counter_add assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=int_counter_dec assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=int_counter_sub assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=i assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=c assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=c assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=c assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=c assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=c assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=c assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=c assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=c assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=init_int_counter assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=i assignment_target=true
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=init_float_counter assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=f assignment_target=true
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=do_some_stuff assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=i assignment_target=true
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=do_some_stuff assignment_target=false
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=f assignment_target=true
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=i assignment_target=true
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=f assignment_target=true
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=f assignment_target=true
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=f assignment_target=true
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=f assignment_target=true
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=f assignment_target=true
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=f assignment_target=true
+DEBUG type_check: serenity::compiler::type_check_pass::expressions: variable tok=main assignment_target=false
+ INFO type_check: serenity::compiler::type_check_pass: Type checking succeeded.
+ INFO type_check: serenity::compiler::type_check_pass: exit
+ INFO emit: serenity::compiler::emit_pass: enter
+DEBUG emit: serenity::compiler::emit_pass: ast 
+[         ] Module: test9.ser
+[         ] ├─── Module: ./test8.ser
+[line    2] │    ├─── Struct Declaration:
+[line    2] │    │         Name aritmetic_vtable
+[line    2] │    │              dec: StructEntry { value: Closure([Pointer(SelfStruct("aritmetic_vtable"), true), Nil]), offset: 6 }
+[line    2] │    │              add: StructEntry { value: Closure([Pointer(SelfStruct("aritmetic_vtable"), true), Integer, Nil]), offset: 3 }
+[line    2] │    │              sub: StructEntry { value: Closure([Pointer(SelfStruct("aritmetic_vtable"), true), Integer, Nil]), offset: 9 }
+[line    2] │    │              inc: StructEntry { value: Closure([Pointer(SelfStruct("aritmetic_vtable"), true), Nil]), offset: 0 }
+[line    9] │    ├─── Struct Declaration:
+[line    9] │    │         Name int_counter
+[line    9] │    │              sub: StructEntry { value: Closure([Pointer(SelfStruct("aritmetic_vtable"), true), Integer, Nil]), offset: 6 }
+[line    9] │    │              add: StructEntry { value: Closure([Pointer(SelfStruct("aritmetic_vtable"), true), Integer, Nil]), offset: 3 }
+[line    9] │    │              inc: StructEntry { value: Closure([Pointer(SelfStruct("aritmetic_vtable"), true), Nil]), offset: 9 }
+[line    9] │    │              dec: StructEntry { value: Closure([Pointer(SelfStruct("aritmetic_vtable"), true), Nil]), offset: 0 }
+[line    9] │    │              x: StructEntry { value: Integer, offset: 12 }
+[line   14] │    ├─── Fun Declaration: int_counter_inc
+[line   14] │    │    ╰─── Function Expression:[line   14] │    │         ├─── Params:
+[line   14] │    │         │    ╰─── s: Pointer(Struct(struct aritmetic_vtable), true)
+[line   14] │    │         ╰─── Body: 
+[line   15] │    │              ├─── Var Declaration: c
+[line   15] │    │              │    ╰───  Initializer
+[line   15] │    │              │         ╰─── Cast: Pointer(Struct(struct int_counter), true)
+[line   15] │    │              │              ╰─── Variable: s
+[line   16] │    │              ╰─── Expression: 
+[line   16] │    │                   ╰─── Assign:
+[line   16] │    │                        ├─── Get: x
+[line   16] │    │                        │    ╰─── Deref: 
+[line   16] │    │                        │         ╰─── Variable: c
+[line   16] │    │                        ╰─── Binary: Plus 
+[line   16] │    │                             ├─── Get: x
+[line   16] │    │                             │    ╰─── Deref: 
+[line   16] │    │                             │         ╰─── Variable: c
+[line   16] │    │                             ╰─── Literal: 1
+[line   19] │    ├─── Fun Declaration: int_counter_add
+[line   19] │    │    ╰─── Function Expression:[line   19] │    │         ├─── Params:
+[line   19] │    │         │    ├─── s: Pointer(Struct(struct aritmetic_vtable), true)
+[line   19] │    │         │    ╰─── n: Integer
+[line   19] │    │         ╰─── Body: 
+[line   20] │    │              ├─── Var Declaration: c
+[line   20] │    │              │    ╰───  Initializer
+[line   20] │    │              │         ╰─── Cast: Pointer(Struct(struct int_counter), true)
+[line   20] │    │              │              ╰─── Variable: s
+[line   21] │    │              ╰─── Expression: 
+[line   21] │    │                   ╰─── Assign:
+[line   21] │    │                        ├─── Get: x
+[line   21] │    │                        │    ╰─── Deref: 
+[line   21] │    │                        │         ╰─── Variable: c
+[line   21] │    │                        ╰─── Binary: Plus 
+[line   21] │    │                             ├─── Get: x
+[line   21] │    │                             │    ╰─── Deref: 
+[line   21] │    │                             │         ╰─── Variable: c
+[line   21] │    │                             ╰─── Variable: n
+[line   24] │    ├─── Fun Declaration: int_counter_dec
+[line   24] │    │    ╰─── Function Expression:[line   24] │    │         ├─── Params:
+[line   24] │    │         │    ╰─── s: Pointer(Struct(struct aritmetic_vtable), true)
+[line   24] │    │         ╰─── Body: 
+[line   25] │    │              ├─── Var Declaration: c
+[line   25] │    │              │    ╰───  Initializer
+[line   25] │    │              │         ╰─── Cast: Pointer(Struct(struct int_counter), true)
+[line   25] │    │              │              ╰─── Variable: s
+[line   26] │    │              ╰─── Expression: 
+[line   26] │    │                   ╰─── Assign:
+[line   26] │    │                        ├─── Get: x
+[line   26] │    │                        │    ╰─── Deref: 
+[line   26] │    │                        │         ╰─── Variable: c
+[line   26] │    │                        ╰─── Binary: Minus 
+[line   26] │    │                             ├─── Get: x
+[line   26] │    │                             │    ╰─── Deref: 
+[line   26] │    │                             │         ╰─── Variable: c
+[line   26] │    │                             ╰─── Literal: 1
+[line   29] │    ├─── Fun Declaration: int_counter_sub
+[line   29] │    │    ╰─── Function Expression:[line   29] │    │         ├─── Params:
+[line   29] │    │         │    ├─── s: Pointer(Struct(struct aritmetic_vtable), true)
+[line   29] │    │         │    ╰─── n: Integer
+[line   29] │    │         ╰─── Body: 
+[line   30] │    │              ├─── Var Declaration: c
+[line   30] │    │              │    ╰───  Initializer
+[line   30] │    │              │         ╰─── Cast: Pointer(Struct(struct int_counter), true)
+[line   30] │    │              │              ╰─── Variable: s
+[line   31] │    │              ╰─── Expression: 
+[line   31] │    │                   ╰─── Assign:
+[line   31] │    │                        ├─── Get: x
+[line   31] │    │                        │    ╰─── Deref: 
+[line   31] │    │                        │         ╰─── Variable: c
+[line   31] │    │                        ╰─── Binary: Minus 
+[line   31] │    │                             ├─── Get: x
+[line   31] │    │                             │    ╰─── Deref: 
+[line   31] │    │                             │         ╰─── Variable: c
+[line   31] │    │                             ╰─── Variable: n
+[line   34] │    ├─── Struct Declaration:
+[line   34] │    │         Name float_counter
+[line   34] │    │              vtable: StructEntry { value: Struct(struct aritmetic_vtable), offset: 0 }
+[line   34] │    │              x: StructEntry { value: Float, offset: 12 }
+[line   39] │    ├─── Fun Declaration: float_counter_inc
+[line   39] │    │    ╰─── Function Expression:[line   39] │    │         ├─── Params:
+[line   39] │    │         │    ╰─── s: Pointer(Struct(struct aritmetic_vtable), true)
+[line   39] │    │         ╰─── Body: 
+[line   40] │    │              ├─── Var Declaration: c
+[line   40] │    │              │    ╰───  Initializer
+[line   40] │    │              │         ╰─── Cast: Pointer(Struct(struct float_counter), true)
+[line   40] │    │              │              ╰─── Variable: s
+[line   41] │    │              ╰─── Expression: 
+[line   41] │    │                   ╰─── Assign:
+[line   41] │    │                        ├─── Get: x
+[line   41] │    │                        │    ╰─── Deref: 
+[line   41] │    │                        │         ╰─── Variable: c
+[line   41] │    │                        ╰─── Binary: Plus 
+[line   41] │    │                             ├─── Get: x
+[line   41] │    │                             │    ╰─── Deref: 
+[line   41] │    │                             │         ╰─── Variable: c
+[line   41] │    │                             ╰─── Literal: 1
+[line   44] │    ├─── Fun Declaration: float_counter_add
+[line   44] │    │    ╰─── Function Expression:[line   44] │    │         ├─── Params:
+[line   44] │    │         │    ├─── s: Pointer(Struct(struct aritmetic_vtable), true)
+[line   44] │    │         │    ╰─── n: Integer
+[line   44] │    │         ╰─── Body: 
+[line   45] │    │              ├─── Var Declaration: c
+[line   45] │    │              │    ╰───  Initializer
+[line   45] │    │              │         ╰─── Cast: Pointer(Struct(struct float_counter), true)
+[line   45] │    │              │              ╰─── Variable: s
+[line   46] │    │              ╰─── Expression: 
+[line   46] │    │                   ╰─── Assign:
+[line   46] │    │                        ├─── Get: x
+[line   46] │    │                        │    ╰─── Deref: 
+[line   46] │    │                        │         ╰─── Variable: c
+[line   46] │    │                        ╰─── Binary: Plus 
+[line   46] │    │                             ├─── Get: x
+[line   46] │    │                             │    ╰─── Deref: 
+[line   46] │    │                             │         ╰─── Variable: c
+[line   46] │    │                             ╰─── Cast: Float
+[line   46] │    │                                  ╰─── Variable: n
+[line   49] │    ├─── Fun Declaration: float_counter_dec
+[line   49] │    │    ╰─── Function Expression:[line   49] │    │         ├─── Params:
+[line   49] │    │         │    ╰─── s: Pointer(Struct(struct aritmetic_vtable), true)
+[line   49] │    │         ╰─── Body: 
+[line   50] │    │              ├─── Var Declaration: c
+[line   50] │    │              │    ╰───  Initializer
+[line   50] │    │              │         ╰─── Cast: Pointer(Struct(struct float_counter), true)
+[line   50] │    │              │              ╰─── Variable: s
+[line   51] │    │              ╰─── Expression: 
+[line   51] │    │                   ╰─── Assign:
+[line   51] │    │                        ├─── Get: x
+[line   51] │    │                        │    ╰─── Deref: 
+[line   51] │    │                        │         ╰─── Variable: c
+[line   51] │    │                        ╰─── Binary: Minus 
+[line   51] │    │                             ├─── Get: x
+[line   51] │    │                             │    ╰─── Deref: 
+[line   51] │    │                             │         ╰─── Variable: c
+[line   51] │    │                             ╰─── Literal: 1
+[line   54] │    ├─── Fun Declaration: float_counter_sub
+[line   54] │    │    ╰─── Function Expression:[line   54] │    │         ├─── Params:
+[line   54] │    │         │    ├─── s: Pointer(Struct(struct aritmetic_vtable), true)
+[line   54] │    │         │    ╰─── n: Integer
+[line   54] │    │         ╰─── Body: 
+[line   55] │    │              ├─── Var Declaration: c
+[line   55] │    │              │    ╰───  Initializer
+[line   55] │    │              │         ╰─── Cast: Pointer(Struct(struct float_counter), true)
+[line   55] │    │              │              ╰─── Variable: s
+[line   56] │    │              ╰─── Expression: 
+[line   56] │    │                   ╰─── Assign:
+[line   56] │    │                        ├─── Get: x
+[line   56] │    │                        │    ╰─── Deref: 
+[line   56] │    │                        │         ╰─── Variable: c
+[line   56] │    │                        ╰─── Binary: Minus 
+[line   56] │    │                             ├─── Get: x
+[line   56] │    │                             │    ╰─── Deref: 
+[line   56] │    │                             │         ╰─── Variable: c
+[line   56] │    │                             ╰─── Cast: Float
+[line   56] │    │                                  ╰─── Variable: n
+[line   59] │    ├─── Fun Declaration: init_float_counter
+[line   59] │    │    ╰─── Function Expression:[line   59] │    │         ├─── Params:
+[line   59] │    │         │    ╰─── f: Pointer(Struct(struct float_counter), true)
+[line   59] │    │         ╰─── Body: 
+[line   65] │    │              ├─── Expression: 
+[line   60] │    │              │    ╰─── Assign:
+[line   60] │    │              │         ├─── Get: vtable
+[line   60] │    │              │         │    ╰─── Deref: 
+[line   60] │    │              │         │         ╰─── Variable: f
+[line   60] │    │              │         ╰─── StructInitializer: struct aritmetic_vtable
+[line   60] │    │              │         ╰      ├───  inc: 
+[line   61] │    │              │              │    ╰─── Variable: float_counter_inc
+[line   60] │    │              │         ╰      ├───  add: 
+[line   62] │    │              │              │    ╰─── Variable: float_counter_add
+[line   60] │    │              │         ╰      ├───  dec: 
+[line   63] │    │              │              │    ╰─── Variable: float_counter_dec
+[line   60] │    │              │         ╰      ╰───  sub: 
+[line   64] │    │              │                   ╰─── Variable: float_counter_sub
+[line   66] │    │              ╰─── Expression: 
+[line   66] │    │                   ╰─── Assign:
+[line   66] │    │                        ├─── Get: x
+[line   66] │    │                        │    ╰─── Deref: 
+[line   66] │    │                        │         ╰─── Variable: f
+[line   66] │    │                        ╰─── Literal: 0
+[line   69] │    ├─── Fun Declaration: init_int_counter
+[line   69] │    │    ╰─── Function Expression:[line   69] │    │         ├─── Params:
+[line   69] │    │         │    ╰─── i: Pointer(Struct(struct int_counter), true)
+[line   69] │    │         ╰─── Body: 
+[line   75] │    │              ├─── Expression: 
+[line   70] │    │              │    ╰─── Assign:
+[line   70] │    │              │         ├─── Deref: 
+[line   70] │    │              │         │    ╰─── Cast: Pointer(Struct(struct aritmetic_vtable), true)
+[line   70] │    │              │         │         ╰─── Variable: i
+[line   70] │    │              │         ╰─── StructInitializer: struct aritmetic_vtable
+[line   70] │    │              │         ╰      ├───  add: 
+[line   72] │    │              │              │    ╰─── Variable: int_counter_add
+[line   70] │    │              │         ╰      ├───  sub: 
+[line   74] │    │              │              │    ╰─── Variable: int_counter_sub
+[line   70] │    │              │         ╰      ├───  dec: 
+[line   73] │    │              │              │    ╰─── Variable: int_counter_dec
+[line   70] │    │              │         ╰      ╰───  inc: 
+[line   71] │    │              │                   ╰─── Variable: int_counter_inc
+[line   76] │    │              ╰─── Expression: 
+[line   76] │    │                   ╰─── Assign:
+[line   76] │    │                        ├─── Get: x
+[line   76] │    │                        │    ╰─── Deref: 
+[line   76] │    │                        │         ╰─── Variable: i
+[line   76] │    │                        ╰─── Literal: 0
+[line   79] │    ╰─── Fun Declaration: do_some_stuff
+[line   79] │         ╰─── Function Expression:[line   79] │              ├─── Params:
+[line   79] │              │    ╰─── c: Pointer(Struct(struct aritmetic_vtable), true)
+[line   79] │              ╰─── Body: 
+[line   80] │                   ├─── Expression: 
+[line   80] │                   │    ╰─── Call:
+[line   80] │                   │         ├─── Get: inc
+[line   80] │                   │         │    ╰─── Deref: 
+[line   80] │                   │         │         ╰─── Variable: c
+[line   80] │                   │         ╰─── Variable: c
+[line   81] │                   ├─── Expression: 
+[line   81] │                   │    ╰─── Call:
+[line   81] │                   │         ├─── Get: add
+[line   81] │                   │         │    ╰─── Deref: 
+[line   81] │                   │         │         ╰─── Variable: c
+[line   81] │                   │         ├─── Variable: c
+[line   81] │                   │         ╰─── Literal: 5
+[line   82] │                   ├─── Expression: 
+[line   82] │                   │    ╰─── Call:
+[line   82] │                   │         ├─── Get: dec
+[line   82] │                   │         │    ╰─── Deref: 
+[line   82] │                   │         │         ╰─── Variable: c
+[line   82] │                   │         ╰─── Variable: c
+[line   83] │                   ╰─── Expression: 
+[line   83] │                        ╰─── Call:
+[line   83] │                             ├─── Get: sub
+[line   83] │                             │    ╰─── Deref: 
+[line   83] │                             │         ╰─── Variable: c
+[line   83] │                             ├─── Variable: c
+[line   83] │                             ╰─── Literal: 3
+[line    4] ├─── Fun Declaration: main
+[line    4] │    ╰─── Function Expression:
+[line    4] │         ╰─── Body: 
+[line    5] │              ├─── Var Declaration: i
+[line    6] │              ├─── Var Declaration: f
+[line    8] │              ├─── Expression: 
+[line    8] │              │    ╰─── Call:
+[line    8] │              │         ├─── Variable: init_int_counter
+[line    8] │              │         ╰─── Ref: 
+[line    8] │              │              ╰─── Variable: i
+[line    9] │              ├─── Expression: 
+[line    9] │              │    ╰─── Call:
+[line    9] │              │         ├─── Variable: init_float_counter
+[line    9] │              │         ╰─── Ref: 
+[line    9] │              │              ╰─── Variable: f
+[line   11] │              ├─── Expression: 
+[line   11] │              │    ╰─── Call:
+[line   11] │              │         ├─── Variable: do_some_stuff
+[line   11] │              │         ╰─── Cast: Pointer(Struct(struct aritmetic_vtable), true)
+[line   11] │              │              ╰─── Ref: 
+[line   11] │              │                   ╰─── Variable: i
+[line   12] │              ├─── Expression: 
+[line   12] │              │    ╰─── Call:
+[line   12] │              │         ├─── Variable: do_some_stuff
+[line   12] │              │         ╰─── Ref: 
+[line   12] │              │              ╰─── Get: vtable
+[line   12] │              │                   ╰─── Variable: f
+[line   14] │              ├─── Print: 
+[line   14] │              │    ╰─── Get: x
+[line   14] │              │         ╰─── Variable: i
+[line   15] │              ├─── Print: 
+[line   15] │              │    ╰─── Get: x
+[line   15] │              │         ╰─── Variable: f
+[line   17] │              ├─── Expression: 
+[line   17] │              │    ╰─── Call:
+[line   17] │              │         ├─── Get: inc
+[line   17] │              │         │    ╰─── Deref: 
+[line   17] │              │         │         ╰─── Ref: 
+[line   17] │              │         │              ╰─── Get: vtable
+[line   17] │              │         │                   ╰─── Variable: f
+[line   17] │              │         ╰─── Ref: 
+[line   17] │              │              ╰─── Get: vtable
+[line   17] │              │                   ╰─── Variable: f
+[line   18] │              ├─── Expression: 
+[line   18] │              │    ╰─── Call:
+[line   18] │              │         ├─── Get: add
+[line   18] │              │         │    ╰─── Get: vtable
+[line   18] │              │         │         ╰─── Variable: f
+[line   18] │              │         ├─── Ref: 
+[line   18] │              │         │    ╰─── Get: vtable
+[line   18] │              │         │         ╰─── Variable: f
+[line   18] │              │         ╰─── Literal: 5
+[line   19] │              ╰─── Print: 
+[line   19] │                   ╰─── Get: x
+[line   19] │                        ╰─── Variable: f
+[line    0] ╰─── Call:
+[line    0]      ╰─── Variable: main
+DEBUG emit:disassemble{name="int_counter_inc"}: serenity::chunk: enter
+DEBUG emit:disassemble{name="int_counter_inc"}: serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG emit:disassemble{name="int_counter_inc"}: serenity::chunk: OP_GET_LOCAL     4 1
+DEBUG emit:disassemble{name="int_counter_inc"}: serenity::chunk: OP_CONSTANT      0
+DEBUG emit:disassemble{name="int_counter_inc"}: serenity::chunk: OP_POINTER_ADD   1
+DEBUG emit:disassemble{name="int_counter_inc"}: serenity::chunk: OP_GET_LOCAL     4 1
+DEBUG emit:disassemble{name="int_counter_inc"}: serenity::chunk: OP_CONSTANT      1
+DEBUG emit:disassemble{name="int_counter_inc"}: serenity::chunk: OP_POINTER_ADD   1
+DEBUG emit:disassemble{name="int_counter_inc"}: serenity::chunk: OP_DEREF_GET     1
+DEBUG emit:disassemble{name="int_counter_inc"}: serenity::chunk: OP_CONSTANT      2
+DEBUG emit:disassemble{name="int_counter_inc"}: serenity::chunk: OP_ADD           
+DEBUG emit:disassemble{name="int_counter_inc"}: serenity::chunk: OP_DEREF_ASSIGN  1
+DEBUG emit:disassemble{name="int_counter_inc"}: serenity::chunk: OP_POP           1
+DEBUG emit:disassemble{name="int_counter_inc"}: serenity::chunk: OP_NIL           
+DEBUG emit:disassemble{name="int_counter_inc"}: serenity::chunk: OP_RETURN        1
+DEBUG emit:disassemble{name="int_counter_inc"}: serenity::chunk: OP_POP           1
+DEBUG emit:disassemble{name="int_counter_inc"}: serenity::chunk: exit
+DEBUG emit:disassemble{name="int_counter_add"}: serenity::chunk: enter
+DEBUG emit:disassemble{name="int_counter_add"}: serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG emit:disassemble{name="int_counter_add"}: serenity::chunk: OP_GET_LOCAL     5 1
+DEBUG emit:disassemble{name="int_counter_add"}: serenity::chunk: OP_CONSTANT      0
+DEBUG emit:disassemble{name="int_counter_add"}: serenity::chunk: OP_POINTER_ADD   1
+DEBUG emit:disassemble{name="int_counter_add"}: serenity::chunk: OP_GET_LOCAL     5 1
+DEBUG emit:disassemble{name="int_counter_add"}: serenity::chunk: OP_CONSTANT      1
+DEBUG emit:disassemble{name="int_counter_add"}: serenity::chunk: OP_POINTER_ADD   1
+DEBUG emit:disassemble{name="int_counter_add"}: serenity::chunk: OP_DEREF_GET     1
+DEBUG emit:disassemble{name="int_counter_add"}: serenity::chunk: OP_GET_LOCAL     4 1
+DEBUG emit:disassemble{name="int_counter_add"}: serenity::chunk: OP_ADD           
+DEBUG emit:disassemble{name="int_counter_add"}: serenity::chunk: OP_DEREF_ASSIGN  1
+DEBUG emit:disassemble{name="int_counter_add"}: serenity::chunk: OP_POP           1
+DEBUG emit:disassemble{name="int_counter_add"}: serenity::chunk: OP_NIL           
+DEBUG emit:disassemble{name="int_counter_add"}: serenity::chunk: OP_RETURN        1
+DEBUG emit:disassemble{name="int_counter_add"}: serenity::chunk: OP_POP           1
+DEBUG emit:disassemble{name="int_counter_add"}: serenity::chunk: exit
+DEBUG emit:disassemble{name="int_counter_dec"}: serenity::chunk: enter
+DEBUG emit:disassemble{name="int_counter_dec"}: serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG emit:disassemble{name="int_counter_dec"}: serenity::chunk: OP_GET_LOCAL     4 1
+DEBUG emit:disassemble{name="int_counter_dec"}: serenity::chunk: OP_CONSTANT      0
+DEBUG emit:disassemble{name="int_counter_dec"}: serenity::chunk: OP_POINTER_ADD   1
+DEBUG emit:disassemble{name="int_counter_dec"}: serenity::chunk: OP_GET_LOCAL     4 1
+DEBUG emit:disassemble{name="int_counter_dec"}: serenity::chunk: OP_CONSTANT      1
+DEBUG emit:disassemble{name="int_counter_dec"}: serenity::chunk: OP_POINTER_ADD   1
+DEBUG emit:disassemble{name="int_counter_dec"}: serenity::chunk: OP_DEREF_GET     1
+DEBUG emit:disassemble{name="int_counter_dec"}: serenity::chunk: OP_CONSTANT      2
+DEBUG emit:disassemble{name="int_counter_dec"}: serenity::chunk: OP_SUBTRACT      
+DEBUG emit:disassemble{name="int_counter_dec"}: serenity::chunk: OP_DEREF_ASSIGN  1
+DEBUG emit:disassemble{name="int_counter_dec"}: serenity::chunk: OP_POP           1
+DEBUG emit:disassemble{name="int_counter_dec"}: serenity::chunk: OP_NIL           
+DEBUG emit:disassemble{name="int_counter_dec"}: serenity::chunk: OP_RETURN        1
+DEBUG emit:disassemble{name="int_counter_dec"}: serenity::chunk: OP_POP           1
+DEBUG emit:disassemble{name="int_counter_dec"}: serenity::chunk: exit
+DEBUG emit:disassemble{name="int_counter_sub"}: serenity::chunk: enter
+DEBUG emit:disassemble{name="int_counter_sub"}: serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG emit:disassemble{name="int_counter_sub"}: serenity::chunk: OP_GET_LOCAL     5 1
+DEBUG emit:disassemble{name="int_counter_sub"}: serenity::chunk: OP_CONSTANT      0
+DEBUG emit:disassemble{name="int_counter_sub"}: serenity::chunk: OP_POINTER_ADD   1
+DEBUG emit:disassemble{name="int_counter_sub"}: serenity::chunk: OP_GET_LOCAL     5 1
+DEBUG emit:disassemble{name="int_counter_sub"}: serenity::chunk: OP_CONSTANT      1
+DEBUG emit:disassemble{name="int_counter_sub"}: serenity::chunk: OP_POINTER_ADD   1
+DEBUG emit:disassemble{name="int_counter_sub"}: serenity::chunk: OP_DEREF_GET     1
+DEBUG emit:disassemble{name="int_counter_sub"}: serenity::chunk: OP_GET_LOCAL     4 1
+DEBUG emit:disassemble{name="int_counter_sub"}: serenity::chunk: OP_SUBTRACT      
+DEBUG emit:disassemble{name="int_counter_sub"}: serenity::chunk: OP_DEREF_ASSIGN  1
+DEBUG emit:disassemble{name="int_counter_sub"}: serenity::chunk: OP_POP           1
+DEBUG emit:disassemble{name="int_counter_sub"}: serenity::chunk: OP_NIL           
+DEBUG emit:disassemble{name="int_counter_sub"}: serenity::chunk: OP_RETURN        1
+DEBUG emit:disassemble{name="int_counter_sub"}: serenity::chunk: OP_POP           1
+DEBUG emit:disassemble{name="int_counter_sub"}: serenity::chunk: exit
+DEBUG emit:disassemble{name="float_counter_inc"}: serenity::chunk: enter
+DEBUG emit:disassemble{name="float_counter_inc"}: serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG emit:disassemble{name="float_counter_inc"}: serenity::chunk: OP_GET_LOCAL     4 1
+DEBUG emit:disassemble{name="float_counter_inc"}: serenity::chunk: OP_CONSTANT      0
+DEBUG emit:disassemble{name="float_counter_inc"}: serenity::chunk: OP_POINTER_ADD   1
+DEBUG emit:disassemble{name="float_counter_inc"}: serenity::chunk: OP_GET_LOCAL     4 1
+DEBUG emit:disassemble{name="float_counter_inc"}: serenity::chunk: OP_CONSTANT      1
+DEBUG emit:disassemble{name="float_counter_inc"}: serenity::chunk: OP_POINTER_ADD   1
+DEBUG emit:disassemble{name="float_counter_inc"}: serenity::chunk: OP_DEREF_GET     1
+DEBUG emit:disassemble{name="float_counter_inc"}: serenity::chunk: OP_CONSTANT      2
+DEBUG emit:disassemble{name="float_counter_inc"}: serenity::chunk: OP_ADD_FLOAT     
+DEBUG emit:disassemble{name="float_counter_inc"}: serenity::chunk: OP_DEREF_ASSIGN  1
+DEBUG emit:disassemble{name="float_counter_inc"}: serenity::chunk: OP_POP           1
+DEBUG emit:disassemble{name="float_counter_inc"}: serenity::chunk: OP_NIL           
+DEBUG emit:disassemble{name="float_counter_inc"}: serenity::chunk: OP_RETURN        1
+DEBUG emit:disassemble{name="float_counter_inc"}: serenity::chunk: OP_POP           1
+DEBUG emit:disassemble{name="float_counter_inc"}: serenity::chunk: exit
+DEBUG emit:disassemble{name="float_counter_add"}: serenity::chunk: enter
+DEBUG emit:disassemble{name="float_counter_add"}: serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG emit:disassemble{name="float_counter_add"}: serenity::chunk: OP_GET_LOCAL     5 1
+DEBUG emit:disassemble{name="float_counter_add"}: serenity::chunk: OP_CONSTANT      0
+DEBUG emit:disassemble{name="float_counter_add"}: serenity::chunk: OP_POINTER_ADD   1
+DEBUG emit:disassemble{name="float_counter_add"}: serenity::chunk: OP_GET_LOCAL     5 1
+DEBUG emit:disassemble{name="float_counter_add"}: serenity::chunk: OP_CONSTANT      1
+DEBUG emit:disassemble{name="float_counter_add"}: serenity::chunk: OP_POINTER_ADD   1
+DEBUG emit:disassemble{name="float_counter_add"}: serenity::chunk: OP_DEREF_GET     1
+DEBUG emit:disassemble{name="float_counter_add"}: serenity::chunk: OP_GET_LOCAL     4 1
+DEBUG emit:disassemble{name="float_counter_add"}: serenity::chunk: OP_CAST_INT_TO_FLOAT 
+DEBUG emit:disassemble{name="float_counter_add"}: serenity::chunk: OP_ADD_FLOAT     
+DEBUG emit:disassemble{name="float_counter_add"}: serenity::chunk: OP_DEREF_ASSIGN  1
+DEBUG emit:disassemble{name="float_counter_add"}: serenity::chunk: OP_POP           1
+DEBUG emit:disassemble{name="float_counter_add"}: serenity::chunk: OP_NIL           
+DEBUG emit:disassemble{name="float_counter_add"}: serenity::chunk: OP_RETURN        1
+DEBUG emit:disassemble{name="float_counter_add"}: serenity::chunk: OP_POP           1
+DEBUG emit:disassemble{name="float_counter_add"}: serenity::chunk: exit
+DEBUG emit:disassemble{name="float_counter_dec"}: serenity::chunk: enter
+DEBUG emit:disassemble{name="float_counter_dec"}: serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG emit:disassemble{name="float_counter_dec"}: serenity::chunk: OP_GET_LOCAL     4 1
+DEBUG emit:disassemble{name="float_counter_dec"}: serenity::chunk: OP_CONSTANT      0
+DEBUG emit:disassemble{name="float_counter_dec"}: serenity::chunk: OP_POINTER_ADD   1
+DEBUG emit:disassemble{name="float_counter_dec"}: serenity::chunk: OP_GET_LOCAL     4 1
+DEBUG emit:disassemble{name="float_counter_dec"}: serenity::chunk: OP_CONSTANT      1
+DEBUG emit:disassemble{name="float_counter_dec"}: serenity::chunk: OP_POINTER_ADD   1
+DEBUG emit:disassemble{name="float_counter_dec"}: serenity::chunk: OP_DEREF_GET     1
+DEBUG emit:disassemble{name="float_counter_dec"}: serenity::chunk: OP_CONSTANT      2
+DEBUG emit:disassemble{name="float_counter_dec"}: serenity::chunk: OP_SUBTRACT_FLOAT 
+DEBUG emit:disassemble{name="float_counter_dec"}: serenity::chunk: OP_DEREF_ASSIGN  1
+DEBUG emit:disassemble{name="float_counter_dec"}: serenity::chunk: OP_POP           1
+DEBUG emit:disassemble{name="float_counter_dec"}: serenity::chunk: OP_NIL           
+DEBUG emit:disassemble{name="float_counter_dec"}: serenity::chunk: OP_RETURN        1
+DEBUG emit:disassemble{name="float_counter_dec"}: serenity::chunk: OP_POP           1
+DEBUG emit:disassemble{name="float_counter_dec"}: serenity::chunk: exit
+DEBUG emit:disassemble{name="float_counter_sub"}: serenity::chunk: enter
+DEBUG emit:disassemble{name="float_counter_sub"}: serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG emit:disassemble{name="float_counter_sub"}: serenity::chunk: OP_GET_LOCAL     5 1
+DEBUG emit:disassemble{name="float_counter_sub"}: serenity::chunk: OP_CONSTANT      0
+DEBUG emit:disassemble{name="float_counter_sub"}: serenity::chunk: OP_POINTER_ADD   1
+DEBUG emit:disassemble{name="float_counter_sub"}: serenity::chunk: OP_GET_LOCAL     5 1
+DEBUG emit:disassemble{name="float_counter_sub"}: serenity::chunk: OP_CONSTANT      1
+DEBUG emit:disassemble{name="float_counter_sub"}: serenity::chunk: OP_POINTER_ADD   1
+DEBUG emit:disassemble{name="float_counter_sub"}: serenity::chunk: OP_DEREF_GET     1
+DEBUG emit:disassemble{name="float_counter_sub"}: serenity::chunk: OP_GET_LOCAL     4 1
+DEBUG emit:disassemble{name="float_counter_sub"}: serenity::chunk: OP_CAST_INT_TO_FLOAT 
+DEBUG emit:disassemble{name="float_counter_sub"}: serenity::chunk: OP_SUBTRACT_FLOAT 
+DEBUG emit:disassemble{name="float_counter_sub"}: serenity::chunk: OP_DEREF_ASSIGN  1
+DEBUG emit:disassemble{name="float_counter_sub"}: serenity::chunk: OP_POP           1
+DEBUG emit:disassemble{name="float_counter_sub"}: serenity::chunk: OP_NIL           
+DEBUG emit:disassemble{name="float_counter_sub"}: serenity::chunk: OP_RETURN        1
+DEBUG emit:disassemble{name="float_counter_sub"}: serenity::chunk: OP_POP           1
+DEBUG emit:disassemble{name="float_counter_sub"}: serenity::chunk: exit
+DEBUG emit:disassemble{name="init_float_counter"}: serenity::chunk: enter
+DEBUG emit:disassemble{name="init_float_counter"}: serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG emit:disassemble{name="init_float_counter"}: serenity::chunk: OP_CONSTANT      0
+DEBUG emit:disassemble{name="init_float_counter"}: serenity::chunk: OP_POINTER_ADD   1
+DEBUG emit:disassemble{name="init_float_counter"}: serenity::chunk: OP_GET_GLOBAL    18 3
+DEBUG emit:disassemble{name="init_float_counter"}: serenity::chunk: OP_COPY_CLOSURE  
+DEBUG emit:disassemble{name="init_float_counter"}: serenity::chunk: OP_GET_GLOBAL    21 3
+DEBUG emit:disassemble{name="init_float_counter"}: serenity::chunk: OP_COPY_CLOSURE  
+DEBUG emit:disassemble{name="init_float_counter"}: serenity::chunk: OP_GET_GLOBAL    24 3
+DEBUG emit:disassemble{name="init_float_counter"}: serenity::chunk: OP_COPY_CLOSURE  
+DEBUG emit:disassemble{name="init_float_counter"}: serenity::chunk: OP_GET_GLOBAL    27 3
+DEBUG emit:disassemble{name="init_float_counter"}: serenity::chunk: OP_COPY_CLOSURE  
+DEBUG emit:disassemble{name="init_float_counter"}: serenity::chunk: OP_DEREF_ASSIGN  12
+DEBUG emit:disassemble{name="init_float_counter"}: serenity::chunk: OP_POP           12
+DEBUG emit:disassemble{name="init_float_counter"}: serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG emit:disassemble{name="init_float_counter"}: serenity::chunk: OP_CONSTANT      1
+DEBUG emit:disassemble{name="init_float_counter"}: serenity::chunk: OP_POINTER_ADD   1
+DEBUG emit:disassemble{name="init_float_counter"}: serenity::chunk: OP_CONSTANT      2
+DEBUG emit:disassemble{name="init_float_counter"}: serenity::chunk: OP_DEREF_ASSIGN  1
+DEBUG emit:disassemble{name="init_float_counter"}: serenity::chunk: OP_POP           1
+DEBUG emit:disassemble{name="init_float_counter"}: serenity::chunk: OP_NIL           
+DEBUG emit:disassemble{name="init_float_counter"}: serenity::chunk: OP_RETURN        1
+DEBUG emit:disassemble{name="init_float_counter"}: serenity::chunk: exit
+DEBUG emit:disassemble{name="init_int_counter"}: serenity::chunk: enter
+DEBUG emit:disassemble{name="init_int_counter"}: serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG emit:disassemble{name="init_int_counter"}: serenity::chunk: OP_GET_GLOBAL    6 3
+DEBUG emit:disassemble{name="init_int_counter"}: serenity::chunk: OP_COPY_CLOSURE  
+DEBUG emit:disassemble{name="init_int_counter"}: serenity::chunk: OP_GET_GLOBAL    9 3
+DEBUG emit:disassemble{name="init_int_counter"}: serenity::chunk: OP_COPY_CLOSURE  
+DEBUG emit:disassemble{name="init_int_counter"}: serenity::chunk: OP_GET_GLOBAL    12 3
+DEBUG emit:disassemble{name="init_int_counter"}: serenity::chunk: OP_COPY_CLOSURE  
+DEBUG emit:disassemble{name="init_int_counter"}: serenity::chunk: OP_GET_GLOBAL    15 3
+DEBUG emit:disassemble{name="init_int_counter"}: serenity::chunk: OP_COPY_CLOSURE  
+DEBUG emit:disassemble{name="init_int_counter"}: serenity::chunk: OP_DEREF_ASSIGN  12
+DEBUG emit:disassemble{name="init_int_counter"}: serenity::chunk: OP_POP           12
+DEBUG emit:disassemble{name="init_int_counter"}: serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG emit:disassemble{name="init_int_counter"}: serenity::chunk: OP_CONSTANT      0
+DEBUG emit:disassemble{name="init_int_counter"}: serenity::chunk: OP_POINTER_ADD   1
+DEBUG emit:disassemble{name="init_int_counter"}: serenity::chunk: OP_CONSTANT      1
+DEBUG emit:disassemble{name="init_int_counter"}: serenity::chunk: OP_DEREF_ASSIGN  1
+DEBUG emit:disassemble{name="init_int_counter"}: serenity::chunk: OP_POP           1
+DEBUG emit:disassemble{name="init_int_counter"}: serenity::chunk: OP_NIL           
+DEBUG emit:disassemble{name="init_int_counter"}: serenity::chunk: OP_RETURN        1
+DEBUG emit:disassemble{name="init_int_counter"}: serenity::chunk: exit
+DEBUG emit:disassemble{name="do_some_stuff"}: serenity::chunk: enter
+DEBUG emit:disassemble{name="do_some_stuff"}: serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG emit:disassemble{name="do_some_stuff"}: serenity::chunk: OP_CONSTANT      0
+DEBUG emit:disassemble{name="do_some_stuff"}: serenity::chunk: OP_POINTER_ADD   1
+DEBUG emit:disassemble{name="do_some_stuff"}: serenity::chunk: OP_DEREF_GET     3
+DEBUG emit:disassemble{name="do_some_stuff"}: serenity::chunk: OP_COPY_CLOSURE  
+DEBUG emit:disassemble{name="do_some_stuff"}: serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG emit:disassemble{name="do_some_stuff"}: serenity::chunk: OP_CALL          1
+DEBUG emit:disassemble{name="do_some_stuff"}: serenity::chunk: OP_POP           1
+DEBUG emit:disassemble{name="do_some_stuff"}: serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG emit:disassemble{name="do_some_stuff"}: serenity::chunk: OP_CONSTANT      1
+DEBUG emit:disassemble{name="do_some_stuff"}: serenity::chunk: OP_POINTER_ADD   1
+DEBUG emit:disassemble{name="do_some_stuff"}: serenity::chunk: OP_DEREF_GET     3
+DEBUG emit:disassemble{name="do_some_stuff"}: serenity::chunk: OP_COPY_CLOSURE  
+DEBUG emit:disassemble{name="do_some_stuff"}: serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG emit:disassemble{name="do_some_stuff"}: serenity::chunk: OP_CONSTANT      2
+DEBUG emit:disassemble{name="do_some_stuff"}: serenity::chunk: OP_CALL          2
+DEBUG emit:disassemble{name="do_some_stuff"}: serenity::chunk: OP_POP           1
+DEBUG emit:disassemble{name="do_some_stuff"}: serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG emit:disassemble{name="do_some_stuff"}: serenity::chunk: OP_CONSTANT      3
+DEBUG emit:disassemble{name="do_some_stuff"}: serenity::chunk: OP_POINTER_ADD   1
+DEBUG emit:disassemble{name="do_some_stuff"}: serenity::chunk: OP_DEREF_GET     3
+DEBUG emit:disassemble{name="do_some_stuff"}: serenity::chunk: OP_COPY_CLOSURE  
+DEBUG emit:disassemble{name="do_some_stuff"}: serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG emit:disassemble{name="do_some_stuff"}: serenity::chunk: OP_CALL          1
+DEBUG emit:disassemble{name="do_some_stuff"}: serenity::chunk: OP_POP           1
+DEBUG emit:disassemble{name="do_some_stuff"}: serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG emit:disassemble{name="do_some_stuff"}: serenity::chunk: OP_CONSTANT      4
+DEBUG emit:disassemble{name="do_some_stuff"}: serenity::chunk: OP_POINTER_ADD   1
+DEBUG emit:disassemble{name="do_some_stuff"}: serenity::chunk: OP_DEREF_GET     3
+DEBUG emit:disassemble{name="do_some_stuff"}: serenity::chunk: OP_COPY_CLOSURE  
+DEBUG emit:disassemble{name="do_some_stuff"}: serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG emit:disassemble{name="do_some_stuff"}: serenity::chunk: OP_CONSTANT      5
+DEBUG emit:disassemble{name="do_some_stuff"}: serenity::chunk: OP_CALL          2
+DEBUG emit:disassemble{name="do_some_stuff"}: serenity::chunk: OP_POP           1
+DEBUG emit:disassemble{name="do_some_stuff"}: serenity::chunk: OP_NIL           
+DEBUG emit:disassemble{name="do_some_stuff"}: serenity::chunk: OP_RETURN        1
+DEBUG emit:disassemble{name="do_some_stuff"}: serenity::chunk: exit
+DEBUG emit:disassemble{name="main"}: serenity::chunk: enter
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_NIL           
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_NIL           
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_NIL           
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_NIL           
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_NIL           
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_NIL           
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_NIL           
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_NIL           
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_NIL           
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_NIL           
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_NIL           
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_NIL           
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_NIL           
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_NIL           
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_NIL           
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_NIL           
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_NIL           
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_NIL           
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_NIL           
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_NIL           
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_NIL           
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_NIL           
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_NIL           
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_NIL           
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_NIL           
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_NIL           
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_GET_GLOBAL    33 3
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_COPY_CLOSURE  
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_CONSTANT      0
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_FRAME_BASE    
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_POINTER_ADD   1
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_CALL          1
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_POP           1
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_GET_GLOBAL    30 3
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_COPY_CLOSURE  
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_CONSTANT      1
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_FRAME_BASE    
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_POINTER_ADD   1
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_CALL          1
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_POP           1
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_GET_GLOBAL    36 3
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_COPY_CLOSURE  
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_CONSTANT      2
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_FRAME_BASE    
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_POINTER_ADD   1
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_CALL          1
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_POP           1
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_GET_GLOBAL    36 3
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_COPY_CLOSURE  
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_CONSTANT      3
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_FRAME_BASE    
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_POINTER_ADD   1
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_CONSTANT      4
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_POINTER_ADD   1
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_CALL          1
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_POP           1
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_CONSTANT      5
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_FRAME_BASE    
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_POINTER_ADD   1
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_CONSTANT      6
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_POINTER_ADD   1
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_DEREF_GET     1
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_PRINT_INT     
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_CONSTANT      7
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_FRAME_BASE    
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_POINTER_ADD   1
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_CONSTANT      8
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_POINTER_ADD   1
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_DEREF_GET     1
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_PRINT_FLOAT   
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_CONSTANT      9
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_FRAME_BASE    
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_POINTER_ADD   1
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_CONSTANT      10
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_POINTER_ADD   1
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_CONSTANT      11
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_POINTER_ADD   1
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_DEREF_GET     3
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_COPY_CLOSURE  
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_CONSTANT      12
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_FRAME_BASE    
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_POINTER_ADD   1
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_CONSTANT      13
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_POINTER_ADD   1
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_CALL          1
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_POP           1
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_CONSTANT      14
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_FRAME_BASE    
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_POINTER_ADD   1
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_CONSTANT      15
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_POINTER_ADD   1
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_CONSTANT      16
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_POINTER_ADD   1
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_DEREF_GET     3
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_COPY_CLOSURE  
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_CONSTANT      17
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_FRAME_BASE    
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_POINTER_ADD   1
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_CONSTANT      18
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_POINTER_ADD   1
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_CONSTANT      19
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_CALL          2
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_POP           1
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_CONSTANT      20
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_FRAME_BASE    
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_POINTER_ADD   1
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_CONSTANT      21
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_POINTER_ADD   1
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_DEREF_GET     1
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_PRINT_FLOAT   
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_NIL           
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_RETURN        1
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_POP           13
+DEBUG emit:disassemble{name="main"}: serenity::chunk: OP_POP           13
+DEBUG emit:disassemble{name="main"}: serenity::chunk: exit
+DEBUG emit:disassemble{name="script"}: serenity::chunk: enter
+DEBUG emit:disassemble{name="script"}: serenity::chunk: OP_CLOSURE       2 0
+DEBUG emit:disassemble{name="script"}: serenity::chunk: OP_DEFINE_GLOBAL 6 3
+DEBUG emit:disassemble{name="script"}: serenity::chunk: OP_CLOSURE       3 0
+DEBUG emit:disassemble{name="script"}: serenity::chunk: OP_DEFINE_GLOBAL 9 3
+DEBUG emit:disassemble{name="script"}: serenity::chunk: OP_CLOSURE       4 0
+DEBUG emit:disassemble{name="script"}: serenity::chunk: OP_DEFINE_GLOBAL 12 3
+DEBUG emit:disassemble{name="script"}: serenity::chunk: OP_CLOSURE       5 0
+DEBUG emit:disassemble{name="script"}: serenity::chunk: OP_DEFINE_GLOBAL 15 3
+DEBUG emit:disassemble{name="script"}: serenity::chunk: OP_CLOSURE       6 0
+DEBUG emit:disassemble{name="script"}: serenity::chunk: OP_DEFINE_GLOBAL 18 3
+DEBUG emit:disassemble{name="script"}: serenity::chunk: OP_CLOSURE       7 0
+DEBUG emit:disassemble{name="script"}: serenity::chunk: OP_DEFINE_GLOBAL 21 3
+DEBUG emit:disassemble{name="script"}: serenity::chunk: OP_CLOSURE       8 0
+DEBUG emit:disassemble{name="script"}: serenity::chunk: OP_DEFINE_GLOBAL 24 3
+DEBUG emit:disassemble{name="script"}: serenity::chunk: OP_CLOSURE       9 0
+DEBUG emit:disassemble{name="script"}: serenity::chunk: OP_DEFINE_GLOBAL 27 3
+DEBUG emit:disassemble{name="script"}: serenity::chunk: OP_CLOSURE       10 0
+DEBUG emit:disassemble{name="script"}: serenity::chunk: OP_DEFINE_GLOBAL 30 3
+DEBUG emit:disassemble{name="script"}: serenity::chunk: OP_CLOSURE       11 0
+DEBUG emit:disassemble{name="script"}: serenity::chunk: OP_DEFINE_GLOBAL 33 3
+DEBUG emit:disassemble{name="script"}: serenity::chunk: OP_CLOSURE       12 0
+DEBUG emit:disassemble{name="script"}: serenity::chunk: OP_DEFINE_GLOBAL 36 3
+DEBUG emit:disassemble{name="script"}: serenity::chunk: OP_CLOSURE       13 0
+DEBUG emit:disassemble{name="script"}: serenity::chunk: OP_DEFINE_GLOBAL 39 3
+DEBUG emit:disassemble{name="script"}: serenity::chunk: OP_GET_GLOBAL    39 3
+DEBUG emit:disassemble{name="script"}: serenity::chunk: OP_COPY_CLOSURE  
+DEBUG emit:disassemble{name="script"}: serenity::chunk: OP_CALL          0
+DEBUG emit:disassemble{name="script"}: serenity::chunk: exit
+ INFO emit: serenity::compiler::emit_pass: Compilation succeeded.
+ INFO emit: serenity::compiler::emit_pass: exit
+DEBUG serenity::chunk: OP_CLOSURE       2 0
+DEBUG serenity::chunk: OP_DEFINE_GLOBAL 6 3
+DEBUG serenity::chunk: OP_CLOSURE       3 0
+DEBUG serenity::chunk: OP_DEFINE_GLOBAL 9 3
+DEBUG serenity::chunk: OP_CLOSURE       4 0
+DEBUG serenity::chunk: OP_DEFINE_GLOBAL 12 3
+DEBUG serenity::chunk: OP_CLOSURE       5 0
+DEBUG serenity::chunk: OP_DEFINE_GLOBAL 15 3
+DEBUG serenity::chunk: OP_CLOSURE       6 0
+DEBUG serenity::chunk: OP_DEFINE_GLOBAL 18 3
+DEBUG serenity::chunk: OP_CLOSURE       7 0
+DEBUG serenity::chunk: OP_DEFINE_GLOBAL 21 3
+DEBUG serenity::chunk: OP_CLOSURE       8 0
+DEBUG serenity::chunk: OP_DEFINE_GLOBAL 24 3
+DEBUG serenity::chunk: OP_CLOSURE       9 0
+DEBUG serenity::chunk: OP_DEFINE_GLOBAL 27 3
+DEBUG serenity::chunk: OP_CLOSURE       10 0
+DEBUG serenity::chunk: OP_DEFINE_GLOBAL 30 3
+DEBUG serenity::chunk: OP_CLOSURE       11 0
+DEBUG serenity::chunk: OP_DEFINE_GLOBAL 33 3
+DEBUG serenity::chunk: OP_CLOSURE       12 0
+DEBUG serenity::chunk: OP_DEFINE_GLOBAL 36 3
+DEBUG serenity::chunk: OP_CLOSURE       13 0
+DEBUG serenity::chunk: OP_DEFINE_GLOBAL 39 3
+DEBUG serenity::chunk: OP_GET_GLOBAL    39 3
+DEBUG serenity::chunk: OP_COPY_CLOSURE  
+DEBUG serenity::chunk: OP_CALL          0
+DEBUG serenity::chunk: OP_NIL           
+DEBUG serenity::chunk: OP_NIL           
+DEBUG serenity::chunk: OP_NIL           
+DEBUG serenity::chunk: OP_NIL           
+DEBUG serenity::chunk: OP_NIL           
+DEBUG serenity::chunk: OP_NIL           
+DEBUG serenity::chunk: OP_NIL           
+DEBUG serenity::chunk: OP_NIL           
+DEBUG serenity::chunk: OP_NIL           
+DEBUG serenity::chunk: OP_NIL           
+DEBUG serenity::chunk: OP_NIL           
+DEBUG serenity::chunk: OP_NIL           
+DEBUG serenity::chunk: OP_NIL           
+DEBUG serenity::chunk: OP_NIL           
+DEBUG serenity::chunk: OP_NIL           
+DEBUG serenity::chunk: OP_NIL           
+DEBUG serenity::chunk: OP_NIL           
+DEBUG serenity::chunk: OP_NIL           
+DEBUG serenity::chunk: OP_NIL           
+DEBUG serenity::chunk: OP_NIL           
+DEBUG serenity::chunk: OP_NIL           
+DEBUG serenity::chunk: OP_NIL           
+DEBUG serenity::chunk: OP_NIL           
+DEBUG serenity::chunk: OP_NIL           
+DEBUG serenity::chunk: OP_NIL           
+DEBUG serenity::chunk: OP_NIL           
+DEBUG serenity::chunk: OP_GET_GLOBAL    33 3
+DEBUG serenity::chunk: OP_COPY_CLOSURE  
+DEBUG serenity::chunk: OP_CONSTANT      0
+DEBUG serenity::chunk: OP_FRAME_BASE    
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_CALL          1
+DEBUG serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG serenity::chunk: OP_GET_GLOBAL    6 3
+DEBUG serenity::chunk: OP_COPY_CLOSURE  
+DEBUG serenity::chunk: OP_GET_GLOBAL    9 3
+DEBUG serenity::chunk: OP_COPY_CLOSURE  
+DEBUG serenity::chunk: OP_GET_GLOBAL    12 3
+DEBUG serenity::chunk: OP_COPY_CLOSURE  
+DEBUG serenity::chunk: OP_GET_GLOBAL    15 3
+DEBUG serenity::chunk: OP_COPY_CLOSURE  
+DEBUG serenity::chunk: OP_DEREF_ASSIGN  12
+DEBUG serenity::chunk: OP_POP           12
+DEBUG serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG serenity::chunk: OP_CONSTANT      0
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_CONSTANT      1
+DEBUG serenity::chunk: OP_DEREF_ASSIGN  1
+DEBUG serenity::chunk: OP_POP           1
+DEBUG serenity::chunk: OP_NIL           
+DEBUG serenity::chunk: OP_RETURN        1
+DEBUG serenity::chunk: OP_POP           1
+DEBUG serenity::chunk: OP_GET_GLOBAL    30 3
+DEBUG serenity::chunk: OP_COPY_CLOSURE  
+DEBUG serenity::chunk: OP_CONSTANT      1
+DEBUG serenity::chunk: OP_FRAME_BASE    
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_CALL          1
+DEBUG serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG serenity::chunk: OP_CONSTANT      0
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_GET_GLOBAL    18 3
+DEBUG serenity::chunk: OP_COPY_CLOSURE  
+DEBUG serenity::chunk: OP_GET_GLOBAL    21 3
+DEBUG serenity::chunk: OP_COPY_CLOSURE  
+DEBUG serenity::chunk: OP_GET_GLOBAL    24 3
+DEBUG serenity::chunk: OP_COPY_CLOSURE  
+DEBUG serenity::chunk: OP_GET_GLOBAL    27 3
+DEBUG serenity::chunk: OP_COPY_CLOSURE  
+DEBUG serenity::chunk: OP_DEREF_ASSIGN  12
+DEBUG serenity::chunk: OP_POP           12
+DEBUG serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG serenity::chunk: OP_CONSTANT      1
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_CONSTANT      2
+DEBUG serenity::chunk: OP_DEREF_ASSIGN  1
+DEBUG serenity::chunk: OP_POP           1
+DEBUG serenity::chunk: OP_NIL           
+DEBUG serenity::chunk: OP_RETURN        1
+DEBUG serenity::chunk: OP_POP           1
+DEBUG serenity::chunk: OP_GET_GLOBAL    36 3
+DEBUG serenity::chunk: OP_COPY_CLOSURE  
+DEBUG serenity::chunk: OP_CONSTANT      2
+DEBUG serenity::chunk: OP_FRAME_BASE    
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_CALL          1
+DEBUG serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG serenity::chunk: OP_CONSTANT      0
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_DEREF_GET     3
+DEBUG serenity::chunk: OP_COPY_CLOSURE  
+DEBUG serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG serenity::chunk: OP_CALL          1
+DEBUG serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG serenity::chunk: OP_GET_LOCAL     4 1
+DEBUG serenity::chunk: OP_CONSTANT      0
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_GET_LOCAL     4 1
+DEBUG serenity::chunk: OP_CONSTANT      1
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_DEREF_GET     1
+DEBUG serenity::chunk: OP_CONSTANT      2
+DEBUG serenity::chunk: OP_ADD           
+DEBUG serenity::chunk: OP_DEREF_ASSIGN  1
+DEBUG serenity::chunk: OP_POP           1
+DEBUG serenity::chunk: OP_NIL           
+DEBUG serenity::chunk: OP_RETURN        1
+DEBUG serenity::chunk: OP_POP           1
+DEBUG serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG serenity::chunk: OP_CONSTANT      1
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_DEREF_GET     3
+DEBUG serenity::chunk: OP_COPY_CLOSURE  
+DEBUG serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG serenity::chunk: OP_CONSTANT      2
+DEBUG serenity::chunk: OP_CALL          2
+DEBUG serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG serenity::chunk: OP_GET_LOCAL     5 1
+DEBUG serenity::chunk: OP_CONSTANT      0
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_GET_LOCAL     5 1
+DEBUG serenity::chunk: OP_CONSTANT      1
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_DEREF_GET     1
+DEBUG serenity::chunk: OP_GET_LOCAL     4 1
+DEBUG serenity::chunk: OP_ADD           
+DEBUG serenity::chunk: OP_DEREF_ASSIGN  1
+DEBUG serenity::chunk: OP_POP           1
+DEBUG serenity::chunk: OP_NIL           
+DEBUG serenity::chunk: OP_RETURN        1
+DEBUG serenity::chunk: OP_POP           1
+DEBUG serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG serenity::chunk: OP_CONSTANT      3
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_DEREF_GET     3
+DEBUG serenity::chunk: OP_COPY_CLOSURE  
+DEBUG serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG serenity::chunk: OP_CALL          1
+DEBUG serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG serenity::chunk: OP_GET_LOCAL     4 1
+DEBUG serenity::chunk: OP_CONSTANT      0
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_GET_LOCAL     4 1
+DEBUG serenity::chunk: OP_CONSTANT      1
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_DEREF_GET     1
+DEBUG serenity::chunk: OP_CONSTANT      2
+DEBUG serenity::chunk: OP_SUBTRACT      
+DEBUG serenity::chunk: OP_DEREF_ASSIGN  1
+DEBUG serenity::chunk: OP_POP           1
+DEBUG serenity::chunk: OP_NIL           
+DEBUG serenity::chunk: OP_RETURN        1
+DEBUG serenity::chunk: OP_POP           1
+DEBUG serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG serenity::chunk: OP_CONSTANT      4
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_DEREF_GET     3
+DEBUG serenity::chunk: OP_COPY_CLOSURE  
+DEBUG serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG serenity::chunk: OP_CONSTANT      5
+DEBUG serenity::chunk: OP_CALL          2
+DEBUG serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG serenity::chunk: OP_GET_LOCAL     5 1
+DEBUG serenity::chunk: OP_CONSTANT      0
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_GET_LOCAL     5 1
+DEBUG serenity::chunk: OP_CONSTANT      1
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_DEREF_GET     1
+DEBUG serenity::chunk: OP_GET_LOCAL     4 1
+DEBUG serenity::chunk: OP_SUBTRACT      
+DEBUG serenity::chunk: OP_DEREF_ASSIGN  1
+DEBUG serenity::chunk: OP_POP           1
+DEBUG serenity::chunk: OP_NIL           
+DEBUG serenity::chunk: OP_RETURN        1
+DEBUG serenity::chunk: OP_POP           1
+DEBUG serenity::chunk: OP_NIL           
+DEBUG serenity::chunk: OP_RETURN        1
+DEBUG serenity::chunk: OP_POP           1
+DEBUG serenity::chunk: OP_GET_GLOBAL    36 3
+DEBUG serenity::chunk: OP_COPY_CLOSURE  
+DEBUG serenity::chunk: OP_CONSTANT      3
+DEBUG serenity::chunk: OP_FRAME_BASE    
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_CONSTANT      4
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_CALL          1
+DEBUG serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG serenity::chunk: OP_CONSTANT      0
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_DEREF_GET     3
+DEBUG serenity::chunk: OP_COPY_CLOSURE  
+DEBUG serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG serenity::chunk: OP_CALL          1
+DEBUG serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG serenity::chunk: OP_GET_LOCAL     4 1
+DEBUG serenity::chunk: OP_CONSTANT      0
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_GET_LOCAL     4 1
+DEBUG serenity::chunk: OP_CONSTANT      1
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_DEREF_GET     1
+DEBUG serenity::chunk: OP_CONSTANT      2
+DEBUG serenity::chunk: OP_ADD_FLOAT     
+DEBUG serenity::chunk: OP_DEREF_ASSIGN  1
+DEBUG serenity::chunk: OP_POP           1
+DEBUG serenity::chunk: OP_NIL           
+DEBUG serenity::chunk: OP_RETURN        1
+DEBUG serenity::chunk: OP_POP           1
+DEBUG serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG serenity::chunk: OP_CONSTANT      1
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_DEREF_GET     3
+DEBUG serenity::chunk: OP_COPY_CLOSURE  
+DEBUG serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG serenity::chunk: OP_CONSTANT      2
+DEBUG serenity::chunk: OP_CALL          2
+DEBUG serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG serenity::chunk: OP_GET_LOCAL     5 1
+DEBUG serenity::chunk: OP_CONSTANT      0
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_GET_LOCAL     5 1
+DEBUG serenity::chunk: OP_CONSTANT      1
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_DEREF_GET     1
+DEBUG serenity::chunk: OP_GET_LOCAL     4 1
+DEBUG serenity::chunk: OP_CAST_INT_TO_FLOAT 
+DEBUG serenity::chunk: OP_ADD_FLOAT     
+DEBUG serenity::chunk: OP_DEREF_ASSIGN  1
+DEBUG serenity::chunk: OP_POP           1
+DEBUG serenity::chunk: OP_NIL           
+DEBUG serenity::chunk: OP_RETURN        1
+DEBUG serenity::chunk: OP_POP           1
+DEBUG serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG serenity::chunk: OP_CONSTANT      3
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_DEREF_GET     3
+DEBUG serenity::chunk: OP_COPY_CLOSURE  
+DEBUG serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG serenity::chunk: OP_CALL          1
+DEBUG serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG serenity::chunk: OP_GET_LOCAL     4 1
+DEBUG serenity::chunk: OP_CONSTANT      0
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_GET_LOCAL     4 1
+DEBUG serenity::chunk: OP_CONSTANT      1
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_DEREF_GET     1
+DEBUG serenity::chunk: OP_CONSTANT      2
+DEBUG serenity::chunk: OP_SUBTRACT_FLOAT 
+DEBUG serenity::chunk: OP_DEREF_ASSIGN  1
+DEBUG serenity::chunk: OP_POP           1
+DEBUG serenity::chunk: OP_NIL           
+DEBUG serenity::chunk: OP_RETURN        1
+DEBUG serenity::chunk: OP_POP           1
+DEBUG serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG serenity::chunk: OP_CONSTANT      4
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_DEREF_GET     3
+DEBUG serenity::chunk: OP_COPY_CLOSURE  
+DEBUG serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG serenity::chunk: OP_CONSTANT      5
+DEBUG serenity::chunk: OP_CALL          2
+DEBUG serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG serenity::chunk: OP_GET_LOCAL     5 1
+DEBUG serenity::chunk: OP_CONSTANT      0
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_GET_LOCAL     5 1
+DEBUG serenity::chunk: OP_CONSTANT      1
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_DEREF_GET     1
+DEBUG serenity::chunk: OP_GET_LOCAL     4 1
+DEBUG serenity::chunk: OP_CAST_INT_TO_FLOAT 
+DEBUG serenity::chunk: OP_SUBTRACT_FLOAT 
+DEBUG serenity::chunk: OP_DEREF_ASSIGN  1
+DEBUG serenity::chunk: OP_POP           1
+DEBUG serenity::chunk: OP_NIL           
+DEBUG serenity::chunk: OP_RETURN        1
+DEBUG serenity::chunk: OP_POP           1
+DEBUG serenity::chunk: OP_NIL           
+DEBUG serenity::chunk: OP_RETURN        1
+DEBUG serenity::chunk: OP_POP           1
+DEBUG serenity::chunk: OP_CONSTANT      5
+DEBUG serenity::chunk: OP_FRAME_BASE    
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_CONSTANT      6
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_DEREF_GET     1
+DEBUG serenity::chunk: OP_PRINT_INT     
+DEBUG serenity::chunk: OP_CONSTANT      7
+DEBUG serenity::chunk: OP_FRAME_BASE    
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_CONSTANT      8
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_DEREF_GET     1
+DEBUG serenity::chunk: OP_PRINT_FLOAT   
+DEBUG serenity::chunk: OP_CONSTANT      9
+DEBUG serenity::chunk: OP_FRAME_BASE    
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_CONSTANT      10
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_CONSTANT      11
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_DEREF_GET     3
+DEBUG serenity::chunk: OP_COPY_CLOSURE  
+DEBUG serenity::chunk: OP_CONSTANT      12
+DEBUG serenity::chunk: OP_FRAME_BASE    
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_CONSTANT      13
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_CALL          1
+DEBUG serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG serenity::chunk: OP_GET_LOCAL     4 1
+DEBUG serenity::chunk: OP_CONSTANT      0
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_GET_LOCAL     4 1
+DEBUG serenity::chunk: OP_CONSTANT      1
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_DEREF_GET     1
+DEBUG serenity::chunk: OP_CONSTANT      2
+DEBUG serenity::chunk: OP_ADD_FLOAT     
+DEBUG serenity::chunk: OP_DEREF_ASSIGN  1
+DEBUG serenity::chunk: OP_POP           1
+DEBUG serenity::chunk: OP_NIL           
+DEBUG serenity::chunk: OP_RETURN        1
+DEBUG serenity::chunk: OP_POP           1
+DEBUG serenity::chunk: OP_CONSTANT      14
+DEBUG serenity::chunk: OP_FRAME_BASE    
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_CONSTANT      15
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_CONSTANT      16
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_DEREF_GET     3
+DEBUG serenity::chunk: OP_COPY_CLOSURE  
+DEBUG serenity::chunk: OP_CONSTANT      17
+DEBUG serenity::chunk: OP_FRAME_BASE    
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_CONSTANT      18
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_CONSTANT      19
+DEBUG serenity::chunk: OP_CALL          2
+DEBUG serenity::chunk: OP_GET_LOCAL     3 1
+DEBUG serenity::chunk: OP_GET_LOCAL     5 1
+DEBUG serenity::chunk: OP_CONSTANT      0
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_GET_LOCAL     5 1
+DEBUG serenity::chunk: OP_CONSTANT      1
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_DEREF_GET     1
+DEBUG serenity::chunk: OP_GET_LOCAL     4 1
+DEBUG serenity::chunk: OP_CAST_INT_TO_FLOAT 
+DEBUG serenity::chunk: OP_ADD_FLOAT     
+DEBUG serenity::chunk: OP_DEREF_ASSIGN  1
+DEBUG serenity::chunk: OP_POP           1
+DEBUG serenity::chunk: OP_NIL           
+DEBUG serenity::chunk: OP_RETURN        1
+DEBUG serenity::chunk: OP_POP           1
+DEBUG serenity::chunk: OP_CONSTANT      20
+DEBUG serenity::chunk: OP_FRAME_BASE    
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_CONSTANT      21
+DEBUG serenity::chunk: OP_POINTER_ADD   1
+DEBUG serenity::chunk: OP_DEREF_GET     1
+DEBUG serenity::chunk: OP_PRINT_FLOAT   
+DEBUG serenity::chunk: OP_NIL           
+DEBUG serenity::chunk: OP_RETURN        1
+DEBUG serenity::chunk: OP_NIL           
+DEBUG serenity::chunk: OP_RETURN        1

@@ -75,7 +75,7 @@ impl Word {
 #[derive(Clone, PartialEq)]
 pub enum Value {
 	Integer(i64),
-	// UInteger(u64),
+	UInteger(u64),
 	Float(f64),
 	Char(u8),
 	Bool(bool),
@@ -95,7 +95,7 @@ impl Value {
 	pub fn to_words(&self) -> Vec<Word> {
 		match self {
 			Value::Integer(i) => vec![(*i as u64).into()],
-			// Value::UInteger(i) => vec![(*i as u64).into()],
+			Value::UInteger(i) => vec![(*i as u64).into()],
 			Value::Float(f) => vec![f.to_bits().into()],
 			Value::Char(c) => vec![u64::from(*c).into()],
 			Value::Bool(b) => vec![u64::from(*b).into()],
@@ -110,7 +110,7 @@ impl Debug for Value {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		match self {
 			Value::Integer(i) => write!(f, "{i}"),
-			// Value::UInteger(i) => write!(f, "{i}"),
+			Value::UInteger(i) => write!(f, "{i}"),
 			Value::Float(fl) => write!(f, "{fl}"),
 			Value::Char(c) => write!(f, "{}", *c as char),
 			Value::Bool(b) => write!(f, "{b}"),

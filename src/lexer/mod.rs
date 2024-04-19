@@ -1,4 +1,4 @@
-use std::default::Default;
+use std::{default::Default, fmt::Debug};
 
 use trie_rs::{Trie, TrieBuilder};
 
@@ -63,12 +63,16 @@ pub enum TokenType {
     SimpleType,
     Cast,
     Char,
+    Pipe,
+    LeftParenBrace,
+    RightParenBrace,
+    Include,
     Eof,
     #[default]
     Error,
 }
 
-const KEYWORDS: [(&str, TokenType); 28] = [
+const KEYWORDS: [(&str, TokenType); 31] = [
     ("and", TokenType::And),
     ("struct", TokenType::Struct),
     ("else", TokenType::Else),
@@ -92,18 +96,27 @@ const KEYWORDS: [(&str, TokenType); 28] = [
     ("continue", TokenType::Continue),
     ("lambda", TokenType::Lambda),
     ("λ", TokenType::Lambda),
+    ("uint", TokenType::SimpleType),
     ("int", TokenType::SimpleType),
     ("float", TokenType::SimpleType),
     ("string", TokenType::SimpleType),
     ("bool", TokenType::SimpleType),
     ("cast", TokenType::Cast),
+    ("char", TokenType::Char),
+    ("include", TokenType::Include),
 ];
 
-#[derive(Debug, Clone, Default)]
+#[derive(Clone, Default)]
 pub struct Token {
     pub token_type: TokenType,
     pub lexeme: String,
     pub line: usize,
+}
+
+impl Debug for Token {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.lexeme)
+    }
 }
 
 impl Lexer {
@@ -147,15 +160,32 @@ impl Lexer {
                 while self.peek().is_ascii_digit() {
                     self.advance();
                 }
+            } else if self.peek() == 'u' {
+                self.advance();
             }
+
             return self.make_token(TokenType::Number);
         }
 
         match c {
-            '(' => self.make_token(TokenType::LeftParen),
+            '(' => {
+                if self.advance_if_match('{') {
+                    self.make_token(TokenType::LeftParenBrace)
+                } else {
+                    self.make_token(TokenType::LeftParen)
+
+                }
+            }
             ')' => self.make_token(TokenType::RightParen),
             '{' => self.make_token(TokenType::LeftBrace),
-            '}' => self.make_token(TokenType::RightBrace),
+            '}' => {
+                if self.advance_if_match(')') {
+                    self.make_token(TokenType::RightParenBrace)
+                } else {
+                    self.make_token(TokenType::RightBrace)
+                }
+            
+            }
             ';' => self.make_token(TokenType::Semicolon),
             ',' => self.make_token(TokenType::Comma),
             '.' => self.make_token(TokenType::Dot),
@@ -225,6 +255,13 @@ impl Lexer {
                 }
                 self.advance();
                 self.make_token(TokenType::Char)
+            }
+            '|' => {
+                if self.advance_if_match('|') {
+                    self.make_token(TokenType::Or)
+                } else {
+                    self.make_token(TokenType::Pipe)
+                }
             }
 
             _ => self.error_token("Unexpected character."),

@@ -1,4 +1,5 @@
 
+/// A macro to dynamically log an event at runtime
 #[macro_export]
 macro_rules! dyn_event {
     ($lvl:ident, $($arg:tt)+) => {
@@ -12,6 +13,7 @@ macro_rules! dyn_event {
     };
 }
 
+/// A macro to dynamically create a span at runtime
 #[macro_export]
 macro_rules! dyn_span {
     ($lvl:ident, $name:expr, $($arg:tt)+) => {

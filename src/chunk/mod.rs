@@ -19,16 +19,20 @@ pub enum Opcode {
     NegateInt,
     NegateFloat,
     AddInt,
+    AddUint,
     AddFloat,
     Concat,
     PointerAdd,
     SubtractInt,
+    SubtractUint,
     SubtractFloat,
     PointerSubtract,
 
     MultiplyInt,
+    MultiplyUint,
     MultiplyFloat,
     DivideInt,
+    DivideUint,
     DivideFloat,
     Ternary,
     False,
@@ -37,12 +41,14 @@ pub enum Opcode {
     Not,
     Equal,
     GreaterInt,
+    GreaterUint,
     GreaterFloat,
     LessInt,
+    LessUint,
     LessFloat,
-    Or,
-    And,
+    
     PrintInt,
+    PrintUint,
     PrintFloat,
     PrintString,
     PrintBool,
@@ -80,11 +86,17 @@ pub enum Opcode {
     CastBoolToInt,
     CastBoolToString,
     CastIntToBool,
+    CastBoolToUint,
+    CastUintToBool,
+    CastUintToInt,
+    CastIntToUint,
+    CastUintToFloat,
 
     FrameBase,
 
     Break,
     Continue,
+    
 }
 
 impl From<u8> for Opcode {
@@ -183,6 +195,7 @@ impl Chunk {
     }
 
     pub fn disassemble_instruction(&self, offset: usize, trace_level: Level) -> usize {
+
         let (instruction, _) = self.code[offset];
         match Opcode::from(instruction) {
             Opcode::NoOp => {
@@ -206,6 +219,9 @@ impl Chunk {
             Opcode::AddInt => {
                 self.simple_instruction("OP_ADD", offset, trace_level)
             }
+            Opcode::AddUint => {
+                self.simple_instruction("OP_ADD_UINT", offset, trace_level)
+            }
             Opcode::AddFloat => {
                 self.simple_instruction("OP_ADD_FLOAT", offset, trace_level)
             }
@@ -218,6 +234,9 @@ impl Chunk {
             Opcode::SubtractInt => {
                 self.simple_instruction("OP_SUBTRACT", offset, trace_level)
             }
+            Opcode::SubtractUint => {
+                self.simple_instruction("OP_SUBTRACT_UINT", offset, trace_level)
+            }
             Opcode::SubtractFloat => {
                 self.simple_instruction("OP_SUBTRACT_FLOAT", offset, trace_level)
             }
@@ -227,11 +246,17 @@ impl Chunk {
             Opcode::MultiplyInt => {
                 self.simple_instruction("OP_MULTIPLY", offset, trace_level)
             }
+            Opcode::MultiplyUint => {
+                self.simple_instruction("OP_MULTIPLY_UINT", offset, trace_level)
+            }
             Opcode::MultiplyFloat => {
                 self.simple_instruction("OP_MULTIPLY_FLOAT", offset, trace_level)
             }
             Opcode::DivideInt => {
                 self.simple_instruction("OP_DIVIDE", offset, trace_level)
+            }
+            Opcode::DivideUint => {
+                self.simple_instruction("OP_DIVIDE_UINT", offset, trace_level)
             }
             Opcode::DivideFloat => {
                 self.simple_instruction("OP_DIVIDE_FLOAT", offset, trace_level)
@@ -257,23 +282,26 @@ impl Chunk {
             Opcode::GreaterInt => {
                 self.simple_instruction("OP_GREATER", offset, trace_level)
             }
+            Opcode::GreaterUint => {
+                self.simple_instruction("OP_GREATER_UINT", offset, trace_level)
+            }
             Opcode::GreaterFloat => {
                 self.simple_instruction("OP_GREATER_FLOAT", offset, trace_level)
             }
             Opcode::LessInt => {
                 self.simple_instruction("OP_LESS", offset, trace_level)
             }
+            Opcode::LessUint => {
+                self.simple_instruction("OP_LESS_UINT", offset, trace_level)
+            }
             Opcode::LessFloat => {
                 self.simple_instruction("OP_LESS_FLOAT", offset, trace_level)
             }
-            Opcode::Or => {
-                self.simple_instruction("OP_OR", offset, trace_level)
-            }
-            Opcode::And => {
-                self.simple_instruction("OP_AND", offset, trace_level)
-            }
             Opcode::PrintInt => {
                 self.simple_instruction("OP_PRINT_INT", offset, trace_level)
+            }
+            Opcode::PrintUint => {
+                self.simple_instruction("OP_PRINT_UINT", offset, trace_level)
             }
             Opcode::PrintFloat => {
                 self.simple_instruction("OP_PRINT_FLOAT", offset, trace_level)
@@ -386,6 +414,21 @@ impl Chunk {
             }
             Opcode::CastIntToBool => {
                 self.simple_instruction("OP_CAST_INT_TO_BOOL", offset, trace_level)
+            }
+            Opcode::CastBoolToUint => {
+                self.simple_instruction("OP_CAST_BOOL_TO_UINT", offset, trace_level)
+            }
+            Opcode::CastUintToBool => {
+                self.simple_instruction("OP_CAST_UINT_TO_BOOL", offset, trace_level)
+            }
+            Opcode::CastUintToInt => {
+                self.simple_instruction("OP_CAST_UINT_TO_INT", offset, trace_level)
+            }
+            Opcode::CastIntToUint => {
+                self.simple_instruction("OP_CAST_INT_TO_UINT", offset, trace_level)
+            }
+            Opcode::CastUintToFloat => {
+                self.simple_instruction("OP_CAST_UINT_TO_FLOAT", offset, trace_level)
             }
             Opcode::PopClosure => {
                 self.simple_instruction("OP_POP_CLOSURE", offset, trace_level)

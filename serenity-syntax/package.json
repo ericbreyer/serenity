@@ -1,0 +1,25 @@
+{
+  "name": "serenity-syntax",
+  "displayName": "serenity-syntax",
+  "description": "syntax highlighting for serenity",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.88.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [{
+      "id": "serenity",
+      "aliases": ["serenity", "serenity"],
+      "extensions": [".ser"],
+      "configuration": "./language-configuration.json"
+    }],
+    "grammars": [{
+      "language": "serenity",
+      "scopeName": "source.serenity",
+      "path": "./syntaxes/serenity.tmLanguage.json"
+    }]
+  }
+}

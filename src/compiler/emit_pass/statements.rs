@@ -9,7 +9,7 @@ use crate::error;
 impl EmitWalker {
 
     #[instrument(level = "trace", skip_all)]
-    pub fn print(&mut self, e: Expression) {
+    pub fn print(&mut self, e: Expression, _line : usize) {
         let t = self.visit_expression(e, false);
         let line = 0;
         match t.as_ref() {
@@ -24,6 +24,12 @@ impl EmitWalker {
                     .func
                     .chunk
                     .write(Opcode::PrintInt.into(), line);
+            }
+            ValueType::UInteger => {
+                self.function_compiler
+                    .func
+                    .chunk
+                    .write(Opcode::PrintUint.into(), line);
             }
             ValueType::Bool => {
                 self.function_compiler
@@ -68,13 +74,13 @@ impl EmitWalker {
                     .write(Opcode::PrintChar.into(), line);
             }
             _ => {
-                error!(self, format!("Cannot print this type. {t:?}").as_str());
+                error!(self, format!("[line {line}] Cannot print this type. {t:?}").as_str());
             }
         }
     }
     
     #[instrument(level = "trace", skip_all)]
-    pub fn while_statement(&mut self, c: Expression, b: Statement) {
+    pub fn while_statement(&mut self, c: Expression, b: Statement, _line : usize) {
         let loop_start = self.function_compiler.func.chunk.code.len();
         let line = 0;
         let t = self.visit_expression(c, false);
@@ -91,7 +97,7 @@ impl EmitWalker {
     }
 
     #[instrument(level = "trace", skip_all)]
-    pub fn for_statement(&mut self, initializer: Option<ASTNode>, condition: Option<Expression>, increment: Option<Expression>, body: Statement) {
+    pub fn for_statement(&mut self, initializer: Option<ASTNode>, condition: Option<Expression>, increment: Option<Expression>, body: Statement, _line :usize) {
         self.begin_scope();
         
         let line = 0;
@@ -182,7 +188,7 @@ impl EmitWalker {
     }
 
     #[instrument(level = "trace", skip_all)]
-    pub fn if_statement(&mut self, c: Expression, t: Statement, e: Option<Statement>) {
+    pub fn if_statement(&mut self, c: Expression, t: Statement, e: Option<Statement>, _line : usize) {
         let line = 0;
         let tp = self.visit_expression(c, false);
         let exit_jump = self.emit_jump(Opcode::JumpIfFalse.into());

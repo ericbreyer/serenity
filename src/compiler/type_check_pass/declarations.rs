@@ -14,14 +14,13 @@ use crate::error;
 impl TypeCheckWalker {
 
     #[instrument(level = "trace", skip(self))]
-    pub fn var_declaration(&mut self, mut v: VarDeclaration) {
-        let _line = v.line;
+    pub fn var_declaration(&mut self, mut v: VarDeclaration, line : usize) {
 
         let name = v.name.clone();
         let global_id = self.parse_variable(v.name, v.mutable);
 
         if !v.mutable && v.initializer.is_none() {
-            error!(self, "Immutable variable must be initialized");
+            error!(self, &format!("[line {line}] Immutable variable must be initialized"));
             return;
         }
 
@@ -102,7 +101,7 @@ impl TypeCheckWalker {
             }
 
             if name == local.name {
-                error!(self, "Already variable with this name in this scope.");
+                error!(self, &format!("Variable {name} already declared in this scope"));
             }
         }
 
@@ -125,7 +124,7 @@ impl TypeCheckWalker {
     }
 
     #[instrument(level = "trace", skip(self))]
-    pub fn fun_declaration(&mut self, f: FunctionDeclaration) {
+    pub fn fun_declaration(&mut self, f: FunctionDeclaration, _line: usize) {
         let name = f.name;
         let global_id = self.parse_variable(name.clone(), false);
         if self.function_compiler.scope_depth > 0 {
@@ -134,7 +133,7 @@ impl TypeCheckWalker {
             self.function_compiler.locals.get_mut(&last_local).unwrap().depth = self.function_compiler.scope_depth;
         }
 
-        let t = self.function(f.body);
+        let t = self.function(f.body, _line);
 
         if global_id == -1 {
             let last_local = self.last_local();
@@ -152,7 +151,7 @@ impl TypeCheckWalker {
     }
 
     #[instrument(level = "trace", skip(self))]
-    pub fn struct_declaration(&mut self, sd: StructDeclaration) {
+    pub fn struct_declaration(&mut self, sd: StructDeclaration, _line: usize) {
         let s = sd.s;
         let _name = s.name;
         let _fields = s.fields;
@@ -160,7 +159,7 @@ impl TypeCheckWalker {
     }
 
     #[instrument(level = "trace", skip(self))]
-    pub fn array_declaration(&mut self, a: ArrayDeclaration) {
+    pub fn array_declaration(&mut self, a: ArrayDeclaration, _line: usize) {
 
         let global_id = self.parse_variable(a.name.clone(), false);
         let var_type = a.elem_tipe.expect("elem_tipe is none");

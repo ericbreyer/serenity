@@ -3,7 +3,7 @@ use super::{ParseRule, SerenityParser, Precedence};
 impl SerenityParser {
     pub fn init_parse_table(&mut self) {
         
-        let type_set_rules: [ParseRule; 53] = [
+        let type_set_rules: [ParseRule; 56] = [
             ParseRule {
                 prefix: Some(SerenityParser::grouping),
                 infix: Some(SerenityParser::call),
@@ -147,7 +147,7 @@ impl SerenityParser {
                 infix: None,
 
                 precedence: Precedence::None,
-            }, // Class
+            }, // Struct
             ParseRule {
                 prefix: None,
                 infix: None,
@@ -293,7 +293,7 @@ impl SerenityParser {
                 precedence: Precedence::Call,
             }, // RightArrow
             ParseRule {
-                prefix: None,
+                prefix: Some(SerenityParser::cast_prefix),
                 infix: None,
 
                 precedence: Precedence::None,
@@ -310,6 +310,23 @@ impl SerenityParser {
 
                 precedence: Precedence::None,
             }, // Char
+            ParseRule {
+                prefix: None,
+                infix: Some(SerenityParser::pipe),
+                precedence: Precedence::Call,
+            }, // Pipe
+            ParseRule {
+                prefix: None,
+                infix: None,
+
+                precedence: Precedence::None,
+            }, // LeftParenBrace
+            ParseRule {
+                prefix: None,
+                infix: None,
+
+                precedence: Precedence::None,
+            }, // RightParenBrace
             ParseRule {
                 prefix: None,
                 infix: None,
