@@ -1,1 +1,3 @@
-- Linenos in AST for errors
+- Generics
+- Builtin functions
+- LLVM target

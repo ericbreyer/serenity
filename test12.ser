@@ -1,0 +1,51 @@
+type adder interface {
+    add: fn(int) -> int
+};
+
+type c struct {
+    i : int
+} implements adder;
+
+fn (self: *struct c) add(j: int) -> int {
+    let rself = cast(self, *struct c);
+    return rself->i = rself->i + j;
+}
+
+type d struct {
+    i : int
+} implements adder;
+
+fn (self: *struct d) add(j: int) -> int {
+    let rself = cast(self, *struct d);
+    return rself->i = rself->i - j;
+    
+}
+// /// Generate this with implements_as statement
+// /// Have an impl <interface> keyword that expands to interface_impl
+// const d_vtable = struct adder_vtable{add: struct d::add};
+
+// fn d_impl_add(self: *struct d) -> impl adder {
+//     return struct adder_impl{vtable: &d_vtable, self: self};
+// }
+
+fn stuff(adder: impl adder) -> int {
+    return adder.add(2);
+}
+
+fn main() {
+
+    let c_conc = struct c{i: 0};
+    let c_impl = c_impl_adder(&c_conc);
+
+    let d_conc = struct d{i: 0};
+    let d_impl: impl adder = d_impl_adder(&d_conc);
+
+    c_impl.add(2);
+    c_conc.add(2);
+    print stuff(c_impl);
+
+    d_impl.add(2);
+    d_conc.add(2);
+    print stuff(d_impl);
+
+}

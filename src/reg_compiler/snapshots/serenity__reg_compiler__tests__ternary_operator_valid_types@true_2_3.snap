@@ -1,0 +1,28 @@
+---
+source: src/reg_compiler/tests.rs
+expression: bytecode
+---
+0 ; script
+1 [   1]  Push           L12:  
+2 [   1]  LoadImediate   r8[fn([nil], 0)] (local *3)  
+3 ; imediate killed 9 for global *0
+4 [   1]  MemCpy         (global *0)  r8[fn([nil], 0)] (1u)  
+5 [   1]  Pop            
+6 ; imediate killed 10 for global *0
+7 [   0]  Move           r11[&fn([nil], 0)] (global *0)  
+8 [   0]  Move           r12[fn([nil], 0)] r11[&fn([nil], 0)] 
+9 [   0]  PreCall        r13[nil] r12[fn([nil], 0)] (0u)  
+10 [   0]  Call           
+11 [   0]  Halt           
+12 ; main
+13 ; imediate killed 1 for true
+14 [   1]  JumpIfFalse    (true)  L18:  
+15 ; imediate killed 4 for 2
+16 [   1]  Move           r5[i64] (2)  
+17 [   1]  Jump           L20:  
+18 ; imediate killed 6 for 3
+19 [   1]  Move           r5[i64] (3)  
+20 [   1]  Push           r0[nil] 
+21 [   1]  LoadImediate   r7[*i64] (local *3)  
+22 [   1]  Store          r7[*i64] r5[i64] 
+23 [   1]  Return         r0[nil] (0u)

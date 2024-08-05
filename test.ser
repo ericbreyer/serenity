@@ -4,13 +4,16 @@ fun cumtrapz(f : fun(float) -> float, start:float, num_steps: int, step : float,
   buf[0] = 0.0;
   for(var i = 0; i < num_steps; i = i + 1) {
     var x = start + cast(i, float) * step;
+    print x;
     buf[i + 1] = buf[i] + ((f(x) + f(x + step)) / 2.0) * step;
+    // print buf[i];
+    // print buf[i + 1];
+    // print "\n";
   }
 }
 
 var buf : float[21];
 fun main() {
-
 
 //let buf = cast(sbrk(21), float*);
 let sentinal = cast(sbrk(1), float*);

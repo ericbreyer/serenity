@@ -1,0 +1,26 @@
+---
+source: src/reg_compiler/tests.rs
+expression: err
+---
+0 ; script
+1 [   1]  Push           L17:  
+2 [   1]  LoadImediate   r2[fn([bool], 0)] (local *3)  
+3 ; imediate killed 3 for global *0
+4 [   1]  MemCpy         (global *0)  r2[fn([bool], 0)] (1u)  
+5 [   1]  Pop            
+6 [   1]  Push           L20:  
+7 [   1]  LoadImediate   r4[fn([nil], 0)] (local *3)  
+8 ; imediate killed 5 for global *1
+9 [   1]  MemCpy         (global *1)  r4[fn([nil], 0)] (1u)  
+10 [   1]  Pop            
+11 ; imediate killed 6 for global *1
+12 [   0]  Move           r7[&fn([nil], 0)] (global *1)  
+13 [   0]  Move           r8[fn([nil], 0)] r7[&fn([nil], 0)] 
+14 [   0]  PreCall        r9[nil] r8[fn([nil], 0)] (0u)  
+15 [   0]  Call           
+16 [   0]  Halt           
+17 ; t
+18 ; imediate killed 1 for true
+19 [   1]  Return         (true)  (0u)  
+20 ; main
+21 [   1]  Return         r0[nil] (0u)

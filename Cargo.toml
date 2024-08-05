@@ -15,9 +15,20 @@ getopts = "0.2"
 tracing = {version = "0.1.40", features = ["release_max_level_off"]}
 tracing-subscriber = "0.3.18"
 tracing-appender = "0.2.3"
+strum = "0.26.3"
+strum_macros = "0.26.3"
+anyhow = "1.0.86"
+enum_dispatch = "0.3.13"
+inkwell = { version = "0.4.0", features = ["llvm10-0"] }
+
 
 [dev-dependencies]
+insta = { version = "1.39.0", features = ["yaml", "filters"] }
 test-case = "*"
 
 [profile.release]
 debug = true
+
+[profile.dev.package]
+insta.opt-level = 3
+similar.opt-level = 3

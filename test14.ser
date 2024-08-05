@@ -1,0 +1,18 @@
+type counter struct {
+    i: int
+};
+
+fn func() -> struct counter {
+    let x = struct counter {i:1, j:2};
+    let y = 2;
+    let z = 3;
+    print x.i;
+    print y;
+    print z;
+    return x;
+}
+fn main() {
+    print func().i;
+    let c = struct counter {i: 0, j: 0};
+    print c.i;
+}

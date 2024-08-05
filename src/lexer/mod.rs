@@ -1,16 +1,19 @@
-use std::{default::Default, fmt::Debug};
-
+use std::fmt::Debug;
+use strum::EnumCount as _;
+use strum_macros::EnumCount;
 use trie_rs::{Trie, TrieBuilder};
 
+use crate::prelude::*;
+
 pub struct Lexer {
-    source: String,
+    source: SharedString,
     lexeme_start: usize,
     lexeme_current: usize,
     line: usize,
     keywords: Trie<u8>,
 }
 
-#[derive(Debug, PartialEq, Copy, Clone, Default)]
+#[derive(Debug, PartialEq, Copy, Clone, EnumCount)]
 pub enum TokenType {
     LeftParen,
     RightParen,
@@ -41,7 +44,6 @@ pub enum TokenType {
     Fun,
     For,
     If,
-    Nil,
     Or,
     Print,
     Return,
@@ -52,6 +54,7 @@ pub enum TokenType {
     While,
     QuestionMark,
     Colon,
+    DoubleColon,
     Const,
     Break,
     Continue,
@@ -67,12 +70,21 @@ pub enum TokenType {
     LeftParenBrace,
     RightParenBrace,
     Include,
+    Interface,
+    Impl,
+    Implements,
+    Type,
     Eof,
-    #[default]
     Error,
 }
 
-const KEYWORDS: [(&str, TokenType); 31] = [
+impl TokenType {
+    pub const fn num_variants() -> usize {
+        Self::COUNT
+    }
+}
+
+const KEYWORDS: [(&str, TokenType); 34] = [
     ("and", TokenType::And),
     ("struct", TokenType::Struct),
     ("else", TokenType::Else),
@@ -81,7 +93,7 @@ const KEYWORDS: [(&str, TokenType); 31] = [
     ("fun", TokenType::Fun),
     ("fn", TokenType::Fun),
     ("if", TokenType::If),
-    ("nil", TokenType::Nil),
+    ("nil", TokenType::SimpleType),
     ("or", TokenType::Or),
     ("print", TokenType::Print),
     ("return", TokenType::Return),
@@ -99,17 +111,20 @@ const KEYWORDS: [(&str, TokenType); 31] = [
     ("uint", TokenType::SimpleType),
     ("int", TokenType::SimpleType),
     ("float", TokenType::SimpleType),
-    ("string", TokenType::SimpleType),
     ("bool", TokenType::SimpleType),
     ("cast", TokenType::Cast),
-    ("char", TokenType::Char),
+    ("char", TokenType::SimpleType),
     ("include", TokenType::Include),
+    ("interface", TokenType::Interface),
+    ("impl", TokenType::Impl),
+    ("implements", TokenType::Implements),
+    ("type", TokenType::Type),
 ];
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct Token {
     pub token_type: TokenType,
-    pub lexeme: String,
+    pub lexeme: SharedString,
     pub line: usize,
 }
 
@@ -120,7 +135,7 @@ impl Debug for Token {
 }
 
 impl Lexer {
-    pub fn new(source: String) -> Lexer {
+    pub fn new(source: SharedString) -> Lexer {
         Lexer {
             source,
             lexeme_start: 0,
@@ -173,7 +188,6 @@ impl Lexer {
                     self.make_token(TokenType::LeftParenBrace)
                 } else {
                     self.make_token(TokenType::LeftParen)
-
                 }
             }
             ')' => self.make_token(TokenType::RightParen),
@@ -184,7 +198,6 @@ impl Lexer {
                 } else {
                     self.make_token(TokenType::RightBrace)
                 }
-            
             }
             ';' => self.make_token(TokenType::Semicolon),
             ',' => self.make_token(TokenType::Comma),
@@ -200,7 +213,13 @@ impl Lexer {
             '/' => self.make_token(TokenType::Slash),
             '*' => self.make_token(TokenType::Star),
             '?' => self.make_token(TokenType::QuestionMark),
-            ':' => self.make_token(TokenType::Colon),
+            ':' => {
+                if self.advance_if_match(':') {
+                    self.make_token(TokenType::DoubleColon)
+                } else {
+                    self.make_token(TokenType::Colon)
+                }
+            }
             '&' => self.make_token(TokenType::Amp),
             '[' => self.make_token(TokenType::LeftBracket),
             ']' => self.make_token(TokenType::RightBracket),
@@ -240,7 +259,7 @@ impl Lexer {
                     self.advance();
                 }
                 if self.is_at_end() {
-                    return self.error_token("Unterminated string.");
+                    return self.error_token("Unterminated SharedString.");
                 }
                 self.advance();
                 self.make_token(TokenType::String)
@@ -274,7 +293,7 @@ impl Lexer {
     fn make_token(&self, token_type: TokenType) -> Token {
         Token {
             token_type,
-            lexeme: String::from(&self.source[self.lexeme_start..self.lexeme_current]),
+            lexeme: String::from(&self.source[self.lexeme_start..self.lexeme_current]).into(),
             line: self.line,
         }
     }
@@ -282,7 +301,7 @@ impl Lexer {
     fn error_token(&self, message: &str) -> Token {
         Token {
             token_type: TokenType::Error,
-            lexeme: String::from(message),
+            lexeme: message.into(),
             line: self.line,
         }
     }

@@ -1,0 +1,88 @@
+include "./ztring.ser";
+
+type generator interface {
+    next: fn() -> int,
+};
+
+type nat_gen struct {
+    i: int,
+} implements generator;
+
+fun (self : * struct nat_gen) next() -> int {
+    let i = self->i;
+    self->i = i + 1;
+    return i;
+}
+
+type identity struct {
+    gen: impl generator,
+} implements generator;
+
+fun (self : * struct identity) next() -> int {
+    return self->gen.next();
+}
+
+type filter struct {
+    gen: impl generator,
+    pred: fn[int](int) -> bool,
+} implements generator;
+
+fun (self : * struct filter) next() -> int {
+    printString(string("filter next\n"));
+    print self->pred;
+    var pred = self->pred;
+    print pred;
+    var i = self->gen.next();
+    while (!pred(i)) {
+        // print i;
+        i = self->gen.next();
+        // print i;
+    }
+    // print i;
+    return i;
+}
+
+let filters: struct filter[100];
+let filter_ptr = 0;
+
+type seive struct {
+    gen: impl generator,
+} implements generator;
+
+fun (self : * struct seive) next() -> int {
+    printString(string("seive next\n"));
+    var gen = self->gen;
+    var i = gen.next();
+    
+    var pred = lambda[i](x: int) -> bool { return cast(x / i, float) != cast(x, float)/cast(i, float);  };
+    filters[filter_ptr] = struct filter { gen: self->gen, pred: pred };
+    self->gen = filter_impl_generator(filters + filter_ptr);
+    print self->gen.self;
+    filter_ptr = filter_ptr + 1;
+    return i;
+}
+
+
+fn main() {
+    var nats = struct nat_gen { i: 2 };
+    var gen = struct seive { gen: nat_gen_impl_generator(&nats) };
+
+    var i = 0;
+    while (i < 10) {
+        print gen.next();
+        i = i + 1;
+    }
+
+    // try two filter on the nats
+    // var i = 0;
+    // var nats = struct nat_gen { i: 2 };
+    // var pred = lambda[i](x: int) -> bool { return cast(x / 2, float) != cast(x, float)/2.0; };
+    // var gen = struct filter { gen:nat_gen_impl_generator(&nats), pred: pred };
+    // var pred2 = lambda[i](x: int) -> bool { return cast(x / 3, float) != cast(x, float)/3.0; };
+    // var gen2 = struct filter { gen: filter_impl_generator(&gen), pred: pred2 };
+    // // print gen2.next();
+    // while (i < 10) {
+    //     print gen2.next();
+    //     i = i + 1;
+    // }
+}

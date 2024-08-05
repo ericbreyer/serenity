@@ -1,0 +1,5 @@
+---
+source: src/reg_compiler/tests.rs
+expression: err
+---
+[compiler] error at src/reg_compiler/emit_ssa/mod.rs[LINE] - [line 1] Expected return type f64, got i64

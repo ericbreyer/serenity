@@ -1,0 +1,6 @@
+---
+source: tests/mod.rs
+expression: "std::str::from_utf8(&out).unwrap()"
+---
+6
+-6

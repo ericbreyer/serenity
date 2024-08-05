@@ -1,0 +1,25 @@
+type string struct {
+  s: char*,
+  len:  int
+};
+
+fn cstr_len(s: char*) -> int {
+  let i = 0;
+    for(let c:char; '\0' != (c = *(s + i) ); i = i + 1) {
+    }
+  return i;
+}
+
+fn string(str: char *) -> struct string {
+    let st = struct string {
+      s: str,
+      len: cstr_len(str)
+    };
+    return st;
+}
+
+fn printString(str: struct string) {
+  for(let i = 0; i < str.len; i = i + 1) {
+    print *(str.s + i);
+  }
+}

@@ -1,259 +1,372 @@
-use std::{ collections::HashMap, fmt::Debug, ops::Deref, rc::Rc, sync::{ Arc, Mutex, RwLock } };
+use std::{
+    cell::RefCell,
+    collections::{HashMap, HashSet},
+    fmt::Debug,
+    hash::{Hash, Hasher},
+    ops::Deref,
+    rc::Rc,
+};
+
 
 use pinvec::PinVec;
 use pow_of_2::PowOf2;
-use lazy_static::lazy_static;
 
-#[derive(Copy, Clone)]
+use crate::prelude::*;
+
+#[derive(Copy, Clone, Hash, Eq)]
 pub struct UValueType(usize);
 
 impl PartialEq for UValueType {
-  fn eq(&self, other: &Self) -> bool {
-    self.as_ref().eq(other.as_ref())
-  }
+    fn eq(&self, other: &Self) -> bool {
+        self.as_ref().eq(other.as_ref())
+    }
 }
 
 #[derive(Clone)]
 pub struct CustomStruct {
-  pub name: String,
-  pub fields: Arc<RwLock<HashMap<String, StructEntry>>>,
+    pub name: SharedString,
+    pub fields: RefCell<HashMap<SharedString, StructEntry>>,
+    pub embed: Option<SharedString>,
+    pub methods: RefCell<HashSet<SharedString>>,
+}
+
+impl core::hash::Hash for CustomStruct {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.name.hash(state);
+        self.embed.hash(state);
+        self.fields
+            .borrow()
+            .iter()
+            .collect::<Vec<_>>()
+            .sort_by_key(|t| t.0)
+            .hash(state);
+        self.methods
+            .borrow()
+            .iter()
+            .collect::<Vec<_>>()
+            .sort()
+            .hash(state);
+    }
 }
 
 impl Debug for CustomStruct {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    write!(f, "struct {}", self.name)
-  }
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "struct {}", self.name)
+    }
 }
 
-// impl Debug for CustomStruct {
-//   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//     write!(f, "struct {}", self.name)
-//   }
-// }
-
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Hash)]
 pub struct StructEntry {
-  pub value: UValueType,
-  pub offset: usize,
+    pub value: UValueType,
+    pub offset: usize,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Hash)]
 #[repr(usize)]
 pub enum ValueType {
-  Float,
-  Integer,
-  UInteger,
-  Char,
-  Bool,
-  Nil,
-  String,
-  Closure(Box<[UValueType]>),
-  AnyFunction,
-  Pointer(UValueType, bool),
-  Array(UValueType, usize),
-  Struct(CustomStruct),
-  SelfStruct(String),
-  Undef,
-  All,
-  Err,
+    Float,
+    Integer,
+    UInteger,
+    Char,
+    Bool,
+    Nil,
+    Closure(Box<[UValueType]>, usize),
+    FnPointer,
+    Pointer(UValueType, bool),
+    LValue(UValueType, bool),
+    Array(UValueType, usize),
+    Struct(CustomStruct),
+    SelfStruct(SharedString),
+    GenericParam(SharedString),
+    Undef,
+    All,
+    Err,
+}
+
+impl Debug for ValueType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Float => write!(f, "f64"),
+            Self::Integer => write!(f, "i64"),
+            Self::UInteger => write!(f, "u64"),
+            Self::Char => write!(f, "char"),
+            Self::Bool => write!(f, "bool"),
+            Self::Nil => write!(f, "nil"),
+            Self::Closure(arg0, arg1) => f.debug_tuple("fn").field(arg0).field(arg1).finish(),
+            Self::FnPointer => write!(f, "FnPointer"),
+            Self::Pointer(arg0, _) => write!(f, "*{:?}", arg0),
+            Self::LValue(arg0, _) => write!(f, "&{:?}", arg0),
+            Self::Array(arg0, arg1) => write!(f, "{:?}[{}]", arg0, arg1),
+            Self::Struct(arg0) => write!(f, "{{{arg0:?}}}"),
+            Self::SelfStruct(arg0) => f.debug_tuple("SelfStruct").field(arg0).finish(),
+            Self::GenericParam(arg0) => f.debug_tuple("GenericParam").field(arg0).finish(),
+            Self::Undef => write!(f, "Undef"),
+            Self::All => write!(f, "All"),
+            Self::Err => write!(f, "Err"),
+        }
+    }
 }
 
 impl ValueType {
-  pub fn num_words(&self) -> usize {
-    match self {
-      | Self::Float
-      | Self::Integer
-        | Self::UInteger
-      | Self::Char
-      | Self::Bool
-      | Self::Nil
-      | Self::String
-      | Self::Pointer(_, _)
-      | Self::Array(_, _)
-      | Self::Undef
-      | Self::All
-      | Self::Err => 1,
-      Self::Closure(_) => 3,
-      Self::AnyFunction => panic!("cannot convert anyfunction to word"),
-      Self::Struct(h) => {
-        let mut sum = 0;
-        for (_, v) in h.fields.read().as_ref().unwrap().iter() {
-          sum += v.value.as_ref().num_words();
+    pub fn is_aggregate(&self) -> bool {
+        match self {
+            Self::Struct(_) | Self::Closure(_, _) => true,
+            _ => false,
         }
-        sum
-      }
-      Self::SelfStruct(_) => panic!("cannot convert selfstruct to word"),
     }
-  }
 
-  fn to_trie_string(&self) -> String {
-    match self {
-      Self::Float => "1".into(),
-      Self::Integer => "2".into(),
-        Self::UInteger => "8".into(),
-      Self::Bool => "3".into(),
-      Self::Nil => "4".into(),
-      Self::String => "5".into(),
-      Self::Closure(b) =>
-        format!(
-          "6{}",
-          b
-            .iter()
-            .map(|t| t.as_ref().to_trie_string())
-            .fold(String::new(), |a, s| {
-              let mut r = a;
-              r.push_str(&s);
-              r
-            })
-        ),
-      Self::AnyFunction => "7".into(),
-      Self::Pointer(p, s) => format!("9{}{}", p.as_ref().to_trie_string(), s),
-      Self::Array(p, c) => format!("10{};{}", p.as_ref().to_trie_string(), c),
-      Self::Struct(h) =>
-        format!(
-          "E{}",
-          h.fields
-            .read()
-            .as_ref()
-            .unwrap()
-            .iter()
-            .map(|(k, v)| format!("{}:{}", k, v.value.as_ref().to_trie_string()))
-            .fold(String::new(), |a, s| {
-              let mut r = a;
-              r.push_str(&s);
-              r
-            })
-        ),
-      Self::Undef => "A".into(),
-      Self::All => "B".into(),
-      Self::Err => "C".into(),
-      Self::Char => "D".into(),
-      Self::SelfStruct(s) => format!("F{s}"),
+    pub fn is_array(&self) -> bool {
+        match self {
+            Self::Array(_, _) => true,
+            _ => false,
+        }
     }
-  }
 
-  fn soft_compare(&self, other: &Self) -> bool {
-    if [self, other].into_iter().any(Self::is_all) {
-      return true;
+    pub fn is_nil(&self) -> bool {
+        match self {
+            Self::Nil => true,
+            _ => false,
+        }
     }
-    match (self, other) {
-      | (Self::Closure(_), Self::AnyFunction)
-      | (Self::AnyFunction, Self::Closure(_))
-      | (Self::Pointer(_, _), Self::Nil)
-      | (Self::Nil, Self::Pointer(_, _)) => true,
-      (Self::Struct(l0), Self::Struct(r0)) => { l0.name == r0.name }
-      (Self::Closure(l0v), Self::Closure(r0v)) => {
-        l0v.len() == r0v.len() &&
-          l0v
-            .iter()
-            .zip(r0v.iter())
-            .all(|(l0, r0)| ([*l0, *r0].into_iter().any(|x| x.as_ref().is_all()) || l0 == r0))
-      }
-      (Self::Array(l0, l0c), Self::Array(r0, r0c)) => {
-        ([*l0, *r0].into_iter().any(|x| x.as_ref().is_all()) || l0 == r0) &&
-          ([l0c, r0c].into_iter().any(|u| *u == usize::MAX) || l0c == r0c)
-      }
-      (Self::Pointer(l0, _), Self::Pointer(r0, _)) => {
-        [*l0, *r0].into_iter().any(|x| x.as_ref().is_all()) || l0 == r0
-      }
 
-      (Self::SelfStruct(l0), Self::SelfStruct(r0)) => l0 == r0,
-      (Self::SelfStruct(l0), Self::Struct(r0)) => l0 == &r0.name,
-      (Self::Struct(l0), Self::SelfStruct(r0)) => &l0.name == r0,
-
-      _ => core::mem::discriminant(self) == core::mem::discriminant(other),
+    pub fn to_string(&self) -> SharedString {
+        match self {
+            ValueType::Float => "float".into(),
+            ValueType::Integer => "int".into(),
+            ValueType::UInteger => "uint".into(),
+            ValueType::Char => "char".into(),
+            ValueType::Bool => "bool".into(),
+            ValueType::Nil => "nil".into(),
+            ValueType::Closure(t, _) => {
+                let mut s = String::new();
+                s.push_str("fn(");
+                for (i, v) in t[0..t.len()-1].iter().enumerate() {
+                    s.push_str(&v.to_string());
+                    if i != t.len() - 1 {
+                        s.push_str(", ");
+                    }
+                }
+                s.push_str(") -> ");
+                s.push_str(&t[t.len()-1].to_string());
+                s.into()
+            },
+            ValueType::FnPointer => todo!(),
+            ValueType::Pointer(t, _) => format!("*{}", t.to_string()).into(),
+            ValueType::LValue(_, _) => todo!(),
+            ValueType::Array(_, _) => todo!(),
+            ValueType::Struct(_) => todo!(),
+            ValueType::SelfStruct(_) => todo!(),
+            ValueType::GenericParam(_) => todo!(),
+            ValueType::Undef => todo!(),
+            ValueType::All => todo!(),
+            ValueType::Err => todo!(),
+        }
     }
-  }
+
+    pub fn num_words(&self) -> usize {
+        match self {
+            Self::Float
+            | Self::Integer
+            | Self::UInteger
+            | Self::Char
+            | Self::Bool
+            | Self::Nil
+            | Self::Pointer(_, _)
+            | Self::LValue(_, _)
+            | Self::Undef
+            | Self::All
+            | Self::Err => 1,
+            Self::Closure(_, us) => us + 1,
+            Self::FnPointer => 2,
+            Self::Array(t, n) => t.num_words() * n,
+            Self::Struct(h) => {
+                let mut sum = 0;
+                for (_, v) in h.fields.borrow().iter() {
+                    sum += v.value.as_ref().num_words();
+                }
+                sum
+            }
+            Self::SelfStruct(_) => panic!("cannot convert selfstruct to word"),
+            Self::GenericParam(_) => panic!("cannot convert generic param to word"),
+        }
+    }
+
+    pub fn unique_string(&self) -> SharedString {
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        self.hash(&mut hasher);
+        format!("{}", hasher.finish()).into()
+    }
+
+    fn soft_compare(&self, other: &Self) -> bool {
+        if [self, other].into_iter().any(Self::is_all) {
+            return true;
+        }
+        match (self, other) {
+            (Self::Pointer(_, _), Self::Pointer(nil, _))
+            | (Self::Pointer(nil, _), Self::Pointer(_, _))
+                if nil.is_nil() =>
+            {
+                true
+            }
+            (Self::Struct(l0), Self::Struct(r0)) => l0.name == r0.name,
+            (Self::Closure(l0v, u0), Self::Closure(r0v, u1)) => {
+                u0 == u1
+                    && l0v.len() == r0v.len()
+                    && l0v.iter().zip(r0v.iter()).all(|(l0, r0)| {
+                        [*l0, *r0].into_iter().any(|x| x.as_ref().is_all()) || l0 == r0
+                    })
+            }
+            (Self::Array(l0, l0c), Self::Array(r0, r0c)) => {
+                ([*l0, *r0].into_iter().any(|x| x.as_ref().is_all()) || l0 == r0)
+                    && ([l0c, r0c].into_iter().any(|u| *u == usize::MAX) || l0c == r0c)
+            }
+            (Self::Pointer(l0, _), Self::Pointer(r0, _)) => {
+                [*l0, *r0].into_iter().any(|x| x.as_ref().is_all()) || l0 == r0
+            }
+
+            (Self::SelfStruct(l0), Self::SelfStruct(r0)) => l0 == r0,
+            (Self::SelfStruct(l0), Self::Struct(r0)) => l0 == &r0.name,
+            (Self::Struct(l0), Self::SelfStruct(r0)) => &l0.name == r0,
+
+            _ => core::mem::discriminant(self) == core::mem::discriminant(other),
+        }
+    }
 }
 
 impl PartialEq for ValueType {
-  fn eq(&self, other: &Self) -> bool {
-    self.soft_compare(other)
-  }
+    fn eq(&self, other: &Self) -> bool {
+        self.soft_compare(other)
+    }
 }
 
-lazy_static! {
-    static ref USED_TYPES: Arc<Mutex<PinVec<ValueType>>> = Arc::new(Mutex::new(PinVec::new(PowOf2::from_exp(8))));
-    static ref USED_TYPES_INDECES: Arc<Mutex<HashMap<String, usize>>> = Arc::new(Mutex::new(HashMap::new()));
+thread_local! {
+    static USED_TYPES: RefCell<PinVec<ValueType>> =
+        RefCell::new(PinVec::new(PowOf2::from_exp(8)));
+    static USED_TYPES_INDECES: RefCell<HashMap<SharedString, usize>> =
+        RefCell::new(HashMap::new());
 }
 
 impl ValueType {
-  pub fn is_all(&self) -> bool {
-    core::mem::discriminant(self) == core::mem::discriminant(&Self::All)
-  }
+    pub fn is_all(&self) -> bool {
+        core::mem::discriminant(self) == core::mem::discriminant(&Self::All)
+    }
 
-  pub fn decay(&self, custom_structs: Option<Rc<HashMap<String, CustomStruct>>>) -> UValueType {
-    match (self, custom_structs) {
-      (Self::Array(p, _), _) => Self::Pointer(*p, true).clone().intern(),
-      (Self::String, _) => Self::Pointer(Self::Char.intern(), true).clone().intern(),
-      (Self::Pointer(maybe_ss, _), Some(cs)) => {
-        if let Self::SelfStruct(s) = maybe_ss.as_ref() {
-          if let Some(s) = cs.get(s) {
-            Self::Pointer(Self::Struct(s.clone()).intern(), false).clone().intern()
-          } else {
-            Self::Err.intern()
-          }
-        } else {
-          self.clone().intern()
+    pub fn decay(&self, custom_structs: Option<Rc<HashMap<SharedString, CustomStruct>>>) -> UValueType {
+        match (self, custom_structs) {
+            (Self::Array(p, _), _) => Self::Pointer(*p, true).clone().intern(),
+            (Self::Pointer(maybe_ss, _), Some(cs)) => {
+                if let Self::SelfStruct(s) = maybe_ss.as_ref() {
+                    if let Some(s) = cs.get(s) {
+                        Self::Pointer(Self::Struct(s.clone()).intern(), false)
+                            .clone()
+                            .intern()
+                    } else {
+                        Self::Err.intern()
+                    }
+                } else {
+                    self.clone().intern()
+                }
+            }
+            (Self::LValue(maybe_ss, _), Some(cs)) => {
+                if let Self::SelfStruct(s) = maybe_ss.as_ref() {
+                    if let Some(s) = cs.get(s) {
+                        Self::LValue(Self::Struct(s.clone()).intern(), false)
+                            .clone()
+                            .intern()
+                    } else {
+                        Self::Err.intern()
+                    }
+                } else {
+                    self.clone().intern()
+                }
+            }
+            _ => self.clone().intern(),
         }
-      }
-      _ => self.clone().intern(),
-    }
-  }
-
-  pub fn intern(&self) -> UValueType {
-    let sid = self.to_trie_string();
-
-    let mut used_vec = USED_TYPES.lock().unwrap();
-    let mut used_indeces = USED_TYPES_INDECES.lock().unwrap();
-
-    if let Some(idx) = used_indeces.get(&sid) {
-      return UValueType(*idx);
     }
 
-    let value = self.clone();
-    let idx = used_vec.len();
-    used_indeces.insert(sid, idx);
-    used_vec.push(value);
-    UValueType(idx)
-  }
+    // pub fn fill_generic(&self, param: SharedString, value: UValueType) -> UValueType {
+    //   match self {
+    //     Self::GenericParam(p) if p == &param => value,
+    //     Self::Closure(v, u) => {
+    //       let mut new_v = Vec::with_capacity(v.len());
+    //       for x in v.iter() {
+    //         new_v.push(x.fill_generic(param.clone(), value));
+    //       }
+    //       Self::Closure(new_v.into_boxed_slice(), *u).intern()
+    //     }
+    //     Self::Array(v, u) => Self::Array(v.fill_generic(param, value), *u).intern(),
+    //     Self::Pointer(v, b) => Self::Pointer(v.fill_generic(param, value), *b).intern(),
+    //     Self::Struct(s) => {
+    //       let mut new_fields = HashMap::new();
+    //       for (k, v) in s.fields.read().as_ref().unwrap().iter() {
+    //         new_fields.insert(k.clone(), v.fill_generic(param.clone(), value));
+    //       }
+    //       Self::Struct(CustomStruct {
+    //         name: s.name.clone(),
+    //         fields: Arc::new(RwLock::new(new_fields)),
+    //         embed: s.embed.clone(),
+    //         methods: s.methods.clone(),
+    //       })
+    //       .intern()
+    //     }
+
+    //     _ => self.clone(),
+    //   }
+    // }
+
+    pub fn intern(&self) -> UValueType {
+        let sid = self.unique_string();
+
+        USED_TYPES.with_borrow_mut(|used_vec| {
+            USED_TYPES_INDECES.with_borrow_mut(|used_indeces| {
+                if let Some(idx) = used_indeces.get(&sid) {
+                    return UValueType(*idx);
+                }
+
+                let value = self.clone();
+                let idx = used_vec.len();
+                used_indeces.insert(sid, idx);
+                used_vec.push(value);
+                UValueType(idx)
+            })
+        })
+    }
 }
 
 impl AsRef<ValueType> for UValueType {
-  fn as_ref(&self) -> &ValueType {
-    let used_types = USED_TYPES.lock().unwrap();
-    let value_type = &used_types.idx_ref(self.0);
-    // Lock is released here, it is safe to dereference value_type
-    unsafe {
-      &*std::ptr::addr_of!(**value_type)
+    fn as_ref(&self) -> &ValueType {
+        USED_TYPES.with_borrow(|used_types| {
+            let value_type = &used_types.idx_ref(self.0);
+            // Lock is released here, it is safe to dereference value_type
+            unsafe { &*std::ptr::addr_of!(**value_type) }
+        })
     }
-  }
 }
 
 impl Deref for UValueType {
-  type Target = ValueType;
+    type Target = ValueType;
 
-  fn deref(&self) -> &Self::Target {
-    self.as_ref()
-  }
+    fn deref(&self) -> &Self::Target {
+        self.as_ref()
+    }
 }
 
 impl Debug for UValueType {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    self.as_ref().fmt(f)
-  }
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.as_ref().fmt(f)
+    }
 }
 
-impl From<String> for UValueType {
-  fn from(s: String) -> Self {
-    match s.as_str() {
-      "float" => ValueType::Float.intern(),
-      "int" => ValueType::Integer.intern(),
-        "uint" => ValueType::UInteger.intern(),
-      "bool" => ValueType::Bool.intern(),
-      "nil" => ValueType::Nil.intern(),
-      "string" => ValueType::String.intern(),
-      _ => ValueType::Err.intern(),
+impl From<SharedString> for UValueType {
+    fn from(s: SharedString) -> Self {
+        match s.as_ref() {
+            "float" => ValueType::Float.intern(),
+            "int" => ValueType::Integer.intern(),
+            "uint" => ValueType::UInteger.intern(),
+            "bool" => ValueType::Bool.intern(),
+            "nil" => ValueType::Nil.intern(),
+            "char" => ValueType::Char.intern(),
+            _ => ValueType::Err.intern(),
+        }
     }
-  }
 }

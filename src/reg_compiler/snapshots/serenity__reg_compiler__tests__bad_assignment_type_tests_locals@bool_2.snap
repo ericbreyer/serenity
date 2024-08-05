@@ -1,0 +1,5 @@
+---
+source: src/reg_compiler/tests.rs
+expression: err
+---
+[compiler] error at src/reg_compiler/emit_ssa/declarations.rs[LINE] - Type mismatch, expected bool got i64

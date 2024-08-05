@@ -20,7 +20,7 @@
 					"include": "#function-declaration"
 				},
 				{
-					"include": "#struct-declaration"
+					"include": "#type-declaration"
 				},
 				{
 					"include": "#statement-keyword"
@@ -112,22 +112,22 @@
 				}
 			]
 		},
-		"struct-declaration": {
-			"name": "meta.structure.serenity",
-			"begin": "\\b(struct)\\s+(?=[a-z_]*\\s*)",
+		"type-declaration": {
+			"name": "meta.type.serenity",
+			"begin": "\\b(type)\\s+(?=[a-z_]*\\s*)",
 			"end": "\\{",
 			"beginCaptures": {
 				"1": {
-					"name": "storage.type.structure.serenity"
+					"name": "storage.type.type.serenity"
 				}
 			},
 			"patterns": [
 				{
-					"include": "#struct-declaration-name"
+					"include": "#type-declaration-name"
 				}
 			]
 		},
-		"struct-declaration-name": {
+		"type-declaration-name": {
 			"patterns": [
 				{
 					"name": "entity.name.type.serenity",
