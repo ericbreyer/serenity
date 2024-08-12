@@ -162,10 +162,10 @@ impl EmitWalker {
   fn visit_expression(&mut self, node: Expression, assignment_target: bool) -> UValueType {
     if assignment_target {
       match node {
-        Expression::Deref(_, _) => (),
-        Expression::Index(_, _, _) => (),
+        Expression::Deref(DerefExpression{ operand: _, line_no:  _}) => (),
+       Expression::Index(IndexExpression{ array: _, index:  _, line_no:  _) => (}),
         Expression::Variable(_, _) => (),
-        Expression::Dot(_, _, _) => (),
+       Expression::Dot(DotExpression{ object: _, field:  _, line_no:  _}) => (),
         _ => {
           error!(
             self,
@@ -176,19 +176,19 @@ impl EmitWalker {
       }
     }
     let t = match node {
-      Expression::Literal(v, line) => self.literal(v, line),
+     Expression::Literal(LiteralExpression{ value: v, line) => self.literal(v, line_no:  line}),
       Expression::StringLiteral(s, line) => self.SharedString(s, line),
       Expression::Unary(t, e, line) => self.unary(t, *e, line),
-      Expression::Deref(e, line) => self.deref(*e, assignment_target, line),
+      Expression::Deref(DerefExpression{ operand: e, line_no:  line}) => self.deref(*e, assignment_target, line),
       Expression::Ref(e, line) => self.addr_of(*e, line),
-      Expression::Index(e, i, line) => self.index(*e, *i, assignment_target, line),
-      Expression::Binary(l, t, r, line) => self.binary(*l, t, *r, line),
-      Expression::Ternary(c, t, f, line) => self.ternary(*c, *t, *f, line),
+     Expression::Index(IndexExpression{ array: e, i, line) => self.index(*e, *i, index:  assignment_target, line_no:  line}),
+     Expression::Binary(BinaryExpression{ left: l, t, r, line) => self.binary(*l, operator:  t, right:  *r, line_no:  line}),
+     Expression::Ternary(TernaryExpression{ condition: c, t, f, line) => self.ternary(*c, then_branch:  *t, else_branch:  *f, line_no:  line}),
       Expression::Variable(t, line) => self.variable(t.lexeme, assignment_target, line),
-      Expression::Assign(l, r, line) => self.assign(*l, *r, line),
-      Expression::Logical(l, t, r, line) => self.logical(*l, t, *r, line),
-      Expression::Call(c, a, line) => self.call(*c, a, line),
-      Expression::Dot(e, t, line) => self.dot(*e, t, assignment_target, line),
+     Expression::Assign(AssignExpression{ variable: l, r, line) => self.assign(*l, value:  *r, line_no:  line}),
+     Expression::Logical(LogicalExpression{ left: l, t, r, line) => self.logical(*l, operator:  t, right:  *r, line_no:  line}),
+     Expression::Call(CallExpression{ callee: c, a, line) => self.call(*c, arguments:  a, line_no:  line}),
+     Expression::Dot(DotExpression{ object: e, t, line) => self.dot(*e, t, field:  assignment_target, line_no:  line}),
       Expression::Function(f, line) => self.function(f, line),
       Expression::Cast(e, t, from_t, line) => self.cast(*e, t, from_t, line),
       Expression::StructInitializer(t, v, line) => self.struct_literal(t, v, line),

@@ -1,4 +1,8 @@
-use std::{fmt::{Debug, Display}, ops::Deref, rc::Rc};
+use std::{
+    fmt::{Debug, Display},
+    ops::Deref,
+    rc::Rc,
+};
 
 #[derive(Clone, Eq, PartialOrd, Ord)]
 pub struct SharedString(Rc<str>);

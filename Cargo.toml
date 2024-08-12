@@ -5,6 +5,7 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+
 [dependencies]
 trie-rs = "0.1"
 num_enum = "*"
@@ -19,7 +20,7 @@ strum = "0.26.3"
 strum_macros = "0.26.3"
 anyhow = "1.0.86"
 enum_dispatch = "0.3.13"
-inkwell = { version = "0.4.0", features = ["llvm10-0"] }
+inkwell = { version = "0.5.0", features = ["llvm18-0"] }
 
 
 [dev-dependencies]

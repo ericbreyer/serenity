@@ -660,7 +660,7 @@ impl EmitRegWalker {
         if let ValueType::Pointer(_, _) = t.as_ref() {
             callee_loc = rvalue!(
                 self,
-                self.visit_expression(Expression::Deref(Box::new(callee), line)).0,
+                self.visit_expression(Expression::Deref(DerefExpression{ operand: Box::new(callee), line_no:  line})).0,
                 line
             );
             t = callee_loc.get_type();

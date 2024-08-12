@@ -1,5 +1,0 @@
----
-source: src/parser/serenity_parser/tests.rs
-expression: err
----
-[line 1] error at 'int' : Expect ';' or ':' or '=' after variable name.

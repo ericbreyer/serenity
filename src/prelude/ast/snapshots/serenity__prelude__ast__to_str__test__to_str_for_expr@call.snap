@@ -1,0 +1,8 @@
+---
+source: src/prelude/ast/to_str.rs
+expression: result
+---
+[line    1] Call:
+[line    1] ├─── Variable: test
+[line    1] ├─── Literal: 1
+[line    1] ╰─── Literal: 1

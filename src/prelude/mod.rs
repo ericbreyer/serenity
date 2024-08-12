@@ -3,7 +3,8 @@ mod shared_strings;
 
 pub use crate::{
     prelude::{ast::*, shared_strings::SharedString},
-    typing::{UValueType, ValueType, CustomStruct, StructEntry},
+    typing::{CustomStruct, StructEntry, UValueType, ValueType},
+    value::Value,
 };
 use std::fmt::Debug;
 

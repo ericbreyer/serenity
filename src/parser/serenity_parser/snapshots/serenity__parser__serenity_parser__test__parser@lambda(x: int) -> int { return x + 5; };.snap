@@ -1,0 +1,16 @@
+---
+source: src/parser/serenity_parser/test.rs
+expression: ast
+---
+[line    1] Expression: 
+[line    0] ╰─── Function: anon0
+[line    0]      ╰─── Function Expression:
+[line    0]           ├─── Name: anon0
+[line    0]           ├─── Return Type: i64
+[line    0]           ├─── Params:
+[line    0]           │    ╰─── x: i64
+[line    0]           ╰─── Body: 
+[line    1]                ╰─── Return:
+[line    1]                     ╰─── Binary: Plus
+[line    1]                          ├─── Variable: x
+[line    1]                          ╰─── Literal: 5

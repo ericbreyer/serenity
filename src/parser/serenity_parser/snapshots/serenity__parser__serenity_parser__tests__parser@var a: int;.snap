@@ -1,7 +1,0 @@
----
-source: src/parser/serenity_parser/tests.rs
-expression: ast
----
-[line    1] ├─── Var Declaration: a
-[line    0] ├─── Call:
-[line    0] ╰─── Variable: main

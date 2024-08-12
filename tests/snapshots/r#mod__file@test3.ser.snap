@@ -1,9 +1,0 @@
----
-source: tests/mod.rs
-expression: "std::str::from_utf8(&out).unwrap()"
----
-local *7
-local *7
-6
-1
-1

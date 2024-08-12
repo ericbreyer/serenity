@@ -1,0 +1,14 @@
+---
+source: src/llvm_compiler/mod.rs
+expression: module.print_to_string().to_string()
+---
+; ModuleID = 'test'
+source_filename = "test"
+
+@anon = global { ptr } { ptr @anon_fn }
+
+define i64 @anon_fn() {
+entry:
+  %x = alloca i64, align 8
+  store i64 1, ptr %x, align 4
+}

@@ -1,0 +1,7 @@
+---
+source: src/parser/serenity_parser/test.rs
+expression: ast
+---
+[line    1] Var Declaration: a
+[line    1] ╰───  Initializer
+[line    1]      ╰─── Literal: 5

@@ -1,5 +1,0 @@
----
-source: src/reg_compiler/tests.rs
-expression: err
----
-[compiler] error at src/reg_compiler/emit_ssa/mod.rs[LINE] - [line 1] Expected return type fn([i64, i64], 0), got i64

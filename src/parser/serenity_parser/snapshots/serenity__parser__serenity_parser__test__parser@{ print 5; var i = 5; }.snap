@@ -1,0 +1,10 @@
+---
+source: src/parser/serenity_parser/test.rs
+expression: ast
+---
+[line    0] Block: 
+[line    1] ├─── Print: 
+[line    1] │    ╰─── Literal: 5
+[line    1] ╰─── Var Declaration: i
+[line    1]      ╰───  Initializer
+[line    1]           ╰─── Literal: 5

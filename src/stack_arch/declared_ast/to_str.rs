@@ -117,7 +117,7 @@ impl ToStr for Expression {
     });
     DEPTH_HAS_SCOPE_OPEN[depth].store(true, std::sync::atomic::Ordering::SeqCst);
     match self {
-      Expression::Literal(v, l) => {
+     Expression::Literal(LiteralExpression{ value: v, line_no:  l}) => {
         s.push_str(&format!("[line {:>4}] {indent_member}Literal: {v:?}", l));
       }
       Expression::StringLiteral(v, l) => {
@@ -133,7 +133,7 @@ impl ToStr for Expression {
           )
         );
       }
-      Expression::Deref(e, l) => {
+      Expression::Deref(DerefExpression{ operand: e, line_no:  l}) => {
         s.push_str(
           &format!(
             "[line {:>4}] {indent_member}Deref: {}",
@@ -151,17 +151,17 @@ impl ToStr for Expression {
           )
         );
       }
-      Expression::Index(l, r, line) => {
+     Expression::Index(IndexExpression{ array: l, index:  r, line_no:  line}) => {
         s.push_str(&format!("[line {:>4}] {indent_member}Index:", line));
         s.push_str(&l.to_string_scopes(depth + 1, None));
         s.push_str(&r.to_string_scopes(depth + 1, Some(depth)));
       }
-      Expression::Binary(l, t, r, line) => {
+     Expression::Binary(BinaryExpression{ left: l, operator:  t, right:  r, line_no:  line}) => {
         s.push_str(&format!("[line {:>4}] {indent_member}Binary: {t:?} ", line));
         s.push_str(&l.to_string_scopes(depth + 1, None));
         s.push_str(&r.to_string_scopes(depth + 1, Some(depth)));
       }
-      Expression::Ternary(c, t, e, line) => {
+     Expression::Ternary(TernaryExpression{ condition: c, then_branch:  t, else_branch:  e, line_no:  line}) => {
         s.push_str(&format!("[line {:>4}] {indent_member}Ternary:", line));
         s.push_str(&c.to_string_scopes(depth + 1, None));
         s.push_str(&t.to_string_scopes(depth + 1, None));
@@ -171,17 +171,17 @@ impl ToStr for Expression {
         DEPTH_HAS_SCOPE_OPEN[depth].store(false, std::sync::atomic::Ordering::SeqCst);
         s.push_str(&format!("[line {:>4}] {indent_member}Variable: {t:?}", l));
       }
-      Expression::Assign(t, e, l) => {
+     Expression::Assign(AssignExpression{ variable: t, value:  e, line_no:  l}) => {
         s.push_str(&format!("[line {:>4}] {indent_member}Assign:", l));
         s.push_str(&t.to_string_scopes(depth + 1, None));
         s.push_str(&e.to_string_scopes(depth + 1, Some(depth)));
       }
-      Expression::Logical(l, t, r, line) => {
+     Expression::Logical(LogicalExpression{ left: l, operator:  t, right:  r, line_no:  line}) => {
         s.push_str(&format!("[line {:>4}] {indent_member}Logical: {t:?} ", line));
         s.push_str(&l.to_string_scopes(depth + 1, None));
         s.push_str(&r.to_string_scopes(depth + 1, Some(depth)));
       }
-      Expression::Call(f, a, l) => {
+     Expression::Call(CallExpression{ callee: f, arguments:  a, line_no:  l}) => {
         s.push_str(&format!("[line {:>4}] {indent_member}Call:", l));
         s.push_str(&f.to_string_scopes(depth + 1, if a.len() == 0 { Some(depth) } else { None }));
         for (i, n) in a.iter().enumerate() {
@@ -190,7 +190,7 @@ impl ToStr for Expression {
           );
         }
       }
-      Expression::Dot(e, t, l) => {
+     Expression::Dot(DotExpression{ object: e, field:  t, line_no:  l}) => {
         s.push_str(&format!("[line {:>4}] {indent_member}Get: {t:?}", l));
         s.push_str(&e.to_string_scopes(depth + 1, Some(depth)));
       }

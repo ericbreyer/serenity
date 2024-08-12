@@ -1,0 +1,6 @@
+---
+source: src/prelude/ast/to_str.rs
+expression: result
+---
+[line    1] Deref: 
+[line    1] ╰─── Literal: 1

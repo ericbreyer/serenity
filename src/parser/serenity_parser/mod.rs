@@ -1,7 +1,7 @@
 mod pratt_parse;
 mod recdec_parse;
 mod templates;
-mod tests;
+mod test;
 
 use std::{cell::Cell, collections::HashMap, num::ParseIntError};
 
@@ -223,20 +223,25 @@ impl SerenityParser {
     fn go(&mut self) -> Vec<ASTNode> {
         let mut nodes = Vec::new();
 
-        let mut weak_funcs = HashMap::new();
+        // let mut weak_funcs = HashMap::new();
 
         while self.current.token_type != TokenType::Eof {
             let new_nodes = self.declaration();
 
             for node in new_nodes {
-                if let ASTNode::Declaration(Declaration::Function(fe, _)) = &node {
-                    if fe.weak {
-                        weak_funcs.insert(fe.name.clone(), nodes.len());
-                    } else if weak_funcs.contains_key(&fe.name) {
-                        nodes[weak_funcs[&fe.name]] = node.clone();
-                        continue;
-                    }
-                }
+                // if let ASTNode::Declaration(Declaration::Function(FunctionDeclaration {
+                //     prototype,
+                //     line_no,
+                //     body,
+                // })) = &node
+                // {
+                //     if *weak {
+                //         weak_funcs.insert(name.clone(), nodes.len());
+                //     } else if weak_funcs.contains_key(&name) {
+                //         nodes[weak_funcs[&name]] = node.clone();
+                //         continue;
+                //     }
+                // }
 
                 nodes.push(node)
             }
@@ -309,7 +314,7 @@ impl SerenityParser {
     fn parse_helper(
         source: SharedString,
         name: SharedString,
-        top_level: bool,
+        _top_level: bool,
         custom_types: HashMap<SharedString, CustomStruct>,
     ) -> Result<ParseResult, SharedString> {
         let mut ret = ParseResult::default();
@@ -320,27 +325,30 @@ impl SerenityParser {
             parser.custom_types.extend(custom_types);
             parser.advance();
 
-            let mut nodes = parser.go();
+            let nodes = parser.go();
 
-            if top_level {
-                //call the users main function
-                nodes.push(ASTNode::CallMain(Box::new(ASTNode::Expression(
-                    Expression::Call(
-                        Expression::Variable(
-                            Token {
-                                token_type: TokenType::Identifier,
-                                lexeme: "main".into(),
-                                line: 0,
-                            },
-                            0,
-                        )
-                        .into(),
-                        Vec::new(),
-                        0,
-                    )
-                    .into(),
-                ))));
-            }
+            // if top_level {
+            //     //call the users main function
+            //     nodes.push(ASTNode::CallMain(Box::new(ASTNode::Expression(
+            //         Expression::Call(CallExpression {
+            //             callee: Expression::Variable(VariableExpression {
+            //                 token: Token {
+            //                     token_type: TokenType::Identifier,
+            //                     lexeme: "main".into(),
+            //                     line: 0,
+            //                 },
+            //                 line_no: 0,
+            //             }
+            //             )
+
+            //             .into(),
+            //             arguments: Vec::new(),
+            //             line_no: 0,
+            //         }
+            //         )
+            //         .into(),
+            //     ))));
+            // }
 
             parser.consume(TokenType::Eof, "Expect end of file.");
             ret.ast = nodes;

@@ -1,0 +1,6 @@
+---
+source: src/parser/serenity_parser/test.rs
+expression: ast
+---
+[line    1] Print: 
+[line    1] ╰─── Literal: 5

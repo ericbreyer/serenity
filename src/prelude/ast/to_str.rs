@@ -1,8 +1,10 @@
+use std::cell::RefCell;
+
 use crate::prelude::shared_strings::SharedString;
 
 use super::{
-    Declaration, Expression, FunctionExpression, Node, NodeVisitor,
-    Statement,
+    ASTNode, Acceptor, Declaration, DeclarationVisitor, Expression, ExpressionVisitor,
+    FunctionExpression, NodeVisitor, Prototype, Statement, StatementVisitor,
 };
 
 const PIPE_END_CHAR: &str = "╰";
@@ -16,16 +18,17 @@ const INDENT_PIPE: &str = "│    ";
 const INDENT_PIPE_END: &str = "╰    ";
 const INDENT_MEMBER: &str = "─── ";
 
-
 pub(super) struct ToStrVisitor<'a> {
-    depth_has_scope_open: &'a mut [bool; 100],
+    depth_has_scope_open: &'a RefCell<[bool; 100]>,
     depth: usize,
     close_scope: Option<usize>,
+    indent: String,
+    indent_member: String,
 }
 
 impl<'a> ToStrVisitor<'a> {
     pub fn new(
-        depth_has_scope_open: &'a mut [bool; 100],
+        depth_has_scope_open: &'a RefCell<[bool; 100]>,
         depth: usize,
         close_scope: Option<usize>,
     ) -> Self {
@@ -33,12 +36,21 @@ impl<'a> ToStrVisitor<'a> {
             depth_has_scope_open,
             depth,
             close_scope,
+            indent: String::new(),
+            indent_member: String::new(),
         }
     }
-}
 
-impl NodeVisitor<String> for ToStrVisitor<'_> {
-    fn visit_expression(self, expression: &Expression) -> String {
+    pub fn with_indents(&'a self, indent: String, indent_member: String) -> Self {
+        Self {
+            depth_has_scope_open: self.depth_has_scope_open,
+            depth: self.depth,
+            close_scope: self.close_scope,
+            indent,
+            indent_member,
+        }
+    }
+    fn visit(&'a self, node: &impl Acceptor<String, ToStrVisitor<'a>>) -> String {
         let depth = self.depth;
         let close_scope = self.close_scope;
 
@@ -46,7 +58,7 @@ impl NodeVisitor<String> for ToStrVisitor<'_> {
         let mut indent = String::new();
         s.push('\n');
         for i in 0..depth {
-            if self.depth_has_scope_open[i] {
+            if self.depth_has_scope_open.borrow()[i] {
                 if let Some(c) = close_scope {
                     if c == i {
                         indent.push_str(INDENT_PIPE_END);
@@ -65,420 +77,582 @@ impl NodeVisitor<String> for ToStrVisitor<'_> {
             .unwrap_or(&indent)
             .trim_end_matches(PIPE_CHAR)
             .to_owned()
-            + if close_scope.is_none() { T_CHAR } else { "" }
-            + INDENT_MEMBER;
+            + if close_scope.is_none() && depth > 0 {
+                T_CHAR
+            } else {
+                ""
+            }
+            + if depth > 0 { INDENT_MEMBER } else { "" };
         close_scope.and_then(|c| {
-            self.depth_has_scope_open[c] = false;
+            self.depth_has_scope_open.borrow_mut()[c] = false;
             Some(())
         });
-        self.depth_has_scope_open[depth] = true;
-        match expression {
-            Expression::Literal(v, l) => {
-                s.push_str(&format!("[line {:>4}] {indent_member}Literal: {v:?}", l));
-            }
-            Expression::StringLiteral(v, l) => {
-                s.push_str(&format!(
-                    "[line {:>4}] {indent_member}StringLiteral: {v:?}",
-                    l
-                ));
-            }
-            Expression::Unary(t, e, l) => {
-                s.push_str(&format!(
-                    "[line {:>4}] {indent_member}Unary: {:?} {}",
-                    l,
-                    t,
-                    e.accept(ToStrVisitor::new(
-                        self.depth_has_scope_open,
-                        depth + 1,
-                        Some(depth)
-                    ))
-                ));
-            }
-            Expression::Deref(e, l) => {
-                s.push_str(&format!(
-                    "[line {:>4}] {indent_member}Deref: {}",
-                    l,
-                    e.accept(ToStrVisitor::new(
-                        self.depth_has_scope_open,
-                        depth + 1,
-                        Some(depth)
-                    ))
-                ));
-            }
-            Expression::Ref(t, l) => {
-                s.push_str(&format!(
-                    "[line {:>4}] {indent_member}Ref: {}",
-                    l,
-                    t.accept(ToStrVisitor::new(
-                        self.depth_has_scope_open,
-                        depth + 1,
-                        Some(depth)
-                    ))
-                ));
-            }
-            Expression::Index(l, r, line) => {
-                s.push_str(&format!("[line {:>4}] {indent_member}Index:", line));
-                s.push_str(&l.accept(ToStrVisitor::new(self.depth_has_scope_open, depth + 1, None)));
-                s.push_str(&r.accept(ToStrVisitor::new(
-                    self.depth_has_scope_open,
-                    depth + 1,
-                    Some(depth),
-                )));
-            }
-            Expression::Binary(l, t, r, line) => {
-                s.push_str(&format!("[line {:>4}] {indent_member}Binary: {t:?} ", line));
-                s.push_str(&l.accept(ToStrVisitor::new(self.depth_has_scope_open, depth + 1, None)));
-                s.push_str(&r.accept(ToStrVisitor::new(
-                    self.depth_has_scope_open,
-                    depth + 1,
-                    Some(depth),
-                )));
-            }
-            Expression::Ternary(c, t, e, line) => {
-                s.push_str(&format!("[line {:>4}] {indent_member}Ternary:", line));
-                s.push_str(&c.accept(ToStrVisitor::new(self.depth_has_scope_open, depth + 1, None)));
-                s.push_str(&t.accept(ToStrVisitor::new(self.depth_has_scope_open, depth + 1, None)));
-                s.push_str(&e.accept(ToStrVisitor::new(
-                    self.depth_has_scope_open,
-                    depth + 1,
-                    Some(depth),
-                )));
-            }
-            Expression::Variable(t, l) => {
-                self.depth_has_scope_open[depth] = false;
-                s.push_str(&format!("[line {:>4}] {indent_member}Variable: {t:?}", l));
-            }
-            Expression::Assign(t, e, l) => {
-                s.push_str(&format!("[line {:>4}] {indent_member}Assign:", l));
+        self.depth_has_scope_open.borrow_mut()[depth] = true;
 
-                s.push_str(&t.accept(ToStrVisitor::new(self.depth_has_scope_open, depth + 1, None)));
-                s.push_str(&e.accept(ToStrVisitor::new(
-                    self.depth_has_scope_open,
-                    depth + 1,
-                    Some(depth),
-                )));
-            }
-            Expression::Logical(l, t, r, line) => {
-                s.push_str(&format!(
-                    "[line {:>4}] {indent_member}Logical: {t:?} ",
-                    line
-                ));
-                s.push_str(&l.accept(ToStrVisitor::new(self.depth_has_scope_open, depth + 1, None)));
-                s.push_str(&r.accept(ToStrVisitor::new(
-                    self.depth_has_scope_open,
-                    depth + 1,
-                    Some(depth),
-                )));
-            }
-            Expression::Call(f, a, l) => {
-                s.push_str(&format!("[line {:>4}] {indent_member}Call:", l));
-                s.push_str(&f.accept(ToStrVisitor::new(
-                    self.depth_has_scope_open,
-                    depth + 1,
-                    if a.len() == 0 { Some(depth) } else { None },
-                )));
-                for (i, n) in a.iter().enumerate() {
-                    s.push_str(&n.accept(ToStrVisitor::new(
-                        self.depth_has_scope_open,
-                        depth + 1,
-                        if i == a.len() - 1 { Some(depth) } else { None },
-                    )));
-                }
-            }
-            Expression::Dot(e, t, l) => {
-                s.push_str(&format!("[line {:>4}] {indent_member}Get: {t:?}", l));
-                s.push_str(&e.accept(ToStrVisitor::new(
-                    self.depth_has_scope_open,
-                    depth + 1,
-                    Some(depth),
-                )));
-            }
-            Expression::Function(f, l) => {
-                s.push_str(&format!(
-                    "[line {:>4}] {indent_member}Function: {}",
-                    l,
-                    f.stringify(self.depth_has_scope_open, depth + 1, *l, Some(depth))
-                ));
-            }
-            Expression::Cast(e, t, l) => {
-                s.push_str(&format!("[line {:>4}] {indent_member}Cast: {t:?}", l));
-                s.push_str(&e.accept(ToStrVisitor::new(
-                    self.depth_has_scope_open,
-                    depth + 1,
-                    Some(depth),
-                )));
-            }
-            Expression::StructInitializer(c, v, l) => {
-                s.push_str(&format!(
-                    "[line {:>4}] {indent_member}StructInitializer: {c:?}",
-                    l
-                ));
-                let indent = indent
-                    .strip_suffix("    ")
-                    .unwrap()
-                    .to_owned()
-                    .trim_end_matches(PIPE_END_CHAR)
-                    .to_owned()
-                    + INDENT;
+        s.push_str(
+            node.accept(&self.with_indents(indent, indent_member))
+                .as_str(),
+        );
+        s
+    }
+}
+impl<'a> NodeVisitor<String> for ToStrVisitor<'a> {
+    fn visit_statement(&self, statement: &Statement) -> String {
+        self.visit(statement)
+    }
 
-                for (i, (t, e)) in v.iter().enumerate() {
-                    if i as i64 > (v.len() as i64 - 2) {
-                        self.depth_has_scope_open[depth] = false;
-                    }
+    fn visit_expression(&self, expression: &Expression) -> String {
+        self.visit(expression)
+    }
 
-                    s.push_str(
-                        format!(
-                            "\n[line {:>4}] {indent}{}{INDENT_MEMBER} {}: ",
-                            l,
-                            if i == v.len() - 1 {
-                                PIPE_END_CHAR
-                            } else {
-                                T_CHAR
-                            },
-                            t
-                        )
-                        .as_str(),
-                    );
+    fn visit_declaration(&self, declaration: &Declaration) -> String {
+        self.visit(declaration)
+    }
+}
 
-                    self.depth_has_scope_open[depth + 1] = true;
-                    s.push_str(&e.accept(ToStrVisitor::new(
-                        self.depth_has_scope_open,
-                        depth + 2,
-                        Some(depth + 1),
-                    )));
-                }
+impl<'a> ExpressionVisitor<String> for ToStrVisitor<'a> {
+    fn visit_literal_expression(&self, expression: &super::LiteralExpression) -> String {
+        format!(
+            "[line {:>4}] {}Literal: {:?}",
+            expression.line_no, self.indent_member, expression.value
+        )
+    }
+
+    fn visit_string_literal_expression(
+        &self,
+        expression: &super::StringLiteralExpression,
+    ) -> String {
+        format!(
+            "[line {:>4}] {}StringLiteral: {:?}",
+            expression.line_no, self.indent_member, expression.value
+        )
+    }
+
+    fn visit_unary_expression(&self, expression: &super::UnaryExpression) -> String {
+        format!(
+            "[line {:>4}] {}Unary: {:?} {}",
+            expression.line_no,
+            self.indent_member,
+            expression.operator,
+            expression.operand.as_node().accept(&ToStrVisitor::new(
+                self.depth_has_scope_open,
+                self.depth + 1,
+                Some(self.depth)
+            ))
+        )
+    }
+
+    fn visit_deref_expression(&self, expression: &super::DerefExpression) -> String {
+        format!(
+            "[line {:>4}] {}Deref: {}",
+            expression.line_no,
+            self.indent_member,
+            expression.operand.as_node().accept(&ToStrVisitor::new(
+                self.depth_has_scope_open,
+                self.depth + 1,
+                Some(self.depth)
+            ))
+        )
+    }
+
+    fn visit_ref_expression(&self, expression: &super::RefExpression) -> String {
+        format!(
+            "[line {:>4}] {}Ref: {}",
+            expression.line_no,
+            self.indent_member,
+            expression.operand.as_node().accept(&ToStrVisitor::new(
+                self.depth_has_scope_open,
+                self.depth + 1,
+                Some(self.depth)
+            ))
+        )
+    }
+
+    fn visit_index_expression(&self, expression: &super::IndexExpression) -> String {
+        let mut s = String::new();
+        s.push_str(&format!(
+            "[line {:>4}] {}Index:",
+            expression.line_no, self.indent_member
+        ));
+        s.push_str(&expression.array.as_node().accept(&ToStrVisitor::new(
+            self.depth_has_scope_open,
+            self.depth + 1,
+            None,
+        )));
+        s.push_str(&expression.index.as_node().accept(&ToStrVisitor::new(
+            self.depth_has_scope_open,
+            self.depth + 1,
+            Some(self.depth),
+        )));
+        s
+    }
+
+    fn visit_binary_expression(&self, expression: &super::BinaryExpression) -> String {
+        let mut s = String::new();
+        s.push_str(&format!(
+            "[line {:>4}] {}Binary: {:?}",
+            expression.line_no, self.indent_member, expression.operator
+        ));
+        s.push_str(&expression.left.as_node().accept(&ToStrVisitor::new(
+            self.depth_has_scope_open,
+            self.depth + 1,
+            None,
+        )));
+        s.push_str(&expression.right.as_node().accept(&ToStrVisitor::new(
+            self.depth_has_scope_open,
+            self.depth + 1,
+            Some(self.depth),
+        )));
+        s
+    }
+
+    fn visit_ternary_expression(&self, expression: &super::TernaryExpression) -> String {
+        let mut s = String::new();
+        s.push_str(&format!(
+            "[line {:>4}] {}Ternary:",
+            expression.line_no, self.indent_member
+        ));
+        s.push_str(&expression.condition.as_node().accept(&ToStrVisitor::new(
+            self.depth_has_scope_open,
+            self.depth + 1,
+            None,
+        )));
+        s.push_str(&expression.then_branch.as_node().accept(&ToStrVisitor::new(
+            self.depth_has_scope_open,
+            self.depth + 1,
+            None,
+        )));
+        s.push_str(&expression.else_branch.as_node().accept(&ToStrVisitor::new(
+            self.depth_has_scope_open,
+            self.depth + 1,
+            Some(self.depth),
+        )));
+        s
+    }
+
+    fn visit_variable_expression(&self, expression: &super::VariableExpression) -> String {
+        self.depth_has_scope_open.borrow_mut()[self.depth] = false;
+        format!(
+            "[line {:>4}] {}Variable: {:?}",
+            expression.line_no, self.indent_member, expression.token
+        )
+    }
+
+    fn visit_assign_expression(&self, expression: &super::AssignExpression) -> String {
+        let mut s = String::new();
+        s.push_str(&format!(
+            "[line {:>4}] {}Assign:",
+            expression.line_no, self.indent_member
+        ));
+        s.push_str(&expression.variable.as_node().accept(&ToStrVisitor::new(
+            self.depth_has_scope_open,
+            self.depth + 1,
+            None,
+        )));
+        s.push_str(&expression.value.as_node().accept(&ToStrVisitor::new(
+            self.depth_has_scope_open,
+            self.depth + 1,
+            Some(self.depth),
+        )));
+        s
+    }
+
+    fn visit_logical_expression(&self, expression: &super::LogicalExpression) -> String {
+        let mut s = String::new();
+        s.push_str(&format!(
+            "[line {:>4}] {}Logical: {:?} ",
+            expression.line_no, self.indent_member, expression.operator
+        ));
+        s.push_str(&expression.left.as_node().accept(&ToStrVisitor::new(
+            self.depth_has_scope_open,
+            self.depth + 1,
+            None,
+        )));
+        s.push_str(&expression.right.as_node().accept(&ToStrVisitor::new(
+            self.depth_has_scope_open,
+            self.depth + 1,
+            Some(self.depth),
+        )));
+        s
+    }
+
+    fn visit_call_expression(&self, expression: &super::CallExpression) -> String {
+        let mut s = String::new();
+        s.push_str(&format!(
+            "[line {:>4}] {}Call:",
+            expression.line_no, self.indent_member
+        ));
+        s.push_str(&expression.callee.as_node().accept(&ToStrVisitor::new(
+            self.depth_has_scope_open,
+            self.depth + 1,
+            if expression.arguments.len() == 0 {
+                Some(self.depth)
+            } else {
+                None
+            },
+        )));
+        for (i, n) in expression.arguments.iter().enumerate() {
+            s.push_str(&n.as_node().accept(&ToStrVisitor::new(
+                self.depth_has_scope_open,
+                self.depth + 1,
+                if i == expression.arguments.len() - 1 {
+                    Some(self.depth)
+                } else {
+                    None
+                },
+            )));
+        }
+        s
+    }
+
+    fn visit_dot_expression(&self, expression: &super::DotExpression) -> String {
+        let mut s = String::new();
+        s.push_str(&format!(
+            "[line {:>4}] {}Get: {:?}",
+            expression.line_no, self.indent_member, expression.field
+        ));
+        s.push_str(&expression.object.as_node().accept(&ToStrVisitor::new(
+            self.depth_has_scope_open,
+            self.depth + 1,
+            Some(self.depth),
+        )));
+        s
+    }
+
+    fn visit_function_expression(&self, expression: &FunctionExpression) -> String {
+        let mut s = String::new();
+        s.push_str(&format!(
+            "[line {:>4}] {}Function: {}",
+            expression.line_no, self.indent_member, expression.prototype.name
+        ));
+        s.push_str(&expression.prototype.stringify(
+            self.depth_has_scope_open,
+            self.depth + 1,
+            expression.line_no,
+            Some(self.depth),
+            Some(expression.body.clone()),
+        ));
+        s
+    }
+
+    fn visit_cast_expression(&self, expression: &super::CastExpression) -> String {
+        let mut s = String::new();
+        s.push_str(&format!(
+            "[line {:>4}] {}Cast: {:?}",
+            expression.line_no,
+            self.indent_member,
+            expression.target_type.unwrap()
+        ));
+        s.push_str(&expression.expression.as_node().accept(&ToStrVisitor::new(
+            self.depth_has_scope_open,
+            self.depth + 1,
+            Some(self.depth),
+        )));
+        s
+    }
+
+    fn visit_struct_initializer_expression(
+        &self,
+        expression: &super::StructInitializerExpression,
+    ) -> String {
+        let mut s = String::new();
+        s.push_str(&format!(
+            "[line {:>4}] {}StructInitializer: {:?}",
+            expression.line_no, self.indent_member, expression.struct_type
+        ));
+        let indent = self
+            .indent
+            .strip_suffix("    ")
+            .unwrap()
+            .to_owned()
+            .trim_end_matches(PIPE_END_CHAR)
+            .to_owned()
+            + INDENT;
+
+        for (i, (t, e)) in expression.fields.iter().enumerate() {
+            if i as i64 > (expression.fields.len() as i64 - 2) {
+                self.depth_has_scope_open.borrow_mut()[self.depth] = false;
             }
-            Expression::Empty => {
-                // s.push_str(format!("[line {:>4}]  Empty").as_str());
-            }
+
+            s.push_str(
+                format!(
+                    "\n[line {:>4}] {indent}{}{INDENT_MEMBER} {}: ",
+                    expression.line_no,
+                    if i == expression.fields.len() - 1 {
+                        PIPE_END_CHAR
+                    } else {
+                        T_CHAR
+                    },
+                    t
+                )
+                .as_str(),
+            );
+
+            self.depth_has_scope_open.borrow_mut()[self.depth + 1] = true;
+            s.push_str(&e.as_node().accept(&ToStrVisitor::new(
+                self.depth_has_scope_open,
+                self.depth + 2,
+                Some(&self.depth + 1),
+            )));
+        }
+        s
+    }
+}
+
+impl<'a> StatementVisitor<String> for ToStrVisitor<'a> {
+    fn visit_print_statement(&self, statement: &super::PrintStatement) -> String {
+        format!(
+            "[line {:>4}] {}Print: {}",
+            statement.line_no,
+            self.indent_member,
+            statement.expr.as_node().accept(&ToStrVisitor::new(
+                self.depth_has_scope_open,
+                self.depth + 1,
+                Some(self.depth)
+            ))
+        )
+    }
+
+    fn visit_block_statement(&self, statement: &super::BlockStatement) -> String {
+        let mut s = String::new();
+        s.push_str(&format!(
+            "[line {:>4}] {}Block: ",
+            statement.line_no, self.indent_member
+        ));
+        for (i, n) in statement.statements.iter().enumerate() {
+            s.push_str(&n.accept(&ToStrVisitor::new(
+                self.depth_has_scope_open,
+                self.depth + 1,
+                if i == statement.statements.len() - 1 {
+                    Some(self.depth)
+                } else {
+                    None
+                },
+            )));
+        }
+        s
+    }
+
+    fn visit_if_statement(&self, statement: &super::IfStatement) -> String {
+        let mut s = String::new();
+        s.push_str(&format!(
+            "[line {:>4}] {}If: ",
+            statement.line_no, self.indent_member
+        ));
+        s.push_str(&statement.condition.as_node().accept(&ToStrVisitor::new(
+            self.depth_has_scope_open,
+            self.depth + 1,
+            None,
+        )));
+        s.push_str(&statement.then_branch.as_node().accept(&ToStrVisitor::new(
+            self.depth_has_scope_open,
+            self.depth + 1,
+            if statement.else_branch.is_none() {
+                Some(self.depth)
+            } else {
+                None
+            },
+        )));
+        if let Some(e) = &statement.else_branch {
+            s.push_str(&e.as_node().accept(&ToStrVisitor::new(
+                self.depth_has_scope_open,
+                self.depth + 1,
+                Some(self.depth),
+            )));
+        }
+        s
+    }
+
+    fn visit_while_statement(&self, statement: &super::WhileStatement) -> String {
+        let mut s = String::new();
+        s.push_str(&format!(
+            "[line {:>4}] {}While: ",
+            statement.line_no, self.indent_member
+        ));
+        s.push_str(&statement.condition.as_node().accept(&ToStrVisitor::new(
+            self.depth_has_scope_open,
+            self.depth + 1,
+            None,
+        )));
+        s.push_str(&statement.body.as_node().accept(&ToStrVisitor::new(
+            self.depth_has_scope_open,
+            self.depth + 1,
+            Some(self.depth),
+        )));
+        s
+    }
+
+    fn visit_for_statement(&self, statement: &super::ForStatement) -> String {
+        let mut s = String::new();
+        s.push_str(&format!(
+            "[line {:>4}] {}For: ",
+            statement.line_no, self.indent_member
+        ));
+        if let Some(i) = &statement.init {
+            s.push_str(&i.accept(&ToStrVisitor::new(
+                self.depth_has_scope_open,
+                self.depth + 1,
+                None,
+            )));
+        }
+        if let Some(c) = &statement.condition {
+            s.push_str(&c.as_node().accept(&ToStrVisitor::new(
+                self.depth_has_scope_open,
+                self.depth + 1,
+                None,
+            )));
+        }
+        if let Some(u) = &statement.increment {
+            s.push_str(&u.as_node().accept(&ToStrVisitor::new(
+                self.depth_has_scope_open,
+                self.depth + 1,
+                None,
+            )));
+        }
+        s.push_str(&statement.body.as_node().accept(&ToStrVisitor::new(
+            self.depth_has_scope_open,
+            self.depth + 1,
+            Some(self.depth),
+        )));
+        s
+    }
+
+    fn visit_break_statement(&self, statement: &super::BreakStatement) -> String {
+        format!(
+            "[line {:>4}] {}Break",
+            statement.line_no, self.indent_member
+        )
+    }
+
+    fn visit_continue_statement(&self, statement: &super::ContinueStatement) -> String {
+        format!(
+            "[line {:>4}] {}Continue",
+            statement.line_no, self.indent_member
+        )
+    }
+
+    fn visit_return_statement(&self, statement: &super::ReturnStatement) -> String {
+        let mut s = String::new();
+        s.push_str(&format!(
+            "[line {:>4}] {}Return:",
+            statement.line_no, self.indent_member
+        ));
+        if let Some(e) = &statement.value {
+            s.push_str(&e.as_node().accept(&ToStrVisitor::new(
+                self.depth_has_scope_open,
+                self.depth + 1,
+                Some(self.depth),
+            )));
+        } else {
+            self.depth_has_scope_open.borrow_mut()[self.depth] = false;
+        }
+        s
+    }
+
+    fn visit_expression_statement(&self, statement: &super::ExpressionStatement) -> String {
+        format!(
+            "[line {:>4}] {}Expression: {}",
+            statement.line_no,
+            self.indent_member,
+            statement.expr.as_node().accept(&ToStrVisitor::new(
+                self.depth_has_scope_open,
+                self.depth + 1,
+                Some(self.depth),
+            ))
+        )
+    }
+}
+
+impl<'a> DeclarationVisitor<String> for ToStrVisitor<'a> {
+    fn visit_var_declaration(&self, declaration: &super::VarDeclaration) -> String {
+        let mindent = self.indent.strip_suffix(INDENT_PIPE_END);
+        let indent = if mindent.is_some() {
+            mindent.unwrap().to_owned() + INDENT
+        } else {
+            self.indent.to_owned()
+        };
+        let mut s = String::new();
+        s.push_str(&format!(
+            "[line {:>4}] {}Var Declaration: {}",
+            declaration.line_no, self.indent_member, &declaration.name
+        ));
+        if let Some(e) = &declaration.initializer {
+            s.push_str(&format!(
+                "\n[line {:>4}] {}{PIPE_END_CHAR}{INDENT_MEMBER} Initializer",
+                declaration.line_no, indent
+            ));
+            self.depth_has_scope_open.borrow_mut()[self.depth + 1] = true;
+            self.depth_has_scope_open.borrow_mut()[self.depth] = false;
+            s.push_str(&e.as_node().accept(&ToStrVisitor::new(
+                self.depth_has_scope_open,
+                self.depth + 2,
+                Some(&self.depth + 1),
+            )));
+        } else {
+            self.depth_has_scope_open.borrow_mut()[self.depth] = false;
         }
         s.into()
     }
 
-    fn visit_statement(self, statement: &Statement) -> String {
-        let depth = self.depth;
-        let close_scope = self.close_scope;
-
+    fn visit_function_declaration(&self, declaration: &super::FunctionDeclaration) -> String {
         let mut s = String::new();
-        let mut indent = String::new();
-        s.push('\n');
-        for i in 0..depth {
-            if self.depth_has_scope_open[i] {
-                if let Some(c) = close_scope {
-                    if c == i {
-                        indent.push_str(INDENT_PIPE_END);
-                    } else {
-                        indent.push_str(INDENT_PIPE);
-                    }
-                } else {
-                    indent.push_str(INDENT_PIPE);
-                }
-            } else {
-                indent.push_str(INDENT);
-            }
-        }
-        indent = indent
-            .strip_suffix(INDENT_SUFFIX)
-            .unwrap_or(&indent)
-            .trim_end_matches(PIPE_CHAR)
-            .to_owned()
-            + if close_scope.is_none() { T_CHAR } else { "" }
-            + INDENT_MEMBER;
-        close_scope.and_then(|c| {
-            self.depth_has_scope_open[c] = false;
-            Some(())
-        });
-        self.depth_has_scope_open[depth] = true;
-        match statement {
-            Statement::Print(e, line) => {
-                s.push_str(&format!(
-                    "[line {line:>4}] {indent}Print: {}",
-                    e.accept(ToStrVisitor::new(
-                        self.depth_has_scope_open,
-                        depth + 1,
-                        Some(depth)
-                    ))
-                ));
-            }
-            Statement::Block(v, line) => {
-                s.push_str(format!("[line {line:>4}] {indent}Block: ").as_str());
-                for (i, n) in v.iter().enumerate() {
-                    s.push_str(&n.accept(ToStrVisitor::new(
-                        self.depth_has_scope_open,
-                        depth + 1,
-                        if i == v.len() - 1 { Some(depth) } else { None },
-                    )));
-                }
-            }
-            Statement::If(c, t, e, line) => {
-                s.push_str(&format!("[line {line:>4}] {indent}If:"));
-                s.push_str(&c.accept(ToStrVisitor::new(self.depth_has_scope_open, depth + 1, None)));
-                s.push_str(&t.accept(ToStrVisitor::new(
-                    self.depth_has_scope_open,
-                    depth + 1,
-                    if e.is_none() { Some(depth) } else { None },
-                )));
-                if let Some(e) = e {
-                    s.push_str(&e.accept(ToStrVisitor::new(
-                        self.depth_has_scope_open,
-                        depth + 1,
-                        Some(depth),
-                    )));
-                }
-            }
-            Statement::While(c, b, line) => {
-                s.push_str(&format!("[line {line:>4}] {indent}While:"));
-                
-                s.push_str(&c.accept(ToStrVisitor::new(self.depth_has_scope_open, depth + 1, None)));
-                s.push_str(&b.accept(ToStrVisitor::new(self.depth_has_scope_open, depth + 1, Some(depth))));
-            }
-            Statement::For(i, c, u, b, line) => {
-                s.push_str(&format!("[line {line:>4}] {indent}For:"));
-                if let Some(i) = i {
-                    s.push_str(&i.accept(ToStrVisitor::new(self.depth_has_scope_open, depth + 1, None)));
-
-                }
-                if let Some(c) = c {
-                    s.push_str(&c.accept(ToStrVisitor::new(self.depth_has_scope_open, depth + 1, None)));
-                }
-                if let Some(u) = u {
-                    s.push_str(&u.accept(ToStrVisitor::new(self.depth_has_scope_open, depth + 1, None)));
-                }
-                s.push_str(&b.accept(ToStrVisitor::new(self.depth_has_scope_open, depth + 1, Some(depth))));
-            }
-            Statement::Break(line) => {
-                s.push_str(&format!("[line {line:>4}] {indent}Break"));
-            }
-            Statement::Continue(line) => {
-                s.push_str(&format!("[line {line:>4}] {indent}Continue"));
-            }
-            Statement::Return(e, line) => {
-                s.push_str(&format!("[line {line:>4}] {indent}Return:"));
-                if let Some(e) = e {
-                    s.push_str(&e.accept(ToStrVisitor::new(self.depth_has_scope_open, depth + 1, Some(depth))));
-                } else {
-                    self.depth_has_scope_open[depth] = false;
-                }
-            }
-            Statement::Expression(e, line) => {
-                s.push_str(&format!(
-                    "[line {line:>4}] {indent}Expression: {}",
-                    e.accept(ToStrVisitor::new(self.depth_has_scope_open, depth + 1, Some(depth)))
-                ));
-            }
-        }
-        s.into()
+        s.push_str(&format!(
+            "[line {:>4}] {}Function Declaration: {}",
+            declaration.line_no, self.indent_member, &declaration.prototype.name
+        ));
+        s.push_str(&declaration.prototype.stringify(
+            self.depth_has_scope_open,
+            self.depth + 1,
+            declaration.line_no,
+            Some(self.depth),
+            declaration.body.clone(),
+        ));
+        s
     }
 
-    fn visit_declaration(self, declaration: &Declaration) -> String {
-        let depth = self.depth;
-        let close_scope = self.close_scope;
-
+    fn visit_array_declaration(&self, declaration: &super::ArrayDeclaration) -> String {
         let mut s = String::new();
-        let mut indent = String::new();
-        s.push('\n');
-        for i in 0..depth {
-            if self.depth_has_scope_open[i] {
-                if let Some(c) = close_scope {
-                    if c == i {
-                        indent.push_str(INDENT_PIPE_END);
-                    } else {
-                        indent.push_str(INDENT_PIPE);
-                    }
-                } else {
-                    indent.push_str(INDENT_PIPE);
-                }
-            } else {
-                indent.push_str(INDENT);
-            }
+        s.push_str(&format!(
+            "[line {:>4}] {}Array Declaration: {}",
+            declaration.line_no, self.indent_member, &declaration.name
+        ));
+        if let Some(t) = &declaration.elem_tipe {
+            s.push_str(&format!(
+                "\n[line {:>4}] {}{INDENT_PIPE}Elem Type: {t:?}",
+                declaration.line_no, self.indent
+            ));
         }
-        let indent_member = indent
-            .strip_suffix(INDENT_SUFFIX)
-            .unwrap_or(&indent)
-            .trim_end_matches(PIPE_CHAR)
-            .to_owned()
-            + if close_scope.is_none() { T_CHAR } else { "" }
-            + INDENT_MEMBER;
-        close_scope.and_then(|c| {
-            self.depth_has_scope_open[c] = false;
-            Some(())
-        });
-        self.depth_has_scope_open[depth] = true;
-        match declaration {
-            Declaration::Var(v, line) => {
-                let mindent = indent.strip_suffix(INDENT_PIPE_END);
-                let indent = if mindent.is_some() {
-                    mindent.unwrap().to_owned() + INDENT
-                } else {
-                    indent.to_owned()
-                };
-                s.push_str(&format!(
-                    "[line {line:>4}] {indent_member}Var Declaration: {}",
-                    &v.name
-                ));
+        self.depth_has_scope_open.borrow_mut()[self.depth + 1] = true;
 
-                if let Some(e) = &v.initializer {
-                    s.push_str(&format!(
-                        "\n[line {line:>4}] {indent}{PIPE_END_CHAR}{INDENT_MEMBER} Initializer"
-                    ));
-                    self.depth_has_scope_open[depth + 1] = true;
-                    self.depth_has_scope_open[depth] = false;
-                    s.push_str(&e.accept(ToStrVisitor::new(self.depth_has_scope_open, depth + 2, Some(depth + 1))));
+        for (j, n) in declaration.elements.iter().enumerate() {
+            s.push_str(&n.as_node().accept(&ToStrVisitor::new(
+                self.depth_has_scope_open,
+                self.depth + 2,
+                if j == declaration.elements.len() - 1 {
+                    Some(&self.depth + 1)
                 } else {
-                    self.depth_has_scope_open[depth] = false;
-                }
-            }
-            Declaration::Function(f, line) => {
-                s.push_str(&format!(
-                    "[line {line:>4}] {indent_member}Fun Declaration: {}",
-                    &f.name
-                ));
-
-                s.push_str(&f.body.stringify(self.depth_has_scope_open, depth + 1, *line, Some(depth)));
-            }
-            Declaration::Array(i, line) => {
-                s.push_str(&format!(
-                    "[line {line:>4}] {indent_member}Array Declaration:\n"
-                ));
-                s.push_str(&format!(
-                    "[line {line:>4}] {indent}{INDENT_PIPE}Name {}\n",
-                    &i.name
-                ));
-                if let Some(t) = &i.elem_tipe {
-                    s.push_str(&format!(
-                        "[line {line:>4}] {indent}{INDENT_PIPE}Elem Type: {t:?}"
-                    ));
-                }
-                for (j, n) in i.elements.iter().enumerate() {
-                    s.push_str(&n.accept(ToStrVisitor::new(
-                        self.depth_has_scope_open,
-                        depth + 1,
-                        if j == i.elements.len() - 1 {
-                            Some(depth)
-                        } else {
-                            None
-                        },
-                    )));
-                }
-            }
+                    None
+                },
+            )));
         }
         s.into()
     }
 }
 
-impl FunctionExpression {
+impl Prototype {
     fn stringify(
         &self,
-        depth_has_scope_open: &mut [bool; 100],
+        depth_has_scope_open: &RefCell<[bool; 100]>,
         depth: usize,
         line: usize,
         close_scope: Option<usize>,
+        body: Option<Vec<ASTNode>>,
     ) -> SharedString {
         let mut s = String::new();
         s.push('\n');
         let mut indent = String::new();
         for i in 0..depth {
-            if depth_has_scope_open[i] {
+            if depth_has_scope_open.borrow()[i] {
                 if let Some(c) = close_scope {
                     if c == i {
                         indent.push_str(INDENT_PIPE_END);
@@ -507,7 +681,7 @@ impl FunctionExpression {
             .to_owned()
             + INDENT;
         close_scope.and_then(|c| {
-            depth_has_scope_open[c] = false;
+            depth_has_scope_open.borrow_mut()[c] = false;
             Some(())
         });
 
@@ -557,31 +731,383 @@ impl FunctionExpression {
             }
         }
 
-        depth_has_scope_open[depth] = true;
-
-        s.push_str(&format!(
-            "\n[line {line:>4}] {indent}{PIPE_END_CHAR}{INDENT_MEMBER}Body: "
-        ));
-        depth_has_scope_open[depth + 1] = true;
-        for (i, n) in self.body.iter().enumerate() {
-            // s.push_str(&n.to_string_scopes(
-            //     depth + 2,
-            //     if i == self.body.len() - 1 {
-            //         Some(depth + 1)
-            //     } else {
-            //         None
-            //     },
-            // ));
-            s.push_str(&n.accept(ToStrVisitor::new(
-                depth_has_scope_open,
-                depth + 1,
-                if i == self.body.len() - 1 {
-                    Some(depth)
-                } else {
-                    None
-                },
-            )));
+        depth_has_scope_open.borrow_mut()[depth + 1] = true;
+        if let Some(body) = body {
+            s.push_str(&format!(
+                "\n[line {line:>4}] {indent}{PIPE_END_CHAR}{INDENT_MEMBER}Body: "
+            ));
+            for (i, n) in body.iter().enumerate() {
+                s.push_str(&n.accept(&ToStrVisitor::new(
+                    depth_has_scope_open,
+                    depth + 2,
+                    if i == body.len() - 1 {
+                        Some(depth + 1)
+                    } else {
+                        None
+                    },
+                )));
+            }
         }
         s.into()
+    }
+}
+
+#[cfg(test)]
+mod test {
+
+    use super::*;
+    use crate::lexer::{Token, TokenType};
+    use crate::prelude::*;
+    use insta::assert_snapshot;
+
+    use test_case::test_case;
+
+    #[test_case(Expression::Literal(LiteralExpression {
+        line_no: 1,
+        value: Value::Integer(1),
+    }), "literal"; "test_literal")]
+    #[test_case(Expression::StringLiteral(StringLiteralExpression {
+        line_no: 1,
+        value: "test".into(),
+    }), "string_literal"; "test_string_literal")]
+    #[test_case(Expression::Unary(UnaryExpression {
+        line_no: 1,
+        operator: TokenType::Minus,
+        operand: Box::new(Expression::Literal(LiteralExpression {
+            line_no: 1,
+            value: Value::Integer(1),
+        })),
+    }), "unary"; "test_unary")]
+    #[test_case(Expression::Deref(DerefExpression {
+        line_no: 1,
+        operand: Box::new(Expression::Literal(LiteralExpression {
+            line_no: 1,
+            value: Value::Integer(1),
+        })),
+    }), "deref"; "test_deref")]
+    #[test_case(Expression::Ref(RefExpression {
+        line_no: 1,
+        operand: Box::new(Expression::Literal(LiteralExpression {
+            line_no: 1,
+            value: Value::Integer(1),
+        })),
+    }), "ref"; "test_ref")]
+    #[test_case(Expression::Index(IndexExpression {
+        line_no: 1,
+        array: Box::new(Expression::Literal(LiteralExpression {
+            line_no: 1,
+            value: Value::Integer(1),
+        })),
+        index: Box::new(Expression::Literal(LiteralExpression {
+            line_no: 1,
+            value: Value::Integer(1),
+        })),
+    }), "index"; "test_index")]
+    #[test_case(Expression::Binary(BinaryExpression {
+        line_no: 1,
+        operator: TokenType::Plus,
+        left: Box::new(Expression::Literal(LiteralExpression {
+            line_no: 1,
+            value: Value::Integer(1),
+        })),
+        right: Box::new(Expression::Literal(LiteralExpression {
+            line_no: 1,
+            value: Value::Integer(1),
+        })),
+    }), "binary"; "test_binary")]
+    #[test_case(Expression::Ternary(TernaryExpression {
+        line_no: 1,
+        condition: Box::new(Expression::Literal(LiteralExpression {
+            line_no: 1,
+            value: Value::Integer(1),
+        })),
+        then_branch: Box::new(Expression::Literal(LiteralExpression {
+            line_no: 1,
+            value: Value::Integer(1),
+        })),
+        else_branch: Box::new(Expression::Literal(LiteralExpression {
+            line_no: 1,
+            value: Value::Integer(1),
+        })),
+    }), "ternary"; "test_ternary")]
+    #[test_case(Expression::Variable(VariableExpression {
+        line_no: 1,
+        token: Token {
+            lexeme: "test".into(),
+            token_type: TokenType::Identifier,
+            line: 1,
+        },
+    }), "variable"; "test_variable")]
+    #[test_case(Expression::Assign(AssignExpression {
+        line_no: 1,
+        variable: Box::new(Expression::Variable(VariableExpression {
+            line_no: 1,
+            token: Token {
+                lexeme: "test".into(),
+                token_type: TokenType::Identifier,
+                line: 1,
+            },
+        })),
+        value: Box::new(Expression::Literal(LiteralExpression {
+            line_no: 1,
+            value: Value::Integer(1),
+        })),
+    }), "assign"; "test_assign")]
+    #[test_case(Expression::Logical(LogicalExpression {
+        line_no: 1,
+        operator: TokenType::And,
+        left: Box::new(Expression::Literal(LiteralExpression {
+            line_no: 1,
+            value: Value::Integer(1),
+        })),
+        right: Box::new(Expression::Literal(LiteralExpression {
+            line_no: 1,
+            value: Value::Integer(1),
+        })),
+    }), "logical"; "test_logical")]
+    #[test_case(Expression::Call(CallExpression {
+        line_no: 1,
+        callee: Box::new(Expression::Variable(VariableExpression {
+            line_no: 1,
+            token: Token {
+                lexeme: "test".into(),
+                token_type: TokenType::Identifier,
+                line: 1,
+            },
+        })),
+        arguments: vec![
+            Expression::Literal(LiteralExpression {
+                line_no: 1,
+                value: Value::Integer(1),
+            }),
+            Expression::Literal(LiteralExpression {
+                line_no: 1,
+                value: Value::Integer(1),
+            }),
+        ],
+    }), "call"; "test_call")]
+    #[test_case(Expression::Dot(DotExpression {
+        line_no: 1,
+        object: Box::new(Expression::Literal(LiteralExpression {
+            line_no: 1,
+            value: Value::Integer(1),
+        })),
+        field: "test".into(),
+    }), "dot"; "test_dot")]
+    // #[test_case(Expression::Function(FunctionExpression {
+    //     line_no: 1,
+    //     name: "test".to_owned(),
+    //     return_type: ValueType::UValueType(UValueType::Integer),
+    //     captures: vec!["test".to_owned()],
+    //     params: vec![("test".to_owned(), ValueType::UValueType(UValueType::Integer), false)],
+    //     body: vec![Statement::Expression(ExpressionStatement {
+    //         line_no: 1,
+    //         expression: Expression::Literal(LiteralExpression {
+    //             line_no: 1,
+    //             value: Value::Integer(1),
+    //         }),
+    //     })],
+    // }), "function"; "test_function")]
+    #[test_case(Expression::Cast(CastExpression {
+        line_no: 1,
+        target_type: Some(ValueType::Integer.intern()),
+        expression: Box::new(Expression::Literal(LiteralExpression {
+            line_no: 1,
+            value: Value::Integer(1),
+        })),
+    }), "cast"; "test_cast")]
+    // #[test_case(Expression::StructInitializer(StructInitializerExpression {
+    //     line_no: 1,
+    //     struct_type: CustomStruct{ name: todo!(), fields: todo!(), embed: todo!(), methods: todo!() }},
+    //     fields: [
+    //         (SharedString::from("test"), Expression::Literal(LiteralExpression {
+    //             line_no: 1,
+    //             value: Value::Integer(1),
+    //         })),
+    //         ("test".into(), Expression::Literal(LiteralExpression {
+    //             line_no: 1,
+    //             value: Value::Integer(1),
+    //         })),
+    //     ].into(),
+    // }), "struct_initializer"; "test_struct_initializer")]
+    fn test_to_str_for_expr(expr: Expression, name: &str) {
+        let depth_has_scope_open = RefCell::new([false; 100]);
+
+        let visitor = ToStrVisitor::new(&depth_has_scope_open, 0, None);
+        let result = expr.as_node().accept(&visitor);
+
+        let mut settings = insta::Settings::clone_current();
+        settings.set_snapshot_suffix(name);
+        let _guard = settings.bind_to_scope();
+        assert_snapshot!(result);
+    }
+
+    #[test_case(Statement::Print(PrintStatement {
+        line_no: 1,
+        expr: Expression::Literal(LiteralExpression {
+            line_no: 1,
+            value: Value::Integer(1),
+        }).into(),
+    }), "print"; "test_print")]
+    #[test_case(Statement::Block(BlockStatement {
+        line_no: 1,
+        statements: vec![
+            Statement::Print(PrintStatement {
+                line_no: 1,
+                expr: Expression::Literal(LiteralExpression {
+                    line_no: 1,
+                    value: Value::Integer(1),
+                }).into(),
+            }).as_node().into(),
+            Statement::Print(PrintStatement {
+                line_no: 1,
+                expr: Expression::Literal(LiteralExpression {
+                    line_no: 1,
+                    value: Value::Integer(1),
+                }).into(),
+            }).as_node().into(),
+        ],
+    }), "block"; "test_block")]
+    #[test_case(Statement::If(IfStatement {
+        line_no: 1,
+        condition: Expression::Literal(LiteralExpression {
+            line_no: 1,
+            value: Value::Integer(1),
+        }).into(),
+        then_branch: Box::new(Statement::Print(PrintStatement {
+            line_no: 1,
+            expr: Expression::Literal(LiteralExpression {
+                line_no: 1,
+                value: Value::Integer(1),
+            }).into(),
+        }).into()),
+        else_branch: Some(Box::new(Statement::Print(PrintStatement {
+            line_no: 1,
+            expr: Expression::Literal(LiteralExpression {
+                line_no: 1,
+                value: Value::Integer(1),
+            }).into(),
+        }))),
+    }), "if"; "test_if")]
+    #[test_case(Statement::While(WhileStatement {
+        line_no: 1,
+        condition: Expression::Literal(LiteralExpression {
+            line_no: 1,
+            value: Value::Integer(1),
+        }).into(),
+        body: Box::new(Statement::Print(PrintStatement {
+            line_no: 1,
+            expr: Expression::Literal(LiteralExpression {
+                line_no: 1,
+                value: Value::Integer(1),
+            }).into(),
+        })),
+    }), "while"; "test_while")]
+    #[test_case(Statement::For(ForStatement {
+        line_no: 1,
+        init: Some(Statement::Print(PrintStatement {
+            line_no: 1,
+            expr: Expression::Literal(LiteralExpression {
+                line_no: 1,
+                value: Value::Integer(1),
+            }).into(),
+        }).as_node().into()),
+        condition: Some(Expression::Literal(LiteralExpression {
+            line_no: 1,
+            value: Value::Integer(1),
+        }).into()),
+        increment: Some(Box::new(Expression::Literal(LiteralExpression {
+            line_no: 1,
+            value: Value::Integer(1),
+        }))),
+        body: Box::new(Statement::Print(PrintStatement {
+            line_no: 1,
+            expr: Expression::Literal(LiteralExpression {
+                line_no: 1,
+                value: Value::Integer(1),
+            }).into(),
+        })),
+    }), "for"; "test_for")]
+    #[test_case(Statement::Break(BreakStatement {
+        line_no: 1,
+    }), "break"; "test_break")]
+    #[test_case(Statement::Continue(ContinueStatement {
+        line_no: 1,
+    }), "continue"; "test_continue")]
+    #[test_case(Statement::Return(ReturnStatement {
+        line_no: 1,
+        value: Some(Box::new(Expression::Literal(LiteralExpression {
+            line_no: 1,
+            value: Value::Integer(1),
+        }))),
+    }), "return"; "test_return")]
+    #[test_case(Statement::Expression(ExpressionStatement {
+        line_no: 1,
+        expr: Box::new(Expression::Literal(LiteralExpression{line_no:1,value:Value::Integer(1),})),
+    }), "expression"; "test_expression")]
+    fn test_to_str_for_stmt(stmt: Statement, name: &str) {
+        let depth_has_scope_open = [false; 100].into();
+
+        let visitor = ToStrVisitor::new(&depth_has_scope_open, 0, None);
+        let result = stmt.as_node().accept(&visitor);
+
+        let mut settings = insta::Settings::clone_current();
+        settings.set_snapshot_suffix(name);
+        let _guard = settings.bind_to_scope();
+        assert_snapshot!(result);
+    }
+
+    #[test_case(Declaration::Var(VarDeclaration {
+        line_no: 1,
+        name: "test".into(),
+        initializer: Some(Expression::Literal(LiteralExpression {
+            line_no: 1,
+            value: Value::Integer(1),
+        }).into()),
+        tipe: None,
+        mutable: false,
+    }), "var"; "test_var")]
+    #[test_case(Declaration::Function(FunctionDeclaration {
+        line_no: 1,
+        prototype: Prototype {
+            line_no: 1,
+            name: "test".into(),
+            return_type: ValueType::Integer.intern(),
+            captures: vec!["test".into()],
+            params: vec![("test".into(), ValueType::Integer.intern(), false)],
+        },
+        body: vec![Statement::Expression(ExpressionStatement {
+            line_no: 1,
+            expr: Expression::Literal(LiteralExpression {
+                line_no: 1,
+                value: Value::Integer(1),
+            }).into(),
+        }).as_node().into()].into(),    
+    }), "function"; "test_function")]
+    #[test_case(Declaration::Array(ArrayDeclaration {
+        line_no: 1,
+        name: "test".into(),
+        elem_tipe: Some(ValueType::Integer.intern()),
+        elements: vec![
+            Expression::Literal(LiteralExpression {
+                line_no: 1,
+                value: Value::Integer(1),
+            }),
+            Expression::Literal(LiteralExpression {
+                line_no: 1,
+                value: Value::Integer(1),
+            }),
+        ],
+    }), "array"; "test_array")]
+    fn test_to_str_for_decl(decl: Declaration, name: &str) {
+        let depth_has_scope_open = [false; 100].into();
+
+        let visitor = ToStrVisitor::new(&depth_has_scope_open, 0, None);
+        let result = decl.as_node().accept(&visitor);
+
+        let mut settings = insta::Settings::clone_current();
+        settings.set_snapshot_suffix(name);
+        let _guard = settings.bind_to_scope();
+        assert_snapshot!(result);
     }
 }

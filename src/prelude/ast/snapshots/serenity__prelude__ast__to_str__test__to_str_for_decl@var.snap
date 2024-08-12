@@ -1,0 +1,7 @@
+---
+source: src/prelude/ast/to_str.rs
+expression: result
+---
+[line    1] Var Declaration: test
+[line    1] ╰───  Initializer
+[line    1]      ╰─── Literal: 1

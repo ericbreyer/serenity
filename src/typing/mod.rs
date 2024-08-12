@@ -7,7 +7,7 @@ use std::{
     rc::Rc,
 };
 
-
+use inkwell::{context::Context, types::BasicType as _, AddressSpace};
 use pinvec::PinVec;
 use pow_of_2::PowOf2;
 
@@ -140,16 +140,16 @@ impl ValueType {
             ValueType::Closure(t, _) => {
                 let mut s = String::new();
                 s.push_str("fn(");
-                for (i, v) in t[0..t.len()-1].iter().enumerate() {
+                for (i, v) in t[0..t.len() - 1].iter().enumerate() {
                     s.push_str(&v.to_string());
                     if i != t.len() - 1 {
                         s.push_str(", ");
                     }
                 }
                 s.push_str(") -> ");
-                s.push_str(&t[t.len()-1].to_string());
+                s.push_str(&t[t.len() - 1].to_string());
                 s.into()
-            },
+            }
             ValueType::FnPointer => todo!(),
             ValueType::Pointer(t, _) => format!("*{}", t.to_string()).into(),
             ValueType::LValue(_, _) => todo!(),
@@ -231,6 +231,35 @@ impl ValueType {
             _ => core::mem::discriminant(self) == core::mem::discriminant(other),
         }
     }
+
+    pub fn llvm(self, ctx: &Context) -> inkwell::types::BasicTypeEnum {
+        match self {
+            Self::Float => ctx.f64_type().as_basic_type_enum(),
+            Self::Integer => ctx.i64_type().as_basic_type_enum(),
+            Self::UInteger => ctx.i64_type().as_basic_type_enum(),
+            Self::Char => ctx.i8_type().as_basic_type_enum(),
+            Self::Bool => ctx.bool_type().as_basic_type_enum(),
+            Self::Nil => ctx.i8_type().as_basic_type_enum(),
+            Self::Closure(_, _) => ctx.i8_type().as_basic_type_enum(),
+            Self::FnPointer => ctx.i8_type().as_basic_type_enum(),
+            Self::Pointer(t, _) => ctx.ptr_type(AddressSpace::default()).as_basic_type_enum(),
+            Self::LValue(t, _) => ctx.ptr_type(AddressSpace::default()).as_basic_type_enum(),
+            Self::Array(t, n) => (*t).clone().llvm(ctx).array_type(n as u32).as_basic_type_enum(),
+            Self::Struct(h) => {
+                let mut types = Vec::new();
+                let bg = h.fields.borrow();
+                for (_, v) in bg.iter() {
+                    types.push((*v.value).clone().llvm(ctx));
+                }
+                ctx.struct_type(&types, false).as_basic_type_enum()
+            }
+            Self::SelfStruct(_) => todo!(),
+            Self::GenericParam(_) => todo!(),
+            Self::Undef => todo!(),
+            Self::All => todo!(),
+            Self::Err => todo!(),
+        }
+    }
 }
 
 impl PartialEq for ValueType {
@@ -251,7 +280,10 @@ impl ValueType {
         core::mem::discriminant(self) == core::mem::discriminant(&Self::All)
     }
 
-    pub fn decay(&self, custom_structs: Option<Rc<HashMap<SharedString, CustomStruct>>>) -> UValueType {
+    pub fn decay(
+        &self,
+        custom_structs: Option<Rc<HashMap<SharedString, CustomStruct>>>,
+    ) -> UValueType {
         match (self, custom_structs) {
             (Self::Array(p, _), _) => Self::Pointer(*p, true).clone().intern(),
             (Self::Pointer(maybe_ss, _), Some(cs)) => {

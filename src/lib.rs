@@ -1,30 +1,26 @@
-//! Serenity is a toy programming language written from scratch by Eric Breyer
-//!
-//! It is heavily inspired by C, with some QOL features like closures,
-//! and struct methods. I originally followed the [`Crafting Interpreters`] book
-//! by Bob Nystrom, but have since diverged from the book's implementation.
-//!
-//! Serenity has seperate lexing, parsing, and compiling phases, and currently
-//! uses a two pass compiler to statically type check the program.
-//!
-//! Serenity currently runs on a stack based virtual machine, but I plan to
-//! implement an LLVM backend in the future.
-//!
-//! [`Crafting Interpreters`]: https://craftinginterpreters.com/
-//!
+// //! Serenity is a toy programming language written from scratch by Eric Breyer
+// //!
+// //! It is heavily inspired by C, with some QOL features like closures,
+// //! and struct methods. I originally followed the [`Crafting Interpreters`] book
+// //! by Bob Nystrom, but have since diverged from the book's implementation.
+// //!
+// //! Serenity has seperate lexing, parsing, and compiling phases, and currently
+// //! uses a two pass compiler to statically type check the program.
+// //!
+// //! Serenity currently runs on a stack based virtual machine, but I plan to
+// //! implement an LLVM backend in the future.
+// //!
+// //! [`Crafting Interpreters`]: https://craftinginterpreters.com/
+// //!
 
-#![warn(clippy::pedantic)]
-#![warn(missing_docs)]
-#![warn(clippy::missing_docs_in_private_items)]
+// #![warn(clippy::pedantic)]
+// #![warn(missing_docs)]
+// #![warn(clippy::missing_docs_in_private_items)]
 
-
-// extern crate getopts;
-
-
-
+// // extern crate getopts;
 
 use parser::Parser;
-use reg_vm::ExitReason;
+// use reg_vm::ExitReason;
 use tracing::{level_filters::LevelFilter, subscriber::DefaultGuard};
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{
@@ -36,13 +32,14 @@ use tracing_subscriber::{
 };
 use anyhow::{Context, Result};
 
-mod prelude;
 mod lexer;
+mod prelude;
 mod parser;
-mod reg_compiler;
+// // mod reg_compiler;
 mod value;
-mod reg_vm;
+// // mod reg_vm;
 mod typing;
+mod llvm_compiler;
 
 enum LevelOrFn {
     Level(LevelFilter),
@@ -94,23 +91,21 @@ pub fn set_log_verbosity(verbose: usize) -> Result<(DefaultGuard, WorkerGuard)> 
     Ok((tracing::subscriber::set_default(subscriber), _guard))
 }
 
-pub fn run_file(path: &str, output: &mut impl std::io::Write) -> Result<(), std::io::Error> {
+pub fn run_file(path: &str, _output: &mut impl std::io::Write) -> Result<(), std::io::Error> {
 
     let source = std::fs::read_to_string(path).expect("Failed to read file");
-    
-    let parsed = parser::SerenityParser::parse(source.into(), path.into());
 
-    let compiled = reg_compiler::compile(
-        parsed.expect("Failed to parse file"),
-        &std::collections::HashMap::new(),
-    )
-    .map_err(|_e| std::io::Error::new(std::io::ErrorKind::InvalidInput, ""))?;
+    let _parsed = parser::SerenityParser::parse(source.into(), path.into());
 
+    // let compiled = reg_compiler::compile(
+    //     parsed.expect("Failed to parse file"),
+    //     &std::collections::HashMap::new(),
+    // )
+    // .map_err(|_e| std::io::Error::new(std::io::ErrorKind::InvalidInput, ""))?;
 
-    let stat = reg_vm::VM::new(compiled, output).run();
-    if let ExitReason::Err(e) = stat {
-        panic!("{}", e);
-    }
+    // let stat = reg_vm::VM::new(compiled, output).run();
+    // if let ExitReason::Err(e) = stat {
+    //     panic!("{}", e);
+    // }
     Ok(())
 }
-

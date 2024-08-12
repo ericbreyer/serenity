@@ -5,7 +5,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use half_expression::HalfExpression;
 pub use parse_table::ParseTable;
 
-use crate::{prelude::*, lexer::TokenType, value::Value};
+use crate::{lexer::TokenType, prelude::*, value::Value};
 
 use super::{Precedence, SerenityParser};
 
@@ -48,7 +48,7 @@ impl SerenityParser {
                 "token {:?} has no infix rule",
                 self.previous.token_type
             ))(self, can_assign);
-            node = hnode.fill(node);
+            node = hnode.fill(node, self.previous.line);
         }
 
         if can_assign && self.match_token(TokenType::Equal) {
@@ -83,7 +83,7 @@ impl SerenityParser {
     }
 
     fn cast(&mut self, _can_assign: bool) -> Expression {
-        let line = self.previous.line;
+        let line_no = self.previous.line;
 
         self.consume(TokenType::LeftParen, "Expect '(' after 'cast'.");
         let node = self.expression();
@@ -94,13 +94,17 @@ impl SerenityParser {
         };
         self.consume(TokenType::RightParen, "Expect ')' after type.");
 
-        Expression::Cast(Box::new(node), cast_type, line)
+        Expression::Cast(CastExpression {
+            expression: Box::new(node),
+            target_type: cast_type,
+            line_no,
+        })
     }
 
     fn cast_prefix(&mut self, _can_assign: bool) -> Expression {
         // type(value)
         // (type*)(value)
-        let line = self.previous.line;
+        let line_no = self.previous.line;
 
         let cast_type: UValueType = self.previous.lexeme.clone().into();
 
@@ -108,11 +112,14 @@ impl SerenityParser {
         let node = self.expression();
         self.consume(TokenType::RightParen, "Expect ')' after expression.");
 
-        Expression::Cast(Box::new(node), Some(cast_type), line)
+        Expression::Cast(CastExpression {
+            expression: Box::new(node),
+            target_type: Some(cast_type),
+            line_no,
+        })
     }
 
     fn lambda(&mut self, _can_assign: bool) -> Expression {
-        let line = self.previous.line;
         thread_local! {
         static ANON_ID: AtomicUsize = AtomicUsize::new(0);
         }
@@ -123,7 +130,7 @@ impl SerenityParser {
             )
             .as_str(),
         );
-        Expression::Function(func_expr, line)
+        Expression::Function(func_expr)
     }
 
     pub(super) fn function(&mut self, _func_name: &str) -> FunctionExpression {
@@ -174,7 +181,7 @@ impl SerenityParser {
         param_types.push(return_type);
 
         let mut nodes = vec![];
-        if self.match_token(TokenType::LeftBrace){
+        if self.match_token(TokenType::LeftBrace) {
             nodes = self.block();
         } else {
             self.consume(TokenType::Semicolon, "Need semicolon after weak decl");
@@ -190,9 +197,12 @@ impl SerenityParser {
     }
 
     fn number(&mut self, _can_assign: bool) -> Expression {
-        let line = self.previous.line;
+        let line_no = self.previous.line;
         if let Ok(n) = self.previous.lexeme.parse::<i64>() {
-            Expression::Literal(Value::Integer(n), line)
+            Expression::Literal(LiteralExpression {
+                value: Value::Integer(n),
+                line_no: line_no,
+            })
         } else if let Ok(n) = self
             .previous
             .lexeme
@@ -200,9 +210,15 @@ impl SerenityParser {
             .unwrap_or("")
             .parse::<u64>()
         {
-            Expression::Literal(Value::UInteger(n), line)
+            Expression::Literal(LiteralExpression {
+                value: Value::UInteger(n),
+                line_no: line_no,
+            })
         } else if let Ok(n) = self.previous.lexeme.parse::<f64>() {
-            Expression::Literal(Value::Float(n), line)
+            Expression::Literal(LiteralExpression {
+                value: Value::Float(n),
+                line_no: line_no,
+            })
         } else {
             self.error("Invalid number.");
             Expression::Empty
@@ -223,7 +239,10 @@ impl SerenityParser {
         value = value.replace("\\}", "}");
         let c = value.as_bytes()[0] as u8;
 
-        Expression::Literal(Value::Char(c), line)
+        Expression::Literal(LiteralExpression {
+            value: Value::Char(c),
+            line_no: line,
+        })
     }
 
     fn grouping(&mut self, _can_assign: bool) -> Expression {
@@ -240,12 +259,16 @@ impl SerenityParser {
     }
 
     fn unary(&mut self, _can_assign: bool) -> Expression {
-        let line = self.previous.line;
-        let operator_type = self.previous.token_type;
+        let line_no = self.previous.line;
+        let operator = self.previous.token_type;
         // Compile the operand.
         let expr = self.parse_precedence(Precedence::Unary);
 
-        Expression::Unary(operator_type, Box::new(expr), line)
+        Expression::Unary(UnaryExpression {
+            operator,
+            operand: Box::new(expr),
+            line_no,
+        })
     }
 
     fn deref(&mut self, _can_assign: bool) -> Expression {
@@ -253,7 +276,10 @@ impl SerenityParser {
         // Compile the operand.
         let expr = self.parse_precedence(Precedence::Unary);
 
-        Expression::Deref(Box::new(expr), line)
+        Expression::Deref(DerefExpression {
+            operand: Box::new(expr),
+            line_no: line,
+        })
     }
 
     fn parse_expression_index(&mut self) -> Expression {
@@ -268,11 +294,14 @@ impl SerenityParser {
     }
 
     fn addr_of(&mut self, _can_assign: bool) -> Expression {
-        let line = self.previous.line;
+        let line_no = self.previous.line;
         // parse the operand.
         let expr = self.parse_precedence(Precedence::Unary);
 
-        Expression::Ref(Box::new(expr), line)
+        Expression::Ref(RefExpression {
+            operand: Box::new(expr),
+            line_no,
+        })
     }
 
     fn binary(&mut self, _can_assign: bool) -> HalfExpression {
@@ -318,14 +347,20 @@ impl SerenityParser {
     fn literal(&mut self, _can_assign: bool) -> Expression {
         let line = self.previous.line;
         match self.previous.token_type {
-            TokenType::False => Expression::Literal(Value::Bool(false), line),
-            TokenType::True => Expression::Literal(Value::Bool(true), line),
+            TokenType::False => Expression::Literal(LiteralExpression {
+                value: Value::Bool(false),
+                line_no: line,
+            }),
+            TokenType::True => Expression::Literal(LiteralExpression {
+                value: Value::Bool(true),
+                line_no: line,
+            }),
             _ => unreachable!(),
         }
     }
 
     fn string(&mut self, _can_assign: bool) -> Expression {
-        let line = self.previous.line;
+        let line_no = self.previous.line;
         let mut value = self.previous.lexeme.clone().to_string();
         value = value.trim_matches('"').to_string();
         value = value.replace("\\n", "\n");
@@ -336,12 +371,15 @@ impl SerenityParser {
         value = value.replace("\\\"", "\"");
         value = value.replace("\\{", "{");
         value = value.replace("\\}", "}");
-        Expression::StringLiteral(value.into(), line)
+        Expression::StringLiteral(StringLiteralExpression {
+            value: value.into(),
+            line_no,
+        })
     }
 
     fn variable(&mut self, _can_assign: bool) -> Expression {
-        let line = self.previous.line;
-        Expression::Variable(self.previous.clone(), line)
+        let line_no = self.previous.line;
+        Expression::Variable(VariableExpression{ token: self.previous.clone(), line_no})
     }
 
     fn type_expression(&mut self) -> Expression {
@@ -352,11 +390,11 @@ impl SerenityParser {
             return self.struct_initializer(t);
         } else if self.current.token_type == TokenType::DoubleColon {
             self.advance();
-            let Expression::Variable(mut tok, l) = self.parse_precedence(Precedence::Call) else {
+            let Expression::Variable(VariableExpression { mut token, line_no }) = self.parse_precedence(Precedence::Call) else {
                 return Expression::Empty;
             };
-            tok.lexeme = format!("{}_{}", t.unique_string(), tok.lexeme).into();
-            return Expression::Variable(tok, l);
+            token.lexeme = format!("{}_{}", t.unique_string(), token.lexeme).into();
+            return Expression::Variable(VariableExpression { token, line_no });
         } else {
             return Expression::Empty;
         }

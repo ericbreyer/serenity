@@ -30,7 +30,7 @@ impl TypeCheckWalker {
       }
 
     };
-    (declared_ast::Expression::Literal(v, line), t)
+    (declared_ast:Expression::Literal(LiteralExpression{ value: v, line), line_no:  t})
   }
 
   #[instrument(level = "trace", skip_all)]
@@ -89,9 +89,9 @@ impl TypeCheckWalker {
 
 
     if !at {
-      (declared_ast::Expression::Deref(Box::new(nde), line), t)
+      (declared_ast::Expression::Deref(DerefExpression{ operand: Box::new(nde), line_no:  line}), t)
     } else {
-      (declared_ast::Expression::Deref(Box::new(nde), line), raw_t)
+      (declared_ast::Expression::Deref(DerefExpression{ operand: Box::new(nde), line_no:  line}), raw_t)
     }
   }
 
@@ -132,9 +132,9 @@ impl TypeCheckWalker {
     }
 
     if !at {
-      (declared_ast::Expression::Index(Box::new(nde), Box::new(ndi), line), *pointee_type)
+      (declared_ast:Expression::Index(IndexExpression{ array: Box::new(nde), Box::new(ndi), index:  line), line_no:  *pointee_type})
     } else {
-      (declared_ast::Expression::Index(Box::new(nde), Box::new(ndi), line), raw_t)
+      (declared_ast:Expression::Index(IndexExpression{ array: Box::new(nde), Box::new(ndi), index:  line), line_no:  raw_t})
     }
   }
 
@@ -285,7 +285,7 @@ impl TypeCheckWalker {
       _ => unreachable!(),
     };
 
-    (declared_ast::Expression::Binary(Box::new(ndl), operator_type, Box::new(ndr), line), t)
+    (declared_ast:Expression::Binary(BinaryExpression{ left: Box::new(ndl), operator_type, operator:  Box::new(ndr), right:  line), line_no:  t})
   }
 
   #[instrument(level = "trace", skip_all)]
@@ -310,7 +310,7 @@ impl TypeCheckWalker {
     if t_type != f_type {
       error!(self, format!("[line {line}] Branches must have the same type.").as_str());
     }
-    (declared_ast::Expression::Ternary(Box::new(ndc), Box::new(ndt), Box::new(ndf), line), t_type)
+    (declared_ast:Expression::Ternary(TernaryExpression{ condition: Box::new(ndc), Box::new(ndt), then_branch:  Box::new(ndf), else_branch:  line), line_no:  t_type})
   }
 
   #[instrument(level = "trace", skip_all)]
@@ -382,7 +382,7 @@ impl TypeCheckWalker {
       );
     }
 
-    (declared_ast::Expression::Assign(Box::new(ndl), Box::new(ndr), line), t2)
+    (declared_ast:Expression::Assign(AssignExpression{ variable: Box::new(ndl), Box::new(ndr), value:  line), line_no:  t2})
   }
 
   #[instrument(level = "trace", skip_all)]
@@ -404,7 +404,7 @@ impl TypeCheckWalker {
       error!(self, format!("[line {line}] Operand must be a boolean.").as_str());
     }
     return (
-      declared_ast::Expression::Logical(Box::new(ndl), operator_type, Box::new(ndr), line),
+      declared_ast:Expression::Logical(LogicalExpression{ left: Box::new(ndl), operator:  operator_type, right:  Box::new(ndr), line_no:  line}),
       ValueType::Bool.intern(),
     );
   }
@@ -441,7 +441,7 @@ impl TypeCheckWalker {
 
       let return_type = f.last().unwrap();
       return (
-        declared_ast::Expression::Call(Box::new(ndcallee), ndargs, line),
+        declared_ast:Expression::Call(CallExpression{ callee: Box::new(ndcallee), arguments:  ndargs, line_no:  line}),
         *return_type,
       );
     } else {
@@ -507,7 +507,7 @@ impl TypeCheckWalker {
       return (declared_ast::Expression::Empty, ValueType::Err.intern());
     };
 
-    let ndd = declared_ast::Expression::Dot(Box::new(nde), tok, line);
+    let ndd = declared_ast:Expression::Dot(DotExpression{ object: Box::new(nde), field:  tok, line_no:  line});
     if !at {
       return (ndd, field.value);
     } else {

@@ -1,6 +1,6 @@
 use crate::{
-    prelude::*,
     lexer::{Token, TokenType},
+    prelude::*,
 };
 
 pub enum HalfExpression {
@@ -16,20 +16,61 @@ pub enum HalfExpression {
 }
 
 impl HalfExpression {
-    pub fn fill(self, left: Expression) -> Expression {
-        let line = left.line_no();
+    pub fn fill(self, left: Expression, line: usize) -> Expression {
+
         match self {
-            HalfExpression::Binary(t, r) => Expression::Binary(Box::new(left), t, r, line),
-            HalfExpression::And(r) => Expression::Logical(Box::new(left), TokenType::And, r, line),
-            HalfExpression::Or(r) => Expression::Logical(Box::new(left), TokenType::Or, r, line),
-            HalfExpression::Ternary(l, r) => Expression::Ternary(Box::new(left), l, r, line),
-            HalfExpression::Index(r) => Expression::Index(Box::new(left), r, line),
-            HalfExpression::Call(r) => Expression::Call(Box::new(left), r, line),
-            HalfExpression::Assign(r) => Expression::Assign(Box::new(left), r, line),
-            HalfExpression::DerefDot(t) => {
-                Expression::Dot(Box::new(Expression::Deref(Box::new(left), line)), t, line)
-            }
-            HalfExpression::Dot(t) => Expression::Dot(Box::new(left), t, line),
+            HalfExpression::Binary(t, r) => Expression::Binary(BinaryExpression {
+                left: Box::new(left),
+                operator: t,
+                right: r,
+                line_no: line,
+            }),
+            HalfExpression::And(r) => Expression::Logical(LogicalExpression {
+                left: Box::new(left),
+                operator: TokenType::And,
+                right: r,
+                line_no: line,
+            }),
+            HalfExpression::Or(r) => Expression::Logical(LogicalExpression {
+                left: Box::new(left),
+                operator: TokenType::Or,
+                right: r,
+                line_no: line,
+            }),
+            HalfExpression::Ternary(l, r) => Expression::Ternary(TernaryExpression {
+                condition: Box::new(left),
+                then_branch: l,
+                else_branch: r,
+                line_no: line,
+            }),
+            HalfExpression::Index(r) => Expression::Index(IndexExpression {
+                array: Box::new(left),
+                index: r,
+                line_no: line,
+            }),
+            HalfExpression::Call(r) => Expression::Call(CallExpression {
+                callee: Box::new(left),
+                arguments: r,
+                line_no: line,
+            }),
+            HalfExpression::Assign(r) => Expression::Assign(AssignExpression {
+                variable: Box::new(left),
+                value: r,
+                line_no: line,
+            }),
+            HalfExpression::DerefDot(t) => Expression::Dot(DotExpression {
+                object: Box::new(Expression::Deref(DerefExpression {
+                    operand: Box::new(left),
+                    line_no: line,
+                })),
+                field: t.lexeme,
+                line_no: line,
+            }),
+            HalfExpression::Dot(t) => Expression::Dot(DotExpression {
+                object: Box::new(left),
+                field: t.lexeme,
+                line_no: line,
+            }),
         }
     }
 }

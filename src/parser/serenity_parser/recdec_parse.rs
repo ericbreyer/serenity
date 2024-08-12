@@ -47,12 +47,15 @@ impl SerenityParser {
     }
 
     fn statement(&mut self) -> Statement {
-        let line = self.previous.line;
+        let line_no = self.previous.line;
         if self.match_token(TokenType::Print) {
             self.print_statement()
         } else if self.match_token(TokenType::LeftBrace) {
-            let r = self.block();
-            return Statement::Block(r, line);
+            let statements = self.block();
+            return Statement::Block(BlockStatement {
+                statements,
+                line_no,
+            });
         } else if self.match_token(TokenType::If) {
             return self.if_statement();
         } else if self.match_token(TokenType::While) {
@@ -60,13 +63,16 @@ impl SerenityParser {
         } else if self.match_token(TokenType::For) {
             return self.for_statement();
         } else if self.match_token(TokenType::Semicolon) {
-            return Statement::Expression(Expression::Empty.into(), line);
+            return Statement::Expression(ExpressionStatement {
+                expr: Expression::Empty.into(),
+                line_no,
+            });
         } else if self.match_token(TokenType::Break) {
             self.consume(TokenType::Semicolon, "Expect ';' after break.");
-            return Statement::Break(line);
+            return Statement::Break(BreakStatement { line_no });
         } else if self.match_token(TokenType::Continue) {
             self.consume(TokenType::Semicolon, "Expect ';' after continue.");
-            return Statement::Continue(line);
+            return Statement::Continue(ContinueStatement { line_no });
         } else if self.match_token(TokenType::Return) {
             let mut return_node = None;
             if self.match_token(TokenType::Semicolon) {
@@ -75,7 +81,10 @@ impl SerenityParser {
                 return_node = e_node.into();
                 self.consume(TokenType::Semicolon, "Expect ';' after return value.");
             }
-            return Statement::Return(return_node.map(Box::new), line);
+            return Statement::Return(ReturnStatement {
+                value: return_node.map(Box::new),
+                line_no,
+            });
         } else {
             return self.expression_statement();
         }
@@ -99,21 +108,27 @@ impl SerenityParser {
     }
 
     fn print_statement(&mut self) -> Statement {
-        let line = self.previous.line;
+        let line_no = self.previous.line;
         let node = self.expression();
         self.consume(TokenType::Semicolon, "Expect ';' after value.");
-        Statement::Print(Box::new(node), line)
+        Statement::Print(PrintStatement {
+            expr: Box::new(node),
+            line_no,
+        })
     }
 
     fn expression_statement(&mut self) -> Statement {
         let node = self.expression();
         self.consume(TokenType::Semicolon, "Expect ';' after expression.");
-        let line = self.previous.line;
-        Statement::Expression(Box::new(node), line)
+        let line_no = self.previous.line;
+        Statement::Expression(ExpressionStatement {
+            expr: Box::new(node),
+            line_no,
+        })
     }
 
     fn if_statement(&mut self) -> Statement {
-        let line = self.previous.line;
+        let line_no = self.previous.line;
         self.consume(TokenType::LeftParen, "Expect '(' after 'if'.");
         let cond_node = self.expression();
         self.consume(TokenType::RightParen, "Expect ')' after condition.");
@@ -124,12 +139,12 @@ impl SerenityParser {
         if self.match_token(TokenType::Else) {
             alt = Some(self.statement());
         }
-        Statement::If(
-            Box::new(cond_node),
-            Box::new(conseq),
-            alt.map(Box::new),
-            line,
-        )
+        Statement::If(IfStatement {
+            condition: Box::new(cond_node),
+            then_branch: Box::new(conseq),
+            else_branch: alt.map(Box::new),
+            line_no,
+        })
     }
 
     fn while_statement(&mut self) -> Statement {
@@ -137,17 +152,21 @@ impl SerenityParser {
         let cond_node = self.expression();
         self.consume(TokenType::RightParen, "Expect ')' after condition.");
 
-        let line = self.previous.line;
+        let line_no = self.previous.line;
 
         let body = self.statement();
 
-        Statement::While(Box::new(cond_node), Box::new(body), line)
+        Statement::While(WhileStatement {
+            condition: Box::new(cond_node),
+            body: Box::new(body),
+            line_no,
+        })
     }
 
     fn for_statement(&mut self) -> Statement {
         let _line = self.previous.line;
         self.consume(TokenType::LeftParen, "Expect '(' after 'for'.");
-        let line = self.previous.line;
+        let line_no = self.previous.line;
 
         let initializer: Option<ASTNode>;
         if self.match_token(TokenType::Semicolon) {
@@ -173,13 +192,13 @@ impl SerenityParser {
 
         let body = self.statement();
 
-        Statement::For(
-            initializer.map(Box::new),
-            cond_node.map(Box::new),
-            increment_node.map(Box::new),
-            Box::new(body),
-            line,
-        )
+        Statement::For(ForStatement {
+            init: initializer.map(Box::new),
+            condition: cond_node.map(Box::new),
+            increment: increment_node.map(Box::new),
+            body: Box::new(body),
+            line_no,
+        })
     }
 
     //----Declarations----//
@@ -321,7 +340,7 @@ impl SerenityParser {
                         self.error("interfaces may only contain functions");
                         continue;
                     };
-                    for (i, t) in ftype[0..ftype.len()-1].iter().enumerate() {
+                    for (i, t) in ftype[0..ftype.len() - 1].iter().enumerate() {
                         s = format!("{s} a{i} : {}, ", t.to_string());
                     }
                     s = format!("{s}) -> {};", ftype.last().unwrap().to_string());
@@ -489,26 +508,24 @@ impl SerenityParser {
 
         self.custom_types.insert(impler_name, impler);
 
-        
-            methods
-                .iter()
-                .flat_map(|(methname, node)| {
-                    Self::parse_helper(
-                        node.clone(),
-                        format!("{name}_{}_meth_mod", methname).into(),
-                        false,
-                        self.custom_types.clone(),
-                    )
-                    .unwrap()
-                    .ast
-                })
-                .collect()
-        
+        methods
+            .iter()
+            .flat_map(|(methname, node)| {
+                Self::parse_helper(
+                    node.clone(),
+                    format!("{name}_{}_meth_mod", methname).into(),
+                    false,
+                    self.custom_types.clone(),
+                )
+                .unwrap()
+                .ast
+            })
+            .collect()
     }
 
     fn array_declaration(&mut self, var_name: SharedString, var_type: UValueType) -> ASTNode {
         let mut init = Vec::new();
-        let line = self.previous.line;
+        let line_no = self.previous.line;
         match self.parse_literal_index() {
             Ok(n) => {
                 self.consume(TokenType::RightBracket, "brace");
@@ -521,14 +538,13 @@ impl SerenityParser {
             TokenType::Semicolon,
             "Expect ';' after variable declaration.",
         );
-        ASTNode::Declaration(Declaration::Array(
-            ArrayDeclaration {
-                elements: init,
-                name: var_name,
-                elem_tipe: var_type.into(),
-            },
-            line,
-        ))
+        ASTNode::Declaration(Declaration::Array(ArrayDeclaration {
+            elements: init,
+            name: var_name,
+            elem_tipe: var_type.into(),
+
+            line_no,
+        }))
     }
 
     fn define_array(&mut self, size: Option<u32>) -> Vec<Expression> {
@@ -563,7 +579,7 @@ impl SerenityParser {
     }
 
     fn var_declaration(&mut self, mutable: bool) -> ASTNode {
-        let line = self.previous.line;
+        let line_no = self.previous.line;
 
         self.consume(TokenType::Identifier, "Expect variable name.");
         let name = self.previous.lexeme.clone();
@@ -579,14 +595,12 @@ impl SerenityParser {
         if self.match_token(TokenType::Equal) {
             if self.current.token_type == TokenType::LeftBrace {
                 let elems = self.define_array(None);
-                return ASTNode::Declaration(Declaration::Array(
-                    ArrayDeclaration {
-                        elements: elems,
-                        name,
-                        elem_tipe: var_type,
-                    },
-                    line,
-                ));
+                return ASTNode::Declaration(Declaration::Array(ArrayDeclaration {
+                    elements: elems,
+                    name,
+                    elem_tipe: var_type,
+                    line_no,
+                }));
             }
             if self.current.token_type == TokenType::Struct {
                 let t = self.parse_complex_type(&None);
@@ -612,19 +626,17 @@ impl SerenityParser {
             .as_str(),
         );
 
-        ASTNode::Declaration(Declaration::Var(
-            VarDeclaration {
-                name,
-                tipe: var_type,
-                initializer: initializer.map(Box::new),
-                mutable,
-            },
-            line,
-        ))
+        ASTNode::Declaration(Declaration::Var(VarDeclaration {
+            name,
+            tipe: var_type,
+            initializer: initializer.map(Box::new),
+            mutable,
+            line_no,
+        }))
     }
 
     pub(super) fn struct_initializer(&mut self, t: UValueType) -> Expression {
-        let line = self.previous.line;
+        let line_no = self.previous.line;
         let ValueType::Struct(s) = t.as_ref() else {
             self.error("Expect struct type.");
             return Expression::Empty;
@@ -645,11 +657,15 @@ impl SerenityParser {
             TokenType::RightBrace,
             "Expect '}' after struct initializer.",
         );
-        Expression::StructInitializer(s.clone(), fields, line)
+        Expression::StructInitializer(StructInitializerExpression {
+            struct_type: s.clone(),
+            fields,
+            line_no,
+        })
     }
 
     fn fun_declaration(&mut self) -> ASTNode {
-        let line = self.previous.line;
+        let line_no = self.previous.line;
 
         if self.match_token(TokenType::LeftParen) {
             self.consume(TokenType::Identifier, "Expect receiver name.");
@@ -676,44 +692,40 @@ impl SerenityParser {
 
             let inner_name = format!("{}_inner", new_name);
             let mut node = self.function(&inner_name);
-            node.captures.push(receiver.clone());
+            node.prototype.captures.push(receiver.clone());
 
             let mut node_type = vec![];
-            for (_name, t, _) in node.params.iter() {
+            for (_name, t, _) in node.prototype.params.iter() {
                 node_type.push(t.clone());
             }
-            node_type.push(node.return_type.clone());
+            node_type.push(node.prototype.return_type.clone());
 
-            return ASTNode::Declaration(Declaration::Function(
-                FunctionDeclaration {
-                    name: new_name.clone(),
-                    body: FunctionExpression {
-                        params: vec![(receiver, receiver_type, false)],
-                        body: vec![ASTNode::Statement(Statement::Return(
-                            Some(Box::new(Expression::Function(node.clone(), line))),
-                            line,
-                        ))],
-                        return_type: ValueType::Closure(node_type.into_boxed_slice(), 1).intern(),
-                        name: new_name,
-                        captures: vec![],
-                    },
-                    weak: node.body.is_empty(),
+            return ASTNode::Declaration(Declaration::Function(FunctionDeclaration {
+                prototype: Prototype {
+                    params: vec![(receiver, receiver_type, false)],
+                    return_type: ValueType::Closure(node_type.into_boxed_slice(), 1).intern(),
+                    name: new_name,
+                    captures: vec![],
+                    line_no,
                 },
-                line,
-            ));
+                body: vec![ASTNode::Statement(Statement::Return(ReturnStatement {
+                    value: Some(Box::new(Expression::Function(node.clone()))),
+                    line_no,
+                }))]
+                .into(),
+
+                line_no,
+            }));
         }
 
         self.consume(TokenType::Identifier, "Expect function name.");
         let name = self.previous.lexeme.clone();
         let node = self.function(&name);
 
-        ASTNode::Declaration(Declaration::Function(
-            FunctionDeclaration {
-                name,
-                body: node.clone(),
-                weak: node.body.is_empty(),
-            },
-            line,
-        ))
+        ASTNode::Declaration(Declaration::Function(FunctionDeclaration {
+            prototype: node.prototype,
+            body: node.body.into(),
+            line_no,
+        }))
     }
 }
