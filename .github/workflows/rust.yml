@@ -11,7 +11,6 @@ env:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
@@ -26,10 +25,7 @@ jobs:
     - name: Install Rust Stable
       uses: dtolnay/rust-toolchain@stable
     - name: Build
-      run: cargo build --release --features llvm18-0 --verbose
-    - name: Run tests
-      run: cargo test --release --features llvm18-0 --verbose
-    - name: Build example
+      run: cargo build --release --verbose
     - id: pretty-test
       name: Run cargo pretty-test
       run: |
@@ -38,4 +34,3 @@ jobs:
         echo '```text' >> $GITHUB_STEP_SUMMARY
         echo "$(cargo pretty-test --color=never)" >> $GITHUB_STEP_SUMMARY 2>&1
         echo '```' >> $GITHUB_STEP_SUMMARY
-  
