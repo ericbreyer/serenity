@@ -15,15 +15,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: LLVM Install
-      # You may pin to the exact commit or the version.
-      # uses: FreeMasen/llvm-install-action@44788e07be932efaafa703a38e259fa09b6adbd8
-      uses: FreeMasen/llvm-install-action@v1.0.0
-      with:
-        # The version of LLVM to install
-        version: 18.0.0
-        # The base url for the release downloads
-        base-url: https://github.com/FreeMasen/llvm-builds/releases/download
+    - name: Setup LLVM & Clang toolchain
+      uses: actions4cpp/setup-llvm@main
+
           
             
     - uses: actions/checkout@v4
