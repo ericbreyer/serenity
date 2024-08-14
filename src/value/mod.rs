@@ -78,24 +78,6 @@ pub enum Value {
     Pointer(Pointer),
 }
 
-impl Value {
-    pub fn to_word(&self) -> Word {
-        let words = self.to_words();
-        assert!(words.len() == 1, "cannot convert value to word");
-        words[0]
-    }
-
-    pub fn to_words(&self) -> Vec<Word> {
-        match self {
-            Value::Integer(i) => vec![(*i as u64).into()],
-            Value::UInteger(i) => vec![(*i as u64).into()],
-            Value::Float(f) => vec![f.to_bits().into()],
-            Value::Char(c) => vec![u64::from(*c).into()],
-            Value::Bool(b) => vec![u64::from(*b).into()],
-            Value::Pointer(p) => vec![p.to_word()],
-        }
-    }
-}
 
 impl Debug for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

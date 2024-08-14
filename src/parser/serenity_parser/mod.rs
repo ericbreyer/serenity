@@ -149,11 +149,11 @@ impl SerenityParser {
             if self.match_token(TokenType::Fun) {
                 let mut param_types = Vec::new();
 
-                let mut capture_count = 0;
+                let mut captures = Vec::new();
                 if self.match_token(TokenType::LeftBracket) {
                     loop {
                         let p_type = self.parse_complex_type(struct_name);
-                        capture_count += p_type.num_words();
+                        captures.push(p_type);
                         if !self.match_token(TokenType::Comma) {
                             break;
                         }
@@ -178,8 +178,8 @@ impl SerenityParser {
                 if self.match_token(TokenType::RightArrow) {
                     return_type = self.parse_complex_type(struct_name);
                 }
-                param_types.push(return_type);
-                break 'a ValueType::Closure(param_types.as_slice().into(), capture_count).intern();
+            
+                break 'a ValueType::Closure(param_types.as_slice().into(), captures.as_slice().into(), return_type).intern();
             }
 
             if self.match_token(TokenType::Struct) {
@@ -246,7 +246,7 @@ impl SerenityParser {
                 nodes.push(node)
             }
         }
-        return nodes;
+        nodes
     }
 
     //--------//

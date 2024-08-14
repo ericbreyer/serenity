@@ -259,8 +259,8 @@ impl SerenityParser {
                     fields.insert(
                         field_name.clone(),
                         StructEntry {
-                            value: field.value.clone(),
-                            offset: offset,
+                            value: field.value,
+                            offset,
                         },
                     );
                     offset += field.value.num_words();
@@ -336,14 +336,15 @@ impl SerenityParser {
                 for f in interface_vtab.fields.borrow().iter().map(|f| f.0) {
                     s = format!("fn (self: *struct {name}) {f}(");
                     let iv = interface_vtab.fields.borrow();
-                    let ValueType::Closure(ftype, _) = iv.get(&f).unwrap().value.as_ref() else {
+                    let ValueType::Closure(atypes, _, ret) = iv.get(f).unwrap().value.as_ref()
+                    else {
                         self.error("interfaces may only contain functions");
                         continue;
                     };
-                    for (i, t) in ftype[0..ftype.len() - 1].iter().enumerate() {
+                    for (i, t) in atypes.iter().enumerate() {
                         s = format!("{s} a{i} : {}, ", t.to_string());
                     }
-                    s = format!("{s}) -> {};", ftype.last().unwrap().to_string());
+                    s = format!("{s}) -> {};", ret.to_string());
                 }
                 s = format!("{s}const {name}_{interface}_vtable = struct {interfacev}{{");
                 for f in interface_vtab.fields.borrow().iter().map(|f| f.0) {
@@ -411,18 +412,24 @@ impl SerenityParser {
             let field_type = self.parse_complex_type(&Some(vtable_name.clone()));
 
             // if the field is this struct throw an error
-            let ValueType::Closure(params, 0) = &mut field_type.as_ref() else {
+            let ValueType::Closure(args, upvals, ret) = &mut field_type.as_ref() else {
                 self.error("interfaces may only contain functions");
                 continue;
             };
+            assert!(upvals.is_empty());
 
             let new_field_type = ValueType::Closure(
-                vec![
-                    ValueType::Pointer(ValueType::Nil.intern(), false).intern(),
-                    ValueType::Closure(params.clone(), 1).intern(),
-                ]
-                .into_boxed_slice(),
-                0,
+                vec![ValueType::Pointer(ValueType::Nil.intern(), false).intern()]
+                    .into_boxed_slice(),
+                Box::new([]),
+                ValueType::Closure(
+                    args.clone(),
+                    vec![ValueType::Pointer(ValueType::Nil.intern(), false).intern()]
+                        .as_slice()
+                        .into(),
+                    *ret,
+                )
+                .intern(),
             );
 
             fields.insert(
@@ -437,15 +444,15 @@ impl SerenityParser {
                 let mut s = "fn".to_string();
                 s = format!("{s} (self: *struct {name}_impl)");
                 s = format!("{s} {}(", field_name.lexeme.clone());
-                for (i, t) in params[0..params.len() - 1].iter().enumerate() {
+                for (i, t) in args.iter().enumerate() {
                     s = format!("{s} a{i} : {}, ", t.to_string());
                 }
-                s = format!("{s}) -> {}{{\n", params.last().unwrap().to_string());
+                s = format!("{s}) -> {}{{\n", ret.to_string());
                 s = format!(
                     "{s} return (self->vtable->{})(self->self)(",
                     field_name.lexeme.clone()
                 );
-                for (i, _) in params[0..params.len() - 1].iter().enumerate() {
+                for (i, _) in args.iter().enumerate() {
                     s = format!("{s} a{i}, ");
                 }
                 s = format!("{s});\n}}");
@@ -696,14 +703,19 @@ impl SerenityParser {
 
             let mut node_type = vec![];
             for (_name, t, _) in node.prototype.params.iter() {
-                node_type.push(t.clone());
+                node_type.push(*t);
             }
-            node_type.push(node.prototype.return_type.clone());
+            let node_return = node.prototype.return_type;
 
             return ASTNode::Declaration(Declaration::Function(FunctionDeclaration {
                 prototype: Prototype {
                     params: vec![(receiver, receiver_type, false)],
-                    return_type: ValueType::Closure(node_type.into_boxed_slice(), 1).intern(),
+                    return_type: ValueType::Closure(
+                        node_type.into_boxed_slice(),
+                        vec![receiver_type].into_boxed_slice(),
+                        node_return,
+                    )
+                    .intern(),
                     name: new_name,
                     captures: vec![],
                     line_no,

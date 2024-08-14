@@ -83,10 +83,7 @@ impl<'a> ToStrVisitor<'a> {
                 ""
             }
             + if depth > 0 { INDENT_MEMBER } else { "" };
-        close_scope.and_then(|c| {
-            self.depth_has_scope_open.borrow_mut()[c] = false;
-            Some(())
-        });
+        if let Some(c) = close_scope { self.depth_has_scope_open.borrow_mut()[c] = false; }
         self.depth_has_scope_open.borrow_mut()[depth] = true;
 
         s.push_str(
@@ -285,7 +282,7 @@ impl<'a> ExpressionVisitor<String> for ToStrVisitor<'a> {
         s.push_str(&expression.callee.as_node().accept(&ToStrVisitor::new(
             self.depth_has_scope_open,
             self.depth + 1,
-            if expression.arguments.len() == 0 {
+            if expression.arguments.is_empty() {
                 Some(self.depth)
             } else {
                 None
@@ -591,7 +588,7 @@ impl<'a> DeclarationVisitor<String> for ToStrVisitor<'a> {
         } else {
             self.depth_has_scope_open.borrow_mut()[self.depth] = false;
         }
-        s.into()
+        s
     }
 
     fn visit_function_declaration(&self, declaration: &super::FunctionDeclaration) -> String {
@@ -635,7 +632,7 @@ impl<'a> DeclarationVisitor<String> for ToStrVisitor<'a> {
                 },
             )));
         }
-        s.into()
+        s
     }
 }
 
@@ -680,10 +677,7 @@ impl Prototype {
             .trim_end_matches(PIPE_END_CHAR)
             .to_owned()
             + INDENT;
-        close_scope.and_then(|c| {
-            depth_has_scope_open.borrow_mut()[c] = false;
-            Some(())
-        });
+        if let Some(c) = close_scope { depth_has_scope_open.borrow_mut()[c] = false; }
 
         s.push_str(&format!(
             "[line {line:>4}] {indent_member}Function Expression:"
@@ -697,7 +691,7 @@ impl Prototype {
             self.return_type
         ));
 
-        if self.captures.len() > 0 {
+        if !self.captures.is_empty() {
             s.push_str(&format!(
                 "\n[line {line:>4}] {indent}{T_CHAR}{INDENT_MEMBER}Captures:"
             ));
@@ -714,7 +708,7 @@ impl Prototype {
             }
         }
 
-        if self.params.len() > 0 {
+        if !self.params.is_empty() {
             s.push_str(&format!(
                 "\n[line {line:>4}] {indent}{T_CHAR}{INDENT_MEMBER}Params:"
             ));
@@ -958,14 +952,14 @@ mod test {
                     line_no: 1,
                     value: Value::Integer(1),
                 }).into(),
-            }).as_node().into(),
+            }).as_node(),
             Statement::Print(PrintStatement {
                 line_no: 1,
                 expr: Expression::Literal(LiteralExpression {
                     line_no: 1,
                     value: Value::Integer(1),
                 }).into(),
-            }).as_node().into(),
+            }).as_node(),
         ],
     }), "block"; "test_block")]
     #[test_case(Statement::If(IfStatement {
@@ -980,7 +974,7 @@ mod test {
                 line_no: 1,
                 value: Value::Integer(1),
             }).into(),
-        }).into()),
+        })),
         else_branch: Some(Box::new(Statement::Print(PrintStatement {
             line_no: 1,
             expr: Expression::Literal(LiteralExpression {
@@ -1082,7 +1076,7 @@ mod test {
                 line_no: 1,
                 value: Value::Integer(1),
             }).into(),
-        }).as_node().into()].into(),    
+        }).as_node()].into(),    
     }), "function"; "test_function")]
     #[test_case(Declaration::Array(ArrayDeclaration {
         line_no: 1,

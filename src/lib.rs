@@ -95,17 +95,12 @@ pub fn run_file(path: &str, _output: &mut impl std::io::Write) -> Result<(), std
 
     let source = std::fs::read_to_string(path).expect("Failed to read file");
 
-    let _parsed = parser::SerenityParser::parse(source.into(), path.into());
+    let parsed = parser::SerenityParser::parse(source.into(), path.into());
 
-    // let compiled = reg_compiler::compile(
-    //     parsed.expect("Failed to parse file"),
-    //     &std::collections::HashMap::new(),
-    // )
-    // .map_err(|_e| std::io::Error::new(std::io::ErrorKind::InvalidInput, ""))?;
+    let context = inkwell::context::Context::create();
+    let module = llvm_compiler::compile(&context, parsed.expect("Failed to parse file")).map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidInput, e))?;
 
-    // let stat = reg_vm::VM::new(compiled, output).run();
-    // if let ExitReason::Err(e) = stat {
-    //     panic!("{}", e);
-    // }
+    module.print_to_file("output.ll").expect("Failed to write to file");
+
     Ok(())
 }

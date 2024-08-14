@@ -62,7 +62,6 @@ pub enum ASTNode {
     Statement(Statement),
     Expression(Expression),
     Declaration(Declaration),
-    CallMain(Box<ASTNode>),
 }
 
 impl<T, V> Acceptor<T, V> for ASTNode
@@ -75,7 +74,6 @@ where
             ASTNode::Statement(s) => visitor.visit_statement(s),
             ASTNode::Expression(e) => visitor.visit_expression(e),
             ASTNode::Declaration(d) => visitor.visit_declaration(d),
-            ASTNode::CallMain(n) => n.accept(visitor),
         }
     }
 }
@@ -141,7 +139,7 @@ where
     V: StatementVisitor<T>,
 {
     fn accept(&self, visitor: &V) -> T {
-        visitor.visit_print_statement(&self)
+        visitor.visit_print_statement(self)
     }
 }
 
@@ -156,7 +154,7 @@ where
     V: StatementVisitor<T>,
 {
     fn accept(&self, visitor: &V) -> T {
-        visitor.visit_block_statement(&self)
+        visitor.visit_block_statement(self)
     }
 }
 
@@ -173,7 +171,7 @@ where
     V: StatementVisitor<T>,
 {
     fn accept(&self, visitor: &V) -> T {
-        visitor.visit_if_statement(&self)
+        visitor.visit_if_statement(self)
     }
 }
 
@@ -189,7 +187,7 @@ where
     V: StatementVisitor<T>,
 {
     fn accept(&self, visitor: &V) -> T {
-        visitor.visit_while_statement(&self)
+        visitor.visit_while_statement(self)
     }
 }
 
@@ -207,7 +205,7 @@ where
     V: StatementVisitor<T>,
 {
     fn accept(&self, visitor: &V) -> T {
-        visitor.visit_for_statement(&self)
+        visitor.visit_for_statement(self)
     }
 }
 
@@ -221,7 +219,7 @@ where
     V: StatementVisitor<T>,
 {
     fn accept(&self, visitor: &V) -> T {
-        visitor.visit_break_statement(&self)
+        visitor.visit_break_statement(self)
     }
 }
 
@@ -235,7 +233,7 @@ where
     V: StatementVisitor<T>,
 {
     fn accept(&self, visitor: &V) -> T {
-        visitor.visit_continue_statement(&self)
+        visitor.visit_continue_statement(self)
     }
 }
 
@@ -250,7 +248,7 @@ where
     V: StatementVisitor<T>,
 {
     fn accept(&self, visitor: &V) -> T {
-        visitor.visit_return_statement(&self)
+        visitor.visit_return_statement(self)
     }
 }
 
@@ -265,7 +263,7 @@ where
     V: StatementVisitor<T>,
 {
     fn accept(&self, visitor: &V) -> T {
-        visitor.visit_expression_statement(&self)
+        visitor.visit_expression_statement(self)
     }
 }
 
@@ -487,7 +485,7 @@ where
     V: ExpressionVisitor<T>,
 {
     fn accept(&self, visitor: &V) -> T {
-        visitor.visit_literal_expression(&self)
+        visitor.visit_literal_expression(self)
     }
 }
 
@@ -497,7 +495,7 @@ where
     V: ExpressionVisitor<T>,
 {
     fn accept(&self, visitor: &V) -> T {
-        visitor.visit_string_literal_expression(&self)
+        visitor.visit_string_literal_expression(self)
     }
 }
 
@@ -507,7 +505,7 @@ where
     V: ExpressionVisitor<T>,
 {
     fn accept(&self, visitor: &V) -> T {
-        visitor.visit_unary_expression(&self)
+        visitor.visit_unary_expression(self)
     }
 }
 
@@ -517,7 +515,7 @@ where
     V: ExpressionVisitor<T>,
 {
     fn accept(&self, visitor: &V) -> T {
-        visitor.visit_deref_expression(&self)
+        visitor.visit_deref_expression(self)
     }
 }
 
@@ -527,7 +525,7 @@ where
     V: ExpressionVisitor<T>,
 {
     fn accept(&self, visitor: &V) -> T {
-        visitor.visit_ref_expression(&self)
+        visitor.visit_ref_expression(self)
     }
 }
 
@@ -537,7 +535,7 @@ where
     V: ExpressionVisitor<T>,
 {
     fn accept(&self, visitor: &V) -> T {
-        visitor.visit_index_expression(&self)
+        visitor.visit_index_expression(self)
     }
 }
 
@@ -547,7 +545,7 @@ where
     V: ExpressionVisitor<T>,
 {
     fn accept(&self, visitor: &V) -> T {
-        visitor.visit_binary_expression(&self)
+        visitor.visit_binary_expression(self)
     }
 }
 
@@ -557,7 +555,7 @@ where
     V: ExpressionVisitor<T>,
 {
     fn accept(&self, visitor: &V) -> T {
-        visitor.visit_ternary_expression(&self)
+        visitor.visit_ternary_expression(self)
     }
 }
 
@@ -567,7 +565,7 @@ where
     V: ExpressionVisitor<T>,
 {
     fn accept(&self, visitor: &V) -> T {
-        visitor.visit_variable_expression(&self)
+        visitor.visit_variable_expression(self)
     }
 }
 
@@ -577,7 +575,7 @@ where
     V: ExpressionVisitor<T>,
 {
     fn accept(&self, visitor: &V) -> T {
-        visitor.visit_assign_expression(&self)
+        visitor.visit_assign_expression(self)
     }
 }
 
@@ -587,7 +585,7 @@ where
     V: ExpressionVisitor<T>,
 {
     fn accept(&self, visitor: &V) -> T {
-        visitor.visit_logical_expression(&self)
+        visitor.visit_logical_expression(self)
     }
 }
 
@@ -597,7 +595,7 @@ where
     V: ExpressionVisitor<T>,
 {
     fn accept(&self, visitor: &V) -> T {
-        visitor.visit_call_expression(&self)
+        visitor.visit_call_expression(self)
     }
 }
 
@@ -607,7 +605,7 @@ where
     V: ExpressionVisitor<T>,
 {
     fn accept(&self, visitor: &V) -> T {
-        visitor.visit_dot_expression(&self)
+        visitor.visit_dot_expression(self)
     }
 }
 
@@ -617,7 +615,7 @@ where
     V: ExpressionVisitor<T>,
 {
     fn accept(&self, visitor: &V) -> T {
-        visitor.visit_function_expression(&self)
+        visitor.visit_function_expression(self)
     }
 }
 
@@ -627,7 +625,7 @@ where
     V: ExpressionVisitor<T>,
 {
     fn accept(&self, visitor: &V) -> T {
-        visitor.visit_cast_expression(&self)
+        visitor.visit_cast_expression(self)
     }
 }
 
@@ -637,7 +635,7 @@ where
     V: ExpressionVisitor<T>,
 {
     fn accept(&self, visitor: &V) -> T {
-        visitor.visit_struct_initializer_expression(&self)
+        visitor.visit_struct_initializer_expression(self)
     }
 }
 
@@ -687,6 +685,7 @@ where
 }
 
 impl Declaration {
+    #[allow(dead_code)]
     pub fn as_node(&self) -> ASTNode {
         ASTNode::Declaration(self.clone())
     }
@@ -698,7 +697,7 @@ where
     V: DeclarationVisitor<T>,
 {
     fn accept(&self, visitor: &V) -> T {
-        visitor.visit_var_declaration(&self)
+        visitor.visit_var_declaration(self)
     }
 }
 
@@ -708,7 +707,7 @@ where
     V: DeclarationVisitor<T>,
 {
     fn accept(&self, visitor: &V) -> T {
-        visitor.visit_function_declaration(&self)
+        visitor.visit_function_declaration(self)
     }
 }
 
@@ -718,6 +717,6 @@ where
     V: DeclarationVisitor<T>,
 {
     fn accept(&self, visitor: &V) -> T {
-        visitor.visit_array_declaration(&self)
+        visitor.visit_array_declaration(self)
     }
 }

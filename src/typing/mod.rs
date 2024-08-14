@@ -13,6 +13,7 @@ use pow_of_2::PowOf2;
 
 use crate::prelude::*;
 
+#[allow(clippy::derived_hash_with_manual_eq)]
 #[derive(Copy, Clone, Hash, Eq)]
 pub struct UValueType(usize);
 
@@ -34,18 +35,18 @@ impl core::hash::Hash for CustomStruct {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.name.hash(state);
         self.embed.hash(state);
-        self.fields
-            .borrow()
+        let fi = self.fields
+            .borrow();
+        let mut f = fi
             .iter()
-            .collect::<Vec<_>>()
-            .sort_by_key(|t| t.0)
-            .hash(state);
-        self.methods
-            .borrow()
-            .iter()
-            .collect::<Vec<_>>()
-            .sort()
-            .hash(state);
+            .collect::<Vec<_>>();
+        f.sort_by_key(|t| t.0);
+        f.hash(state);
+
+        let me = self.methods.borrow();
+        let mut m = me.iter().collect::<Vec<_>>();
+        m.sort();
+        m.hash(state);
     }
 }
 
@@ -61,6 +62,7 @@ pub struct StructEntry {
     pub offset: usize,
 }
 
+#[allow(clippy::derived_hash_with_manual_eq)]
 #[derive(Clone, Hash)]
 #[repr(usize)]
 pub enum ValueType {
@@ -70,8 +72,7 @@ pub enum ValueType {
     Char,
     Bool,
     Nil,
-    Closure(Box<[UValueType]>, usize),
-    FnPointer,
+    Closure(Box<[UValueType]>, Box<[UValueType]>, UValueType),
     Pointer(UValueType, bool),
     LValue(UValueType, bool),
     Array(UValueType, usize),
@@ -92,8 +93,12 @@ impl Debug for ValueType {
             Self::Char => write!(f, "char"),
             Self::Bool => write!(f, "bool"),
             Self::Nil => write!(f, "nil"),
-            Self::Closure(arg0, arg1) => f.debug_tuple("fn").field(arg0).field(arg1).finish(),
-            Self::FnPointer => write!(f, "FnPointer"),
+            Self::Closure(args, upvals, ret) => f
+                .debug_tuple("fn")
+                .field(args)
+                .field(upvals)
+                .field(ret)
+                .finish(),
             Self::Pointer(arg0, _) => write!(f, "*{:?}", arg0),
             Self::LValue(arg0, _) => write!(f, "&{:?}", arg0),
             Self::Array(arg0, arg1) => write!(f, "{:?}[{}]", arg0, arg1),
@@ -110,7 +115,7 @@ impl Debug for ValueType {
 impl ValueType {
     pub fn is_aggregate(&self) -> bool {
         match self {
-            Self::Struct(_) | Self::Closure(_, _) => true,
+            Self::Struct(_) | Self::Closure(_, _, _) => true,
             _ => false,
         }
     }
@@ -137,20 +142,26 @@ impl ValueType {
             ValueType::Char => "char".into(),
             ValueType::Bool => "bool".into(),
             ValueType::Nil => "nil".into(),
-            ValueType::Closure(t, _) => {
+            ValueType::Closure(args, upvals, ret) => {
                 let mut s = String::new();
-                s.push_str("fn(");
-                for (i, v) in t[0..t.len() - 1].iter().enumerate() {
+                s.push_str("fn[");
+                for (i, v) in upvals.iter().enumerate() {
                     s.push_str(&v.to_string());
-                    if i != t.len() - 1 {
+                    if i != args.len() - 1 {
+                        s.push_str(", ");
+                    }
+                }
+                s.push_str("](");
+                for (i, v) in args.iter().enumerate() {
+                    s.push_str(&v.to_string());
+                    if i != args.len() - 1 {
                         s.push_str(", ");
                     }
                 }
                 s.push_str(") -> ");
-                s.push_str(&t[t.len() - 1].to_string());
+                s.push_str(&ret.to_string());
                 s.into()
             }
-            ValueType::FnPointer => todo!(),
             ValueType::Pointer(t, _) => format!("*{}", t.to_string()).into(),
             ValueType::LValue(_, _) => todo!(),
             ValueType::Array(_, _) => todo!(),
@@ -176,8 +187,7 @@ impl ValueType {
             | Self::Undef
             | Self::All
             | Self::Err => 1,
-            Self::Closure(_, us) => us + 1,
-            Self::FnPointer => 2,
+            Self::Closure(_, us, _) => us.iter().fold(0, |a, u| a + u.num_words()) + 1,
             Self::Array(t, n) => t.num_words() * n,
             Self::Struct(h) => {
                 let mut sum = 0;
@@ -209,12 +219,16 @@ impl ValueType {
                 true
             }
             (Self::Struct(l0), Self::Struct(r0)) => l0.name == r0.name,
-            (Self::Closure(l0v, u0), Self::Closure(r0v, u1)) => {
-                u0 == u1
-                    && l0v.len() == r0v.len()
+            (Self::Closure(l0v, u0, r0), Self::Closure(r0v, u1, r1)) => {
+                l0v.len() == r0v.len()
                     && l0v.iter().zip(r0v.iter()).all(|(l0, r0)| {
                         [*l0, *r0].into_iter().any(|x| x.as_ref().is_all()) || l0 == r0
                     })
+                    && u0.len() == u1.len()
+                    && u0.iter().zip(u1.iter()).all(|(l0, r0)| {
+                        [*l0, *r0].into_iter().any(|x| x.as_ref().is_all()) || l0 == r0
+                    })
+                    && r0 == r1
             }
             (Self::Array(l0, l0c), Self::Array(r0, r0c)) => {
                 ([*l0, *r0].into_iter().any(|x| x.as_ref().is_all()) || l0 == r0)
@@ -232,7 +246,7 @@ impl ValueType {
         }
     }
 
-    pub fn llvm(self, ctx: &Context) -> inkwell::types::BasicTypeEnum {
+    pub fn llvm<'ctx>(&self, ctx: &'ctx Context) -> inkwell::types::BasicTypeEnum<'ctx> {
         match self {
             Self::Float => ctx.f64_type().as_basic_type_enum(),
             Self::Integer => ctx.i64_type().as_basic_type_enum(),
@@ -240,16 +254,22 @@ impl ValueType {
             Self::Char => ctx.i8_type().as_basic_type_enum(),
             Self::Bool => ctx.bool_type().as_basic_type_enum(),
             Self::Nil => ctx.i8_type().as_basic_type_enum(),
-            Self::Closure(_, _) => ctx.i8_type().as_basic_type_enum(),
-            Self::FnPointer => ctx.i8_type().as_basic_type_enum(),
-            Self::Pointer(t, _) => ctx.ptr_type(AddressSpace::default()).as_basic_type_enum(),
-            Self::LValue(t, _) => ctx.ptr_type(AddressSpace::default()).as_basic_type_enum(),
-            Self::Array(t, n) => (*t).clone().llvm(ctx).array_type(n as u32).as_basic_type_enum(),
+            Self::Closure(_, upvals, _) => {
+                let mut types = Vec::new();
+                for v in upvals.iter() {
+                    types.push(v.llvm(ctx));
+                }
+                types.push(ctx.ptr_type(AddressSpace::default()).as_basic_type_enum());
+                ctx.struct_type(&types, false).as_basic_type_enum()
+            }
+            Self::Pointer(_t, _) => ctx.ptr_type(AddressSpace::default()).as_basic_type_enum(),
+            Self::LValue(_t, _) => ctx.ptr_type(AddressSpace::default()).as_basic_type_enum(),
+            Self::Array(t, n) => t.llvm(ctx).array_type(*n as u32).as_basic_type_enum(),
             Self::Struct(h) => {
                 let mut types = Vec::new();
                 let bg = h.fields.borrow();
                 for (_, v) in bg.iter() {
-                    types.push((*v.value).clone().llvm(ctx));
+                    types.push(v.value.llvm(ctx));
                 }
                 ctx.struct_type(&types, false).as_basic_type_enum()
             }

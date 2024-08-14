@@ -44,10 +44,8 @@ impl SerenityParser {
             self.advance();
             let infix_rule = &self.parse_table[self.previous.token_type as usize].infix;
 
-            let hnode = infix_rule.expect(&format!(
-                "token {:?} has no infix rule",
-                self.previous.token_type
-            ))(self, can_assign);
+            let hnode = infix_rule.unwrap_or_else(|| panic!("token {:?} has no infix rule",
+                self.previous.token_type))(self, can_assign);
             node = hnode.fill(node, self.previous.line);
         }
 
@@ -121,7 +119,7 @@ impl SerenityParser {
 
     fn lambda(&mut self, _can_assign: bool) -> Expression {
         thread_local! {
-        static ANON_ID: AtomicUsize = AtomicUsize::new(0);
+        static ANON_ID: AtomicUsize = const { AtomicUsize::new(0) };
         }
         let func_expr = self.function(
             format!(
@@ -201,7 +199,7 @@ impl SerenityParser {
         if let Ok(n) = self.previous.lexeme.parse::<i64>() {
             Expression::Literal(LiteralExpression {
                 value: Value::Integer(n),
-                line_no: line_no,
+                line_no,
             })
         } else if let Ok(n) = self
             .previous
@@ -212,12 +210,12 @@ impl SerenityParser {
         {
             Expression::Literal(LiteralExpression {
                 value: Value::UInteger(n),
-                line_no: line_no,
+                line_no,
             })
         } else if let Ok(n) = self.previous.lexeme.parse::<f64>() {
             Expression::Literal(LiteralExpression {
                 value: Value::Float(n),
-                line_no: line_no,
+                line_no,
             })
         } else {
             self.error("Invalid number.");
@@ -237,7 +235,7 @@ impl SerenityParser {
         value = value.replace("\\\"", "\"");
         value = value.replace("\\{", "{");
         value = value.replace("\\}", "}");
-        let c = value.as_bytes()[0] as u8;
+        let c = value.as_bytes()[0];
 
         Expression::Literal(LiteralExpression {
             value: Value::Char(c),
@@ -387,7 +385,7 @@ impl SerenityParser {
         let t = self.parse_complex_type(&None);
 
         if was_struct && self.current.token_type == TokenType::LeftBrace {
-            return self.struct_initializer(t);
+            self.struct_initializer(t)
         } else if self.current.token_type == TokenType::DoubleColon {
             self.advance();
             let Expression::Variable(VariableExpression { mut token, line_no }) = self.parse_precedence(Precedence::Call) else {

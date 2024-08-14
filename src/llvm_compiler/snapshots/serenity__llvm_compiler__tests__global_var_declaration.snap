@@ -1,8 +1,8 @@
 ---
 source: src/llvm_compiler/mod.rs
-expression: module.print_to_string().to_string()
+expression: c.module.print_to_string().to_string()
 ---
-; ModuleID = 'test'
-source_filename = "test"
+; ModuleID = 'main'
+source_filename = "main"
 
 @x = global i64 1
