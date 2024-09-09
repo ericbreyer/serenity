@@ -6,9 +6,9 @@ expression: ast
 [line    0] ╰─── Function: anon0
 [line    0]      ╰─── Function Expression:
 [line    0]           ├─── Name: anon0
-[line    0]           ├─── Return Type: i64
+[line    0]           ├─── Return Type: int
 [line    0]           ├─── Params:
-[line    0]           │    ╰─── x: i64
+[line    0]           │    ╰─── x: int
 [line    0]           ╰─── Body: 
 [line    1]                ╰─── Return:
 [line    1]                     ╰─── Binary: Plus

@@ -1,9 +1,6 @@
-pub mod pointer;
-
 use core::fmt;
 use std::fmt::Debug;
 
-use self::pointer::Pointer;
 
 #[derive(Clone, Copy, PartialEq)]
 pub struct Word(pub u64);
@@ -60,9 +57,6 @@ impl Word {
     pub fn to_bool(self) -> bool {
         self.0 != 0
     }
-    pub fn to_pointer(self) -> Pointer {
-        Pointer::from_word(self.0)
-    }
     pub fn is_falsy(&self) -> bool {
         self.0 == 0
     }
@@ -75,7 +69,6 @@ pub enum Value {
     Float(f64),
     Char(u8),
     Bool(bool),
-    Pointer(Pointer),
 }
 
 
@@ -87,7 +80,6 @@ impl Debug for Value {
             Value::Float(fl) => write!(f, "{fl}"),
             Value::Char(c) => write!(f, "{}", *c as char),
             Value::Bool(b) => write!(f, "{b}"),
-            Value::Pointer(p) => write!(f, "{p:?}"),
         }
     }
 }

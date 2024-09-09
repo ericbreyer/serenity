@@ -1,6 +1,0 @@
----
-source: src/prelude/ast/to_str.rs
-expression: result
----
-[line    1] Print: 
-[line    1] ╰─── Literal: 1

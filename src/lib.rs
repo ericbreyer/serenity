@@ -21,7 +21,8 @@
 
 use parser::Parser;
 // use reg_vm::ExitReason;
-use tracing::{level_filters::LevelFilter, subscriber::DefaultGuard};
+use anyhow::{Context, Result};
+use tracing::{debug, info, level_filters::LevelFilter, subscriber::DefaultGuard};
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{
     self,
@@ -30,16 +31,15 @@ use tracing_subscriber::{
     layer::{Filter, SubscriberExt},
     Layer,
 };
-use anyhow::{Context, Result};
 
 mod lexer;
-mod prelude;
 mod parser;
+mod prelude;
 // // mod reg_compiler;
 mod value;
 // // mod reg_vm;
+mod compiler;
 mod typing;
-mod llvm_compiler;
 
 enum LevelOrFn {
     Level(LevelFilter),
@@ -60,8 +60,8 @@ impl<S> Filter<S> for LevelOrFn {
 }
 
 pub fn set_log_verbosity(verbose: usize) -> Result<(DefaultGuard, WorkerGuard)> {
-
-    let outfile = std::fs::File::create("output.ansi").context("While creating debug output file")?;
+    let outfile =
+        std::fs::File::create("output.ansi").context("While creating debug output file")?;
 
     let (non_blocking, _guard) = tracing_appender::non_blocking(outfile);
 
@@ -91,16 +91,37 @@ pub fn set_log_verbosity(verbose: usize) -> Result<(DefaultGuard, WorkerGuard)> 
     Ok((tracing::subscriber::set_default(subscriber), _guard))
 }
 
-pub fn run_file(path: &str, _output: &mut impl std::io::Write) -> Result<(), std::io::Error> {
-
+pub fn run_file(path: &str, output: &mut impl std::io::Write) -> Result<i64, std::io::Error> {
     let source = std::fs::read_to_string(path).expect("Failed to read file");
 
     let parsed = parser::SerenityParser::parse(source.into(), path.into());
 
     let context = inkwell::context::Context::create();
-    let module = llvm_compiler::compile(&context, parsed.expect("Failed to parse file")).map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidInput, e))?;
+    let module = compiler::compile(&context, parsed.expect("Failed to parse file"))
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidInput, e))?;
+    debug!("{}", module.print_to_string().to_string());
 
-    module.print_to_file("output.ll").expect("Failed to write to file");
+    module.verify().expect("Failed to verify module");
 
-    Ok(())
+    let engine = module
+        .create_jit_execution_engine(inkwell::OptimizationLevel::None)
+        .expect("Failed to create engine");
+
+    info!("Execution engine created");
+
+    let out = unsafe {
+
+        let main = engine
+            .get_function::<unsafe extern "C" fn() -> i64>("main_fn")
+            .expect("Failed to get main function");
+
+        info!("Calling main function");
+
+        let out = main.call();
+
+        writeln!(output, "Exited with code {}", out)?;
+        out
+    };
+
+    Ok(out as i64)
 }

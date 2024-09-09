@@ -1,0 +1,23 @@
+type linkedList struct {
+    data :int,
+    next :*linkedList
+};
+
+fn main () -> int {
+    var head = struct linkedList{data: 10, next: 0};
+    var current = &head;
+    var i = 0;
+    while (i < 10) {
+        current->next = malloc(sizeof struct linkedList);
+        current->next->data = 9 - i;
+        current = current->next;
+        i = i + 1;
+    }
+    current = &head;
+    var sum = 0;
+    while (current->data != 0) {
+        sum = sum + current->data;
+        current = current->next;
+    }
+    return sum;
+}

@@ -2,13 +2,14 @@ use std::{env::args, io::{self, stdout, Write}};
 
 use getopts::Options;
 use serenity::{run_file, set_log_verbosity};
+use anyhow::Result;
 
 fn usage(prog: &str, opts: &Options) {
     let req = format!("{prog} path");
     let brief = opts.short_usage(&req);
     print!("{}", opts.usage(&brief));
 }
-fn main() -> std::io::Result<()> {
+fn main() -> Result<()> {
     // // usage
     // // serenity [path] - run file
     // // optional -v - verbose
@@ -38,12 +39,9 @@ fn main() -> std::io::Result<()> {
     let _guard = set_log_verbosity(verbose).map_err(|e| e.downcast::<io::Error>().unwrap())?;
 
     return if matches.free.len() == 1 {
-        run_file(&matches.free[0].clone(), stdout().by_ref())
+        run_file(&matches.free[0].clone(), stdout().by_ref())?;
+        Ok(())
     } else {
-        println!("Usage: {prog} path [--v[v]]");
-        Err(std::io::Error::new(
-            std::io::ErrorKind::InvalidInput,
-            format!("Usage: {prog} path [--v[v]]"),
-        ))
+        anyhow::bail!("Usage: {prog} path [--v[v]]")
     }
 }

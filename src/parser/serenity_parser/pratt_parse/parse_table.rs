@@ -2,10 +2,9 @@ use std::ops::Deref;
 
 use crate::lexer;
 
-use super::{ Precedence, SerenityParser, ParseRule};
+use super::{ParseRule, Precedence, SerenityParser};
 
-pub struct  ParseTable([ParseRule; lexer::TokenType::num_variants()]);
-
+pub struct ParseTable([ParseRule; lexer::TokenType::num_variants()]);
 
 impl Deref for ParseTable {
     type Target = [ParseRule; lexer::TokenType::num_variants()];
@@ -238,6 +237,18 @@ impl SerenityParser {
             no_pratt!(), // Impl
             no_pratt!(), // Implements
             no_pratt!(), // Type
+            ParseRule {
+                prefix: None,
+                infix: Some(SerenityParser::binary),
+
+                precedence: Precedence::Mod,
+            }, // Percent
+            ParseRule {
+                prefix: Some(SerenityParser::sizeof),
+                infix: None,
+
+                precedence: Precedence::None,
+            }, // sizeof
             no_pratt!(), // EOF
             no_pratt!(), // Error
         ])

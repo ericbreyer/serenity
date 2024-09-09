@@ -327,7 +327,7 @@ impl<'a> ExpressionVisitor<String> for ToStrVisitor<'a> {
             self.depth + 1,
             expression.line_no,
             Some(self.depth),
-            Some(expression.body.clone()),
+            expression.body.clone(),
         ));
         s
     }
@@ -338,7 +338,7 @@ impl<'a> ExpressionVisitor<String> for ToStrVisitor<'a> {
             "[line {:>4}] {}Cast: {:?}",
             expression.line_no,
             self.indent_member,
-            expression.target_type.unwrap()
+            expression.target_type
         ));
         s.push_str(&expression.expression.as_node().accept(&ToStrVisitor::new(
             self.depth_has_scope_open,
@@ -394,22 +394,16 @@ impl<'a> ExpressionVisitor<String> for ToStrVisitor<'a> {
         }
         s
     }
+    
+    fn visit_sizeof_expression(&self, expression: &super::SizeofExpression) -> String {
+        format!(
+            "[line {:>4}] {}Sizeof: {:?}",
+            expression.line_no, self.indent_member, expression.tipe
+        )
+    }
 }
 
 impl<'a> StatementVisitor<String> for ToStrVisitor<'a> {
-    fn visit_print_statement(&self, statement: &super::PrintStatement) -> String {
-        format!(
-            "[line {:>4}] {}Print: {}",
-            statement.line_no,
-            self.indent_member,
-            statement.expr.as_node().accept(&ToStrVisitor::new(
-                self.depth_has_scope_open,
-                self.depth + 1,
-                Some(self.depth)
-            ))
-        )
-    }
-
     fn visit_block_statement(&self, statement: &super::BlockStatement) -> String {
         let mut s = String::new();
         s.push_str(&format!(
@@ -604,34 +598,6 @@ impl<'a> DeclarationVisitor<String> for ToStrVisitor<'a> {
             Some(self.depth),
             declaration.body.clone(),
         ));
-        s
-    }
-
-    fn visit_array_declaration(&self, declaration: &super::ArrayDeclaration) -> String {
-        let mut s = String::new();
-        s.push_str(&format!(
-            "[line {:>4}] {}Array Declaration: {}",
-            declaration.line_no, self.indent_member, &declaration.name
-        ));
-        if let Some(t) = &declaration.elem_tipe {
-            s.push_str(&format!(
-                "\n[line {:>4}] {}{INDENT_PIPE}Elem Type: {t:?}",
-                declaration.line_no, self.indent
-            ));
-        }
-        self.depth_has_scope_open.borrow_mut()[self.depth + 1] = true;
-
-        for (j, n) in declaration.elements.iter().enumerate() {
-            s.push_str(&n.as_node().accept(&ToStrVisitor::new(
-                self.depth_has_scope_open,
-                self.depth + 2,
-                if j == declaration.elements.len() - 1 {
-                    Some(&self.depth + 1)
-                } else {
-                    None
-                },
-            )));
-        }
         s
     }
 }
@@ -904,7 +870,7 @@ mod test {
     // }), "function"; "test_function")]
     #[test_case(Expression::Cast(CastExpression {
         line_no: 1,
-        target_type: Some(ValueType::Integer.intern()),
+        target_type: ValueType::Integer.intern(),
         expression: Box::new(Expression::Literal(LiteralExpression {
             line_no: 1,
             value: Value::Integer(1),
@@ -936,92 +902,7 @@ mod test {
         assert_snapshot!(result);
     }
 
-    #[test_case(Statement::Print(PrintStatement {
-        line_no: 1,
-        expr: Expression::Literal(LiteralExpression {
-            line_no: 1,
-            value: Value::Integer(1),
-        }).into(),
-    }), "print"; "test_print")]
-    #[test_case(Statement::Block(BlockStatement {
-        line_no: 1,
-        statements: vec![
-            Statement::Print(PrintStatement {
-                line_no: 1,
-                expr: Expression::Literal(LiteralExpression {
-                    line_no: 1,
-                    value: Value::Integer(1),
-                }).into(),
-            }).as_node(),
-            Statement::Print(PrintStatement {
-                line_no: 1,
-                expr: Expression::Literal(LiteralExpression {
-                    line_no: 1,
-                    value: Value::Integer(1),
-                }).into(),
-            }).as_node(),
-        ],
-    }), "block"; "test_block")]
-    #[test_case(Statement::If(IfStatement {
-        line_no: 1,
-        condition: Expression::Literal(LiteralExpression {
-            line_no: 1,
-            value: Value::Integer(1),
-        }).into(),
-        then_branch: Box::new(Statement::Print(PrintStatement {
-            line_no: 1,
-            expr: Expression::Literal(LiteralExpression {
-                line_no: 1,
-                value: Value::Integer(1),
-            }).into(),
-        })),
-        else_branch: Some(Box::new(Statement::Print(PrintStatement {
-            line_no: 1,
-            expr: Expression::Literal(LiteralExpression {
-                line_no: 1,
-                value: Value::Integer(1),
-            }).into(),
-        }))),
-    }), "if"; "test_if")]
-    #[test_case(Statement::While(WhileStatement {
-        line_no: 1,
-        condition: Expression::Literal(LiteralExpression {
-            line_no: 1,
-            value: Value::Integer(1),
-        }).into(),
-        body: Box::new(Statement::Print(PrintStatement {
-            line_no: 1,
-            expr: Expression::Literal(LiteralExpression {
-                line_no: 1,
-                value: Value::Integer(1),
-            }).into(),
-        })),
-    }), "while"; "test_while")]
-    #[test_case(Statement::For(ForStatement {
-        line_no: 1,
-        init: Some(Statement::Print(PrintStatement {
-            line_no: 1,
-            expr: Expression::Literal(LiteralExpression {
-                line_no: 1,
-                value: Value::Integer(1),
-            }).into(),
-        }).as_node().into()),
-        condition: Some(Expression::Literal(LiteralExpression {
-            line_no: 1,
-            value: Value::Integer(1),
-        }).into()),
-        increment: Some(Box::new(Expression::Literal(LiteralExpression {
-            line_no: 1,
-            value: Value::Integer(1),
-        }))),
-        body: Box::new(Statement::Print(PrintStatement {
-            line_no: 1,
-            expr: Expression::Literal(LiteralExpression {
-                line_no: 1,
-                value: Value::Integer(1),
-            }).into(),
-        })),
-    }), "for"; "test_for")]
+    
     #[test_case(Statement::Break(BreakStatement {
         line_no: 1,
     }), "break"; "test_break")]
@@ -1058,7 +939,7 @@ mod test {
             line_no: 1,
             value: Value::Integer(1),
         }).into()),
-        tipe: None,
+        tipe: ValueType::Integer.intern(),
         mutable: false,
     }), "var"; "test_var")]
     #[test_case(Declaration::Function(FunctionDeclaration {
@@ -1078,21 +959,6 @@ mod test {
             }).into(),
         }).as_node()].into(),    
     }), "function"; "test_function")]
-    #[test_case(Declaration::Array(ArrayDeclaration {
-        line_no: 1,
-        name: "test".into(),
-        elem_tipe: Some(ValueType::Integer.intern()),
-        elements: vec![
-            Expression::Literal(LiteralExpression {
-                line_no: 1,
-                value: Value::Integer(1),
-            }),
-            Expression::Literal(LiteralExpression {
-                line_no: 1,
-                value: Value::Integer(1),
-            }),
-        ],
-    }), "array"; "test_array")]
     fn test_to_str_for_decl(decl: Declaration, name: &str) {
         let depth_has_scope_open = [false; 100].into();
 

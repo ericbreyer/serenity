@@ -74,6 +74,8 @@ pub enum TokenType {
     Impl,
     Implements,
     Type,
+    Percent,
+    Sizeof,
     Eof,
     Error,
 }
@@ -84,7 +86,7 @@ impl TokenType {
     }
 }
 
-const KEYWORDS: [(&str, TokenType); 34] = [
+const KEYWORDS: [(&str, TokenType); 35] = [
     ("and", TokenType::And),
     ("struct", TokenType::Struct),
     ("else", TokenType::Else),
@@ -119,6 +121,7 @@ const KEYWORDS: [(&str, TokenType); 34] = [
     ("impl", TokenType::Impl),
     ("implements", TokenType::Implements),
     ("type", TokenType::Type),
+    ("sizeof", TokenType::Sizeof),
 ];
 
 #[derive(Clone)]
@@ -282,6 +285,8 @@ impl Lexer {
                     self.make_token(TokenType::Pipe)
                 }
             }
+            '%' => self.make_token(TokenType::Percent),
+            '#' => self.make_token(TokenType::Cast),
 
             _ => self.error_token("Unexpected character."),
         }

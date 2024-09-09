@@ -1,0 +1,19 @@
+type generator interface {
+        next: fn() -> int,
+};
+
+type nat_gen struct {
+    i: int,
+} implements generator;
+
+fun (self : * struct nat_gen) next() -> int {
+    let i = self->i;
+    self->i = i + 1;
+    return i;
+}
+
+fn main() -> int {
+    let gen = struct nat_gen {i: 0};
+    let g = nat_gen_impl_generator(&gen);
+    return g.next() + g.next();
+}

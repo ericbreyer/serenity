@@ -1,0 +1,11 @@
+---
+source: src/parser/serenity_parser/test.rs
+expression: ast
+---
+[line    1] If: 
+[line    1] ├─── Binary: Greater
+[line    1] │    ├─── Variable: x
+[line    1] │    ╰─── Literal: 8
+[line    1] ╰─── Block: 
+[line    1]      ╰─── Return:
+[line    1]           ╰─── Literal: 5

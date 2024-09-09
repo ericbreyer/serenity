@@ -1,23 +1,24 @@
-// #![cfg(test)]
+#![cfg(test)]
 
-// use insta::Settings;
-// use test_case::test_case;
+use anyhow::Result;
+use test_case::test_case;
 
-// #[test_case("test12.ser"; "test12")]
-// #[test_case("test11.ser"; "test11")]
-// #[test_case("test10.ser"; "test10")]
-// #[test_case("test6.ser"; "test6")]
-// #[test_case("test5.ser"; "test5")]
-// #[test_case("test4.ser"; "test4")]
-// #[test_case("test3.ser"; "test3")]
-// #[test_case("test2.ser"; "test2")]
-// pub fn test_file(file : &str) {
+#[test_case("trivial.ser", 1; "trivial")]
+#[test_case("prime_sieve.ser", 8181807856294299570; "prime_sieve")]
+#[test_case("interfaces.ser", 12; "interfaces")]
+#[test_case("babbage.ser", 25264; "babbage")]
+#[test_case("linkedlist.ser", 55; "linkedlist")]
+#[test_case("prime_conspiricy.ser", 7942686168; "prime_conspiricy")]
+#[test_case("highly_composites.ser", 355168; "highly_composites")]
+pub fn test_file(file : &str, ecode: i64) -> Result<()> {
 
-//     let mut out = Vec::new();
-//     serenity::run_file(file, &mut out).unwrap();
+    let file = format!("tests/{}", file);
 
-//     let mut settings = Settings::clone_current();
-//     settings.set_snapshot_suffix(format!("{file}"));
-//     let _guard = settings.bind_to_scope();
-//     insta::assert_snapshot!(std::str::from_utf8(&out).unwrap());
-// }
+    let mut out = Vec::new();
+    // let _guard = serenity::set_log_verbosity(2)?;
+    let code = serenity::run_file(&file, &mut out)?;
+
+    assert!(code == ecode, "Expected: {}, Got: {}", ecode, code);    
+    
+    Ok(())
+}

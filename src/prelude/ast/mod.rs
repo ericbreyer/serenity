@@ -16,7 +16,7 @@ pub trait NodeVisitor<T> {
 }
 
 pub trait StatementVisitor<T> {
-    fn visit_print_statement(&self, statement: &PrintStatement) -> T;
+    // fn visit_print_statement(&self, statement: &PrintStatement) -> T;
     fn visit_block_statement(&self, statement: &BlockStatement) -> T;
     fn visit_if_statement(&self, statement: &IfStatement) -> T;
     fn visit_while_statement(&self, statement: &WhileStatement) -> T;
@@ -44,12 +44,12 @@ pub trait ExpressionVisitor<T> {
     fn visit_function_expression(&self, expression: &FunctionExpression) -> T;
     fn visit_cast_expression(&self, expression: &CastExpression) -> T;
     fn visit_struct_initializer_expression(&self, expression: &StructInitializerExpression) -> T;
+    fn visit_sizeof_expression(&self, expression: &SizeofExpression) -> T;
 }
 
 pub trait DeclarationVisitor<T> {
     fn visit_var_declaration(&self, declaration: &VarDeclaration) -> T;
     fn visit_function_declaration(&self, declaration: &FunctionDeclaration) -> T;
-    fn visit_array_declaration(&self, declaration: &ArrayDeclaration) -> T;
 }
 
 pub trait Acceptor<T, V> {
@@ -92,7 +92,7 @@ impl Debug for ASTNode {
 
 #[derive(Clone)]
 pub enum Statement {
-    Print(PrintStatement),
+    // Print(PrintStatement),
     Block(BlockStatement),
     If(IfStatement),
     While(WhileStatement),
@@ -109,7 +109,7 @@ where
 {
     fn accept(&self, visitor: &V) -> T {
         match self {
-            Statement::Print(s) => s.accept(visitor),
+            // Statement::Print(s) => s.accept(visitor),
             Statement::Block(s) => s.accept(visitor),
             Statement::If(s) => s.accept(visitor),
             Statement::While(s) => s.accept(visitor),
@@ -128,20 +128,20 @@ impl Statement {
     }
 }
 
-#[derive(Clone)]
-pub struct PrintStatement {
-    pub expr: Box<Expression>,
-    pub line_no: usize,
-}
+// #[derive(Clone)]
+// pub struct PrintStatement {
+//     pub expr: Box<Expression>,
+//     pub line_no: usize,
+// }
 
-impl<T, V> Acceptor<T, V> for PrintStatement
-where
-    V: StatementVisitor<T>,
-{
-    fn accept(&self, visitor: &V) -> T {
-        visitor.visit_print_statement(self)
-    }
-}
+// impl<T, V> Acceptor<T, V> for PrintStatement
+// where
+//     V: StatementVisitor<T>,
+// {
+//     fn accept(&self, visitor: &V) -> T {
+//         visitor.visit_print_statement(self)
+//     }
+// }
 
 #[derive(Clone)]
 pub struct BlockStatement {
@@ -285,7 +285,66 @@ pub enum Expression {
     Function(FunctionExpression),
     Cast(CastExpression),
     StructInitializer(StructInitializerExpression),
+    Sizeof(SizeofExpression),
     Empty,
+}
+
+impl Expression {
+    pub fn eval_constexpr(&self) -> Option<Value> {
+        match self {
+            Expression::Literal(e) => Some(e.value.clone()),
+            Expression::Unary(e) => {
+                let operand = e.operand.eval_constexpr()?;
+                
+                match (e.operator, operand) {
+                    (TokenType::Minus, Value::Integer(i)) => Some(Value::Integer(-i)),
+                    (TokenType::Minus, Value::UInteger(i)) => Some(Value::Integer(-(i as i64))),
+                    (TokenType::Bang, Value::Bool(b)) => Some(Value::Bool(!b)),
+                    _ => None,
+                }
+            }
+            Expression::Binary(e) => {
+                let left = e.left.eval_constexpr()?;
+                let right = e.right.eval_constexpr()?;
+                match (e.operator, left, right) {
+                    (TokenType::Plus, Value::Integer(l), Value::Integer(r)) => Some(Value::Integer(l + r)),
+                    (TokenType::Minus, Value::Integer(l), Value::Integer(r)) => Some(Value::Integer(l - r)),
+                    (TokenType::Star, Value::Integer(l), Value::Integer(r)) => Some(Value::Integer(l * r)),
+                    (TokenType::Slash, Value::Integer(l), Value::Integer(r)) => Some(Value::Integer(l / r)),
+                    (TokenType::Plus, Value::UInteger(l), Value::UInteger(r)) => Some(Value::UInteger(l + r)),
+                    (TokenType::Minus, Value::UInteger(l), Value::UInteger(r)) => Some(Value::UInteger(l - r)),
+                    (TokenType::Star, Value::UInteger(l), Value::UInteger(r)) => Some(Value::UInteger(l * r)),
+                    (TokenType::Slash, Value::UInteger(l), Value::UInteger(r)) => Some(Value::UInteger(l / r)),
+                    (TokenType::Plus, Value::Float(l), Value::Float(r)) => Some(Value::Float(l + r)),
+                    (TokenType::Minus, Value::Float(l), Value::Float(r)) => Some(Value::Float(l - r)),
+                    (TokenType::Star, Value::Float(l), Value::Float(r)) => Some(Value::Float(l * r)),
+                    (TokenType::Slash, Value::Float(l), Value::Float(r)) => Some(Value::Float(l / r)),
+                    (TokenType::Greater, Value::Integer(l), Value::Integer(r)) => Some(Value::Bool(l > r)),
+                    (TokenType::GreaterEqual, Value::Integer(l), Value::Integer(r)) => Some(Value::Bool(l >= r)),
+                    (TokenType::Less, Value::Integer(l), Value::Integer(r)) => Some(Value::Bool(l < r)),
+                    (TokenType::LessEqual, Value::Integer(l), Value::Integer(r)) => Some(Value::Bool(l <= r)),
+                    (TokenType::EqualEqual, Value::Integer(l), Value::Integer(r)) => Some(Value::Bool(l == r)),
+                    (TokenType::BangEqual, Value::Integer(l), Value::Integer(r)) => Some(Value::Bool(l != r)),
+                    (TokenType::Greater, Value::UInteger(l), Value::UInteger(r)) => Some(Value::Bool(l > r)),
+                    (TokenType::GreaterEqual, Value::UInteger(l), Value::UInteger(r)) => Some(Value::Bool(l >= r)),
+                    (TokenType::Less, Value::UInteger(l), Value::UInteger(r)) => Some(Value::Bool(l < r)),
+                    (TokenType::LessEqual, Value::UInteger(l), Value::UInteger(r)) => Some(Value::Bool(l <= r)),
+                    (TokenType::EqualEqual, Value::UInteger(l), Value::UInteger(r)) => Some(Value::Bool(l == r)),
+                    (TokenType::BangEqual, Value::UInteger(l), Value::UInteger(r)) => Some(Value::Bool(l != r)),
+                    (TokenType::Greater, Value::Float(l), Value::Float(r)) => Some(Value::Bool(l > r)),
+                    (TokenType::GreaterEqual, Value::Float(l), Value::Float(r)) => Some(Value::Bool(l >= r)),
+                    (TokenType::Less, Value::Float(l), Value::Float(r)) => Some(Value::Bool(l < r)),
+                    (TokenType::LessEqual, Value::Float(l), Value::Float(r)) => Some(Value::Bool(l <= r)),
+                    (TokenType::EqualEqual, Value::Float(l), Value::Float(r)) => Some(Value::Bool(l == r)),
+                    (TokenType::BangEqual, Value::Float(l), Value::Float(r)) => Some(Value::Bool(l != r)),
+                    (TokenType::And, Value::Bool(l), Value::Bool(r)) => Some(Value::Bool(l && r)),
+                    (TokenType::Or, Value::Bool(l), Value::Bool(r)) => Some(Value::Bool(l || r)),
+                    _ => None,
+                }
+            }
+            _ => None,
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -380,7 +439,7 @@ pub struct DotExpression {
 #[derive(Clone)]
 pub struct CastExpression {
     pub expression: Box<Expression>,
-    pub target_type: Option<UValueType>,
+    pub target_type: UValueType,
     pub line_no: usize,
 }
 
@@ -388,6 +447,12 @@ pub struct CastExpression {
 pub struct StructInitializerExpression {
     pub struct_type: CustomStruct,
     pub fields: HashMap<SharedString, Expression>,
+    pub line_no: usize,
+}
+
+#[derive(Clone)]
+pub struct SizeofExpression {
+    pub tipe: UValueType,
     pub line_no: usize,
 }
 
@@ -403,7 +468,7 @@ pub struct Prototype {
 #[derive(Clone)]
 pub struct FunctionExpression {
     pub prototype: Prototype,
-    pub body: Vec<ASTNode>,
+    pub body: Option<Vec<ASTNode>>,
     pub line_no: usize,
 }
 
@@ -411,7 +476,7 @@ impl FunctionExpression {
     pub fn new(
         captures: Vec<SharedString>,
         params: Vec<(SharedString, UValueType, bool)>,
-        body: Vec<ASTNode>,
+        body: Option<Vec<ASTNode>>,
         return_type: UValueType,
         name: SharedString,
     ) -> FunctionExpression {
@@ -439,7 +504,7 @@ impl Default for FunctionExpression {
                 return_type: ValueType::Nil.intern(),
                 line_no: 0,
             },
-            body: Vec::new(),
+            body: None,
             line_no: 0,
         }
     }
@@ -468,6 +533,7 @@ where
             Expression::Function(e) => visitor.visit_function_expression(e),
             Expression::Cast(e) => visitor.visit_cast_expression(e),
             Expression::StructInitializer(e) => visitor.visit_struct_initializer_expression(e),
+            Expression::Sizeof(e) => visitor.visit_sizeof_expression(e),
             Expression::Empty => panic!("Empty expression should not be visited"),
         }
     }
@@ -639,17 +705,26 @@ where
     }
 }
 
+// SizeofExpression
+impl<T, V> Acceptor<T, V> for SizeofExpression
+where
+    V: ExpressionVisitor<T>,
+{
+    fn accept(&self, visitor: &V) -> T {
+        visitor.visit_sizeof_expression(self)
+    }
+}
+
 #[derive(Clone)]
 pub enum Declaration {
     Var(VarDeclaration),
     Function(FunctionDeclaration),
-    Array(ArrayDeclaration),
 }
 
 #[derive(Clone)]
 pub struct VarDeclaration {
     pub name: SharedString,
-    pub tipe: Option<UValueType>,
+    pub tipe: UValueType,
     pub initializer: Option<Box<Expression>>,
     pub mutable: bool,
     pub line_no: usize,
@@ -679,7 +754,6 @@ where
         match self {
             Declaration::Var(d) => d.accept(visitor),
             Declaration::Function(d) => d.accept(visitor),
-            Declaration::Array(d) => d.accept(visitor),
         }
     }
 }
@@ -708,15 +782,5 @@ where
 {
     fn accept(&self, visitor: &V) -> T {
         visitor.visit_function_declaration(self)
-    }
-}
-
-// ArrayDeclaration
-impl<T, V> Acceptor<T, V> for ArrayDeclaration
-where
-    V: DeclarationVisitor<T>,
-{
-    fn accept(&self, visitor: &V) -> T {
-        visitor.visit_array_declaration(self)
     }
 }

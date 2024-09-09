@@ -3,7 +3,7 @@ mod recdec_parse;
 mod templates;
 mod test;
 
-use std::{cell::Cell, collections::HashMap, num::ParseIntError};
+use std::{cell::Cell, collections::HashMap};
 
 use num_enum::FromPrimitive;
 use pratt_parse::ParseTable;
@@ -29,8 +29,9 @@ enum Precedence {
     Comparison, // < > <= >=
     Term,       // + -
     Factor,     // * /
+    Mod,        // %
     Cast,       // as
-    Unary,      // ! -
+    Unary,      // ! - #
     Call,       // . ()
     Primary,
 }
@@ -53,6 +54,7 @@ pub struct SerenityParser {
     panic_mode: Cell<bool>,
     parse_table: ParseTable,
     custom_types: HashMap<SharedString, CustomStruct>,
+    constants: HashMap<SharedString, Value>,
 }
 
 impl SerenityParser {
@@ -73,6 +75,7 @@ impl SerenityParser {
             panic_mode: false.into(),
             parse_table: Self::parse_table(),
             custom_types: HashMap::new(),
+            constants: HashMap::new(),
         }
     }
     fn advance(&mut self) {
@@ -121,7 +124,7 @@ impl SerenityParser {
                 | TokenType::For
                 | TokenType::If
                 | TokenType::While
-                | TokenType::Print
+                // | TokenType::Print
                 | TokenType::Return => {
                     return;
                 }
@@ -140,6 +143,35 @@ impl SerenityParser {
                 let t = self.parse_complex_type(struct_name);
                 self.consume(TokenType::RightParen, "Expect ')' after type.");
                 break 'a t;
+            }
+
+            if self.match_token(TokenType::LeftBracket) {
+                let t = self.parse_complex_type(struct_name);
+                let mut index = None;
+                if self.match_token(TokenType::Semicolon) {
+                    let sindex = self.expression().eval_constexpr();
+                    index = Some(match sindex {
+                        Some(Value::UInteger(index)) => index,
+                        Some(Value::Integer(index)) if index >= 0 => index as u64,
+                        _ => {
+                            self.error("Expect constant unsigned index.");
+                            break 'a ValueType::Err.intern();
+                        }
+                    } as usize);
+                }
+
+                self.consume(TokenType::RightBracket, "Expect ']' after index.");
+                break 'a ValueType::Array(t, index).intern();
+            }
+
+            if self.match_token(TokenType::Identifier) {
+                let name = self.previous.lexeme.clone();
+                if struct_name.clone().is_some_and(|s| s == name) {
+                    break 'a ValueType::SelfStruct(name).intern();
+                }
+                if let Some(s) = self.custom_types.get(&name) {
+                    break 'a ValueType::Struct(s.clone()).intern();
+                }
             }
 
             if self.match_token(TokenType::SimpleType) {
@@ -178,8 +210,13 @@ impl SerenityParser {
                 if self.match_token(TokenType::RightArrow) {
                     return_type = self.parse_complex_type(struct_name);
                 }
-            
-                break 'a ValueType::Closure(param_types.as_slice().into(), captures.as_slice().into(), return_type).intern();
+
+                break 'a ValueType::Closure(
+                    param_types.as_slice().into(),
+                    captures.as_slice().into(),
+                    return_type,
+                )
+                .intern();
             }
 
             if self.match_token(TokenType::Struct) {
@@ -213,11 +250,6 @@ impl SerenityParser {
             return ValueType::Pointer(parset_type, true).intern();
         }
         parset_type
-    }
-
-    fn parse_literal_index(&mut self) -> Result<u32, ParseIntError> {
-        self.match_token(TokenType::Number);
-        self.previous.lexeme.parse::<u32>()
     }
 
     fn go(&mut self) -> Vec<ASTNode> {
@@ -282,24 +314,27 @@ impl SerenityParser {
         self.had_error.set(Some(err_msg.into()));
     }
 
-    fn _warn(&self, message: &str) {
-        self._warn_at(true, message);
+    fn warn(&self, message: &str) {
+        self.warn_at(true, message);
     }
 
-    fn _warn_at(&self, prev: bool, _message: &str) {
+    fn warn_at(&self, prev: bool, message: &str) {
         if self.panic_mode.get() {
             return;
         }
         let token = if prev { &self.previous } else { &self.current };
-        print!("[line {}] warning", token.line);
+        let mut warn_msg = format!("[line {}] warn", token.line);
 
         if token.token_type == TokenType::Eof {
-            print!(" at end");
+            warn_msg = format!("{warn_msg} at end");
         } else if token.token_type == TokenType::Error {
             // Nothing.
         } else {
-            print!(" at '{}'", token.lexeme);
+            warn_msg = format!("{warn_msg} at '{}'", token.lexeme);
         }
+
+        warn_msg = format!("{warn_msg} : {message}\n");
+        print!("{warn_msg}");
     }
 }
 

@@ -1,0 +1,66 @@
+type generator interface {
+    next: fn() -> int,
+};
+
+type nat_gen struct {
+    i: int,
+} implements generator;
+
+fun (self : * struct nat_gen) next() -> int {
+    let i = self->i;
+    self->i = i + 1;
+    return i;
+}
+
+type identity struct {
+    gen: impl generator,
+} implements generator;
+
+fun (self : * struct identity) next() -> int {
+    return self->gen.next();
+}
+
+type filter struct {
+    gen: impl generator,
+    pred: fn[int](int) -> bool,
+} implements generator;
+
+fun (self : * struct filter) next() -> int {
+    let pred = self->pred;
+    var i = self->gen.next();
+    while (!pred(i)) {
+        i = self->gen.next();
+    }
+    return i;
+}
+
+type seive struct {
+    gen: impl generator,
+} implements generator;
+
+fun (self : * struct seive) next() -> int {
+    var gen = self->gen;
+    var i = gen.next();
+
+    let pred = lambda[i](x: int) -> bool { return float(x / i) != #x/#i; }; 
+    let f: *struct filter = malloc(sizeof(struct filter));
+    *f = struct filter { gen: self->gen, pred: pred };
+    self->gen = filter_impl_generator(f);
+    return i;
+}
+
+const NPRIMES = 100;
+fn main() -> int {
+    var nats = struct nat_gen { i: 2 };
+
+    var gen = struct seive { gen: nat_gen_impl_generator(&nats)};
+
+    var i = 0;
+    var sum = 1;
+    while (i < NPRIMES) {
+        let p = gen.next();
+        sum = sum * p;
+        i = i + 1;
+    }
+    return sum;
+}
