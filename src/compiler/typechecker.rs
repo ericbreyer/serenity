@@ -88,7 +88,7 @@ impl Typechecker {
         };
 
         ffi_funcs
-            .into_iter()
+            .iter()
             .for_each(|f| c.register_ffi_function(f));
 
         c
@@ -132,7 +132,7 @@ impl Deref for ExprResultInner {
     type Target = ValueType;
 
     fn deref(&self) -> &Self::Target {
-        &self.0.as_ref()
+        self.0.as_ref()
     }
 }
 
@@ -214,7 +214,7 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
         let ValueType::LValue(t, _) = *expr else {
             return Err(anyhow::anyhow!("Invalid ref expression"));
         };
-        return Ok(ExprResultInner::new(ValueType::Pointer(t, true).intern()));
+        Ok(ExprResultInner::new(ValueType::Pointer(t, true).intern()))
     }
 
     fn visit_index_expression(&self, expression: &IndexExpression) -> ExprResult {
@@ -504,7 +504,7 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
             .find(|(_i, (name, _t))| *name == &expression.field)
             .map(|(i, _)| i);
 
-        if !ofield.is_some() {
+        if ofield.is_none() {
             let method_name = &format!("{}_{}", st.unique_string(), expression.field).into();
             if let Some(method_name) = t.methods.borrow().get(method_name) {
                 return Expression::Call(CallExpression {
@@ -533,7 +533,7 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
 
         Ok(ExprResultInner::new(
             ValueType::LValue(
-                t.fields.clone().borrow()[&expression.field].value.clone(),
+                t.fields.clone().borrow()[&expression.field].value,
                 false,
             )
             .intern(),
@@ -576,7 +576,7 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
                 .fields
                 .borrow()
                 .get(name)
-                .map(|f| f.value.clone())
+                .map(|f| f.value)
                 .ok_or_else(|| anyhow::anyhow!("Field {} not found in struct", name))?;
             let expr_t = expr.accept(self)?.rvalue()?;
             ValueType::unify(t.decay(), expr_t.0).context(format!(
@@ -625,12 +625,12 @@ impl Typechecker {
 
         self.variables.begin_scope();
 
-        for (_i, s) in caps.iter().enumerate() {
+        for s in caps.iter(){
             let arg_type_serenity = self.get_variable(s).unwrap();
             self.set_variable(s, arg_type_serenity);
         }
 
-        for (_i, &(ref s, t, _m)) in args.iter().enumerate() {
+        for &(ref s, t, _m) in args.iter() {
             self.set_variable(s, t.decay());
         }
 
@@ -729,8 +729,25 @@ impl StatementVisitor<Result<()>> for Typechecker {
         Ok(())
     }
 
-    fn visit_for_statement(&self, _statement: &ForStatement) -> Result<()> {
-        todo!()
+    fn visit_for_statement(&self, statement: &ForStatement) -> Result<()> {
+        self.variables.begin_scope();
+        if let Some(init) = &statement.init {
+            init.accept(self)?;
+        };
+
+        if let Some(cond) = &statement.condition {
+            let cond = cond.accept(self)?.rvalue()?;
+            ValueType::unify(ValueType::Bool.intern(), cond.0)?;
+        }
+
+        if let Some(inc) = &statement.increment {
+            inc.accept(self)?;
+        };
+
+        statement.body.accept(self)?;
+        self.variables.end_scope();
+
+        Ok(())
     }
 
     fn visit_break_statement(&self, _statement: &BreakStatement) -> Result<()> {
@@ -788,7 +805,7 @@ mod tests {
         let ast = crate::parser::SerenityParser::parse(prog.into(), "mod".into()).unwrap();
 
         let c = Typechecker::new(ast.custom_structs, ffi_funcs::ffi_funcs().as_ref());
-        for n in ast.ast {
+        for n in ast.ast.roots {
             let r = c.compile(&n);
             assert!(r.is_ok(), "{:#}", r.unwrap_err());
         }

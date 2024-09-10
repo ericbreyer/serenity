@@ -19,10 +19,10 @@
 
 // // extern crate getopts;
 
-use parser::Parser;
 // use reg_vm::ExitReason;
 use anyhow::{Context, Result};
-use tracing::{debug, info, level_filters::LevelFilter, subscriber::DefaultGuard};
+
+use tracing::{info, level_filters::LevelFilter, subscriber::DefaultGuard};
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{
     self,
@@ -33,13 +33,13 @@ use tracing_subscriber::{
 };
 
 mod lexer;
+use lexer::Lexer;
 mod parser;
-mod prelude;
-// // mod reg_compiler;
-mod value;
-// // mod reg_vm;
+use parser::{Parser, SerenityParser};
 mod compiler;
+mod prelude;
 mod typing;
+mod value;
 
 enum LevelOrFn {
     Level(LevelFilter),
@@ -67,7 +67,7 @@ pub fn set_log_verbosity(verbose: usize) -> Result<(DefaultGuard, WorkerGuard)> 
 
     let file_trace = tracing_subscriber::fmt::layer()
         .with_span_events(FmtSpan::ACTIVE)
-        .without_time()
+        // .without_time()
         // .with_ansi(false)
         .with_writer(non_blocking)
         .with_filter(match verbose {
@@ -77,7 +77,7 @@ pub fn set_log_verbosity(verbose: usize) -> Result<(DefaultGuard, WorkerGuard)> 
         });
 
     let err_trace = tracing_subscriber::fmt::layer()
-        .without_time()
+        // .without_time()
         .with_writer(std::io::stderr)
         .with_filter(match verbose {
             n if n > 1 => tracing_subscriber::filter::LevelFilter::DEBUG,
@@ -91,34 +91,73 @@ pub fn set_log_verbosity(verbose: usize) -> Result<(DefaultGuard, WorkerGuard)> 
     Ok((tracing::subscriber::set_default(subscriber), _guard))
 }
 
-pub fn run_file(path: &str, output: &mut impl std::io::Write) -> Result<i64, std::io::Error> {
-    let source = std::fs::read_to_string(path).expect("Failed to read file");
+pub fn scan(path: &str) -> Result<Vec<String>> {
+    let source = std::fs::read_to_string(path).context("Failed to read file")?;
+    let mut lexer = Lexer::new(source.into());
+    let mut tokens = Vec::new();
+    loop {
+        let token = lexer.scan_token();
+        let eof = token.is_eof();
+        tokens.push(token);
+        if eof {
+            break;
+        }
+    }
+    Ok(tokens.into_iter().map(|t| format!("{:?}", t)).collect())
+}
 
-    let parsed = parser::SerenityParser::parse(source.into(), path.into());
+pub fn parse(path: &str) -> Result<String> {
+    let source = std::fs::read_to_string(path).context("Failed to read file")?;
+    let parser =
+        SerenityParser::parse(source.into(), path.into()).context("Failed to parse file")?;
+    let ast = parser.ast;
+    Ok(format!("{:?}", ast))
+}
+
+pub fn compile(path: &str) -> Result<String> {
+    let source = std::fs::read_to_string(path).context("Failed to read file")?;
+    let parsed = parser::SerenityParser::parse(source.into(), path.into())
+        .context("Failed to parse file")?;
+    let context = inkwell::context::Context::create();
+    let module = compiler::compile(&context, parsed)?;
+    module
+        .verify()
+        .map_err(|s| anyhow::Error::msg(s.to_string()))
+        .context("Failed to verify module")?;
+    Ok(module.print_to_string().to_string())
+}
+
+pub fn run_file(path: &str, output: &mut impl std::io::Write) -> Result<i64> {
+    let source = std::fs::read_to_string(path).context("Failed to read file")?;
+
+    let parsed = parser::SerenityParser::parse(source.into(), path.into())
+        .context("Failed to parse file")?;
 
     let context = inkwell::context::Context::create();
-    let module = compiler::compile(&context, parsed.expect("Failed to parse file"))
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidInput, e))?;
-    debug!("{}", module.print_to_string().to_string());
+    let module = compiler::compile(&context, parsed).context("Failed to compile")?;
 
-    module.verify().expect("Failed to verify module");
+    module
+        .verify()
+        .map_err(|s| anyhow::Error::msg(s.to_string()))
+        .context("Failed to verify module")?;
 
     let engine = module
         .create_jit_execution_engine(inkwell::OptimizationLevel::None)
-        .expect("Failed to create engine");
+        .map_err(|e| anyhow::Error::msg(e.to_string()))
+        .context("Failed to create execution engine")?;
 
     info!("Execution engine created");
 
     let out = unsafe {
-
         let main = engine
             .get_function::<unsafe extern "C" fn() -> i64>("main_fn")
-            .expect("Failed to get main function");
+            .context("Failed to get main function")?;
 
         info!("Calling main function");
 
         let out = main.call();
 
+        info!("Exited with code {}", out);
         writeln!(output, "Exited with code {}", out)?;
         out
     };

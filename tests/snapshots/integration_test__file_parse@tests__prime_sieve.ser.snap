@@ -1,0 +1,380 @@
+---
+source: tests/integration_test.rs
+expression: ast
+---
+[line    1] Function Declaration: 4790282172664744994_next
+[line    1] ╰─── Function Expression:
+[line    1]      ├─── Name: 4790282172664744994_next
+[line    1]      ├─── Return Type: fn[*struct generator_impl]() -> int
+[line    1]      ├─── Params:
+[line    1]      │    ╰─── self: *struct generator_impl
+[line    1]      ╰─── Body: 
+[line    1]           ╰─── Return:
+[line    0]                ╰─── Function: 4790282172664744994_next_inner
+[line    0]                     ╰─── Function Expression:
+[line    0]                          ├─── Name: 4790282172664744994_next_inner
+[line    0]                          ├─── Return Type: int
+[line    0]                          ├─── Captures:
+[line    0]                          │    ╰─── self
+[line    0]                          ╰─── Body: 
+[line    1]                               ╰─── Return:
+[line    2]                                    ╰─── Call:
+[line    2]                                         ╰─── Call:
+[line    2]                                              ├─── Get: "next"
+[line    2]                                              │    ╰─── Deref: 
+[line    2]                                              │         ╰─── Get: "vtable"
+[line    2]                                              │              ╰─── Deref: 
+[line    2]                                              │                   ╰─── Variable: <Identifier   "self"        [2]>
+[line    2]                                              ╰─── Get: "self"
+[line    2]                                                   ╰─── Deref: 
+[line    2]                                                        ╰─── Variable: <Identifier   "self"        [2]>
+[line    1] Function Declaration: 1434270213535685306_next
+[line    1] ╰─── Function Expression:
+[line    1]      ├─── Name: 1434270213535685306_next
+[line    1]      ├─── Return Type: fn[*struct nat_gen]() -> int
+[line    1]      ├─── Params:
+[line    1]      │    ╰─── self: *struct nat_gen
+[line    1]      ╰─── Body: 
+[line    1]           ╰─── Return:
+[line    0]                ╰─── Function: 1434270213535685306_next_inner
+[line    0]                     ╰─── Function Expression:
+[line    0]                          ├─── Name: 1434270213535685306_next_inner
+[line    0]                          ├─── Return Type: int
+[line    0]                          ├─── Captures:
+[line    0]                          │    ╰─── self
+[line    1] Var Declaration: nat_gen_generator_vtable
+[line    3] Function Declaration: nat_gen_impl_generator
+[line    3] ╰─── Function Expression:
+[line    3]      ├─── Name: nat_gen_impl_generator
+[line    3]      ├─── Return Type: struct generator_impl
+[line    3]      ├─── Params:
+[line    3]      │    ╰─── self: *struct nat_gen
+[line    3]      ╰─── Body: 
+[line    4]           ├─── Expression: 
+[line    4]           │    ╰─── Assign:
+[line    4]           │         ├─── Get: "next"
+[line    4]           │         │    ╰─── Variable: <Identifier   "nat_gen_generator_vtable" [4]>
+[line    4]           │         ╰─── Variable: <Identifier   "1434270213535685306_next" [4]>
+[line    4]           ╰─── Return:
+[line    6]                ╰─── StructInitializer: struct generator_impl
+[line    6]                     ├───  vtable: 
+[line    6]                     │    ╰─── Ref: 
+[line    6]                     │         ╰─── Variable: <Identifier   "nat_gen_generator_vtable" [6]>
+[line    6]                     ╰───  self: 
+[line    6]                          ╰─── Variable: <Identifier   "self"        [6]>
+[line    9] Function Declaration: 1434270213535685306_next
+[line    9] ╰─── Function Expression:
+[line    9]      ├─── Name: 1434270213535685306_next
+[line    9]      ├─── Return Type: fn[*struct nat_gen]() -> int
+[line    9]      ├─── Params:
+[line    9]      │    ╰─── self: *struct nat_gen
+[line    9]      ╰─── Body: 
+[line    9]           ╰─── Return:
+[line    0]                ╰─── Function: 1434270213535685306_next_inner
+[line    0]                     ╰─── Function Expression:
+[line    0]                          ├─── Name: 1434270213535685306_next_inner
+[line    0]                          ├─── Return Type: int
+[line    0]                          ├─── Captures:
+[line    0]                          │    ╰─── self
+[line    0]                          ╰─── Body: 
+[line   10]                               ├─── Var Declaration: i
+[line   10]                               │    ╰───  Initializer
+[line   10]                               │         ╰─── Get: "i"
+[line   10]                               │              ╰─── Deref: 
+[line   10]                               │                   ╰─── Variable: <Identifier   "self"        [10]>
+[line   11]                               ├─── Expression: 
+[line   11]                               │    ╰─── Assign:
+[line   11]                               │         ├─── Get: "i"
+[line   11]                               │         │    ╰─── Deref: 
+[line   11]                               │         │         ╰─── Variable: <Identifier   "self"        [11]>
+[line   11]                               │         ╰─── Binary: Plus
+[line   11]                               │              ├─── Variable: <Identifier   "i"           [11]>
+[line   11]                               │              ╰─── Literal: 1
+[line   11]                               ╰─── Return:
+[line   12]                                    ╰─── Variable: <Identifier   "i"           [12]>
+[line    1] Function Declaration: 18219127901422158180_next
+[line    1] ╰─── Function Expression:
+[line    1]      ├─── Name: 18219127901422158180_next
+[line    1]      ├─── Return Type: fn[*struct identity]() -> int
+[line    1]      ├─── Params:
+[line    1]      │    ╰─── self: *struct identity
+[line    1]      ╰─── Body: 
+[line    1]           ╰─── Return:
+[line    0]                ╰─── Function: 18219127901422158180_next_inner
+[line    0]                     ╰─── Function Expression:
+[line    0]                          ├─── Name: 18219127901422158180_next_inner
+[line    0]                          ├─── Return Type: int
+[line    0]                          ├─── Captures:
+[line    0]                          │    ╰─── self
+[line    1] Var Declaration: identity_generator_vtable
+[line    3] Function Declaration: identity_impl_generator
+[line    3] ╰─── Function Expression:
+[line    3]      ├─── Name: identity_impl_generator
+[line    3]      ├─── Return Type: struct generator_impl
+[line    3]      ├─── Params:
+[line    3]      │    ╰─── self: *struct identity
+[line    3]      ╰─── Body: 
+[line    4]           ├─── Expression: 
+[line    4]           │    ╰─── Assign:
+[line    4]           │         ├─── Get: "next"
+[line    4]           │         │    ╰─── Variable: <Identifier   "identity_generator_vtable" [4]>
+[line    4]           │         ╰─── Variable: <Identifier   "18219127901422158180_next" [4]>
+[line    4]           ╰─── Return:
+[line    6]                ╰─── StructInitializer: struct generator_impl
+[line    6]                     ├───  vtable: 
+[line    6]                     │    ╰─── Ref: 
+[line    6]                     │         ╰─── Variable: <Identifier   "identity_generator_vtable" [6]>
+[line    6]                     ╰───  self: 
+[line    6]                          ╰─── Variable: <Identifier   "self"        [6]>
+[line   19] Function Declaration: 18219127901422158180_next
+[line   19] ╰─── Function Expression:
+[line   19]      ├─── Name: 18219127901422158180_next
+[line   19]      ├─── Return Type: fn[*struct identity]() -> int
+[line   19]      ├─── Params:
+[line   19]      │    ╰─── self: *struct identity
+[line   19]      ╰─── Body: 
+[line   19]           ╰─── Return:
+[line    0]                ╰─── Function: 18219127901422158180_next_inner
+[line    0]                     ╰─── Function Expression:
+[line    0]                          ├─── Name: 18219127901422158180_next_inner
+[line    0]                          ├─── Return Type: int
+[line    0]                          ├─── Captures:
+[line    0]                          │    ╰─── self
+[line    0]                          ╰─── Body: 
+[line   19]                               ╰─── Return:
+[line   20]                                    ╰─── Call:
+[line   20]                                         ╰─── Get: "next"
+[line   20]                                              ╰─── Get: "gen"
+[line   20]                                                   ╰─── Deref: 
+[line   20]                                                        ╰─── Variable: <Identifier   "self"        [20]>
+[line    1] Function Declaration: 11122648676203909741_next
+[line    1] ╰─── Function Expression:
+[line    1]      ├─── Name: 11122648676203909741_next
+[line    1]      ├─── Return Type: fn[*struct filter]() -> int
+[line    1]      ├─── Params:
+[line    1]      │    ╰─── self: *struct filter
+[line    1]      ╰─── Body: 
+[line    1]           ╰─── Return:
+[line    0]                ╰─── Function: 11122648676203909741_next_inner
+[line    0]                     ╰─── Function Expression:
+[line    0]                          ├─── Name: 11122648676203909741_next_inner
+[line    0]                          ├─── Return Type: int
+[line    0]                          ├─── Captures:
+[line    0]                          │    ╰─── self
+[line    1] Var Declaration: filter_generator_vtable
+[line    3] Function Declaration: filter_impl_generator
+[line    3] ╰─── Function Expression:
+[line    3]      ├─── Name: filter_impl_generator
+[line    3]      ├─── Return Type: struct generator_impl
+[line    3]      ├─── Params:
+[line    3]      │    ╰─── self: *struct filter
+[line    3]      ╰─── Body: 
+[line    4]           ├─── Expression: 
+[line    4]           │    ╰─── Assign:
+[line    4]           │         ├─── Get: "next"
+[line    4]           │         │    ╰─── Variable: <Identifier   "filter_generator_vtable" [4]>
+[line    4]           │         ╰─── Variable: <Identifier   "11122648676203909741_next" [4]>
+[line    4]           ╰─── Return:
+[line    6]                ╰─── StructInitializer: struct generator_impl
+[line    6]                     ├───  vtable: 
+[line    6]                     │    ╰─── Ref: 
+[line    6]                     │         ╰─── Variable: <Identifier   "filter_generator_vtable" [6]>
+[line    6]                     ╰───  self: 
+[line    6]                          ╰─── Variable: <Identifier   "self"        [6]>
+[line   28] Function Declaration: 11122648676203909741_next
+[line   28] ╰─── Function Expression:
+[line   28]      ├─── Name: 11122648676203909741_next
+[line   28]      ├─── Return Type: fn[*struct filter]() -> int
+[line   28]      ├─── Params:
+[line   28]      │    ╰─── self: *struct filter
+[line   28]      ╰─── Body: 
+[line   28]           ╰─── Return:
+[line    0]                ╰─── Function: 11122648676203909741_next_inner
+[line    0]                     ╰─── Function Expression:
+[line    0]                          ├─── Name: 11122648676203909741_next_inner
+[line    0]                          ├─── Return Type: int
+[line    0]                          ├─── Captures:
+[line    0]                          │    ╰─── self
+[line    0]                          ╰─── Body: 
+[line   29]                               ├─── Var Declaration: pred
+[line   29]                               │    ╰───  Initializer
+[line   29]                               │         ╰─── Get: "pred"
+[line   29]                               │              ╰─── Deref: 
+[line   29]                               │                   ╰─── Variable: <Identifier   "self"        [29]>
+[line   30]                               ├─── Var Declaration: i
+[line   30]                               │    ╰───  Initializer
+[line   30]                               │         ╰─── Call:
+[line   30]                               │              ╰─── Get: "next"
+[line   30]                               │                   ╰─── Get: "gen"
+[line   30]                               │                        ╰─── Deref: 
+[line   30]                               │                             ╰─── Variable: <Identifier   "self"        [30]>
+[line   31]                               ├─── While: 
+[line   31]                               │    ├─── Unary: Bang 
+[line   31]                               │    │    ╰─── Call:
+[line   31]                               │    │         ├─── Variable: <Identifier   "pred"        [31]>
+[line   31]                               │    │         ╰─── Variable: <Identifier   "i"           [31]>
+[line   31]                               │    ╰─── Block: 
+[line   32]                               │         ╰─── Expression: 
+[line   32]                               │              ╰─── Assign:
+[line   32]                               │                   ├─── Variable: <Identifier   "i"           [32]>
+[line   32]                               │                   ╰─── Call:
+[line   32]                               │                        ╰─── Get: "next"
+[line   32]                               │                             ╰─── Get: "gen"
+[line   32]                               │                                  ╰─── Deref: 
+[line   32]                               │                                       ╰─── Variable: <Identifier   "self"        [32]>
+[line   33]                               ╰─── Return:
+[line   34]                                    ╰─── Variable: <Identifier   "i"           [34]>
+[line    1] Function Declaration: 3543743037993631610_next
+[line    1] ╰─── Function Expression:
+[line    1]      ├─── Name: 3543743037993631610_next
+[line    1]      ├─── Return Type: fn[*struct seive]() -> int
+[line    1]      ├─── Params:
+[line    1]      │    ╰─── self: *struct seive
+[line    1]      ╰─── Body: 
+[line    1]           ╰─── Return:
+[line    0]                ╰─── Function: 3543743037993631610_next_inner
+[line    0]                     ╰─── Function Expression:
+[line    0]                          ├─── Name: 3543743037993631610_next_inner
+[line    0]                          ├─── Return Type: int
+[line    0]                          ├─── Captures:
+[line    0]                          │    ╰─── self
+[line    1] Var Declaration: seive_generator_vtable
+[line    3] Function Declaration: seive_impl_generator
+[line    3] ╰─── Function Expression:
+[line    3]      ├─── Name: seive_impl_generator
+[line    3]      ├─── Return Type: struct generator_impl
+[line    3]      ├─── Params:
+[line    3]      │    ╰─── self: *struct seive
+[line    3]      ╰─── Body: 
+[line    4]           ├─── Expression: 
+[line    4]           │    ╰─── Assign:
+[line    4]           │         ├─── Get: "next"
+[line    4]           │         │    ╰─── Variable: <Identifier   "seive_generator_vtable" [4]>
+[line    4]           │         ╰─── Variable: <Identifier   "3543743037993631610_next" [4]>
+[line    4]           ╰─── Return:
+[line    6]                ╰─── StructInitializer: struct generator_impl
+[line    6]                     ├───  vtable: 
+[line    6]                     │    ╰─── Ref: 
+[line    6]                     │         ╰─── Variable: <Identifier   "seive_generator_vtable" [6]>
+[line    6]                     ╰───  self: 
+[line    6]                          ╰─── Variable: <Identifier   "self"        [6]>
+[line   41] Function Declaration: 3543743037993631610_next
+[line   41] ╰─── Function Expression:
+[line   41]      ├─── Name: 3543743037993631610_next
+[line   41]      ├─── Return Type: fn[*struct seive]() -> int
+[line   41]      ├─── Params:
+[line   41]      │    ╰─── self: *struct seive
+[line   41]      ╰─── Body: 
+[line   41]           ╰─── Return:
+[line    0]                ╰─── Function: 3543743037993631610_next_inner
+[line    0]                     ╰─── Function Expression:
+[line    0]                          ├─── Name: 3543743037993631610_next_inner
+[line    0]                          ├─── Return Type: int
+[line    0]                          ├─── Captures:
+[line    0]                          │    ╰─── self
+[line    0]                          ╰─── Body: 
+[line   42]                               ├─── Var Declaration: gen
+[line   42]                               │    ╰───  Initializer
+[line   42]                               │         ╰─── Get: "gen"
+[line   42]                               │              ╰─── Deref: 
+[line   42]                               │                   ╰─── Variable: <Identifier   "self"        [42]>
+[line   43]                               ├─── Var Declaration: i
+[line   43]                               │    ╰───  Initializer
+[line   43]                               │         ╰─── Call:
+[line   43]                               │              ╰─── Get: "next"
+[line   43]                               │                   ╰─── Variable: <Identifier   "gen"         [43]>
+[line   45]                               ├─── Var Declaration: pred
+[line   45]                               │    ╰───  Initializer
+[line    0]                               │         ╰─── Function: anon0
+[line    0]                               │              ╰─── Function Expression:
+[line    0]                               │                   ├─── Name: anon0
+[line    0]                               │                   ├─── Return Type: bool
+[line    0]                               │                   ├─── Captures:
+[line    0]                               │                   │    ╰─── i
+[line    0]                               │                   ├─── Params:
+[line    0]                               │                   │    ╰─── x: int
+[line    0]                               │                   ╰─── Body: 
+[line   45]                               │                        ╰─── Return:
+[line   45]                               │                             ╰─── Binary: BangEqual
+[line   45]                               │                                  ├─── Cast: float
+[line   45]                               │                                  │    ╰─── Binary: Slash
+[line   45]                               │                                  │         ├─── Variable: <Identifier   "x"           [45]>
+[line   45]                               │                                  │         ╰─── Variable: <Identifier   "i"           [45]>
+[line   45]                               │                                  ╰─── Binary: Slash
+[line   45]                               │                                       ├─── Cast: $24
+[line   45]                               │                                       │    ╰─── Variable: <Identifier   "x"           [45]>
+[line   45]                               │                                       ╰─── Cast: $25
+[line   45]                               │                                            ╰─── Variable: <Identifier   "i"           [45]>
+[line   46]                               ├─── Var Declaration: f
+[line   46]                               │    ╰───  Initializer
+[line   46]                               │         ╰─── Call:
+[line   46]                               │              ├─── Variable: <Identifier   "malloc"      [46]>
+[line   46]                               │              ╰─── Sizeof: struct filter
+[line   47]                               ├─── Expression: 
+[line   47]                               │    ╰─── Assign:
+[line   47]                               │         ├─── Deref: 
+[line   47]                               │         │    ╰─── Variable: <Identifier   "f"           [47]>
+[line   47]                               │         ╰─── StructInitializer: struct filter
+[line   47]                               │              ├───  gen: 
+[line   47]                               │              │    ╰─── Get: "gen"
+[line   47]                               │              │         ╰─── Deref: 
+[line   47]                               │              │              ╰─── Variable: <Identifier   "self"        [47]>
+[line   47]                               │              ╰───  pred: 
+[line   47]                               │                   ╰─── Variable: <Identifier   "pred"        [47]>
+[line   48]                               ├─── Expression: 
+[line   48]                               │    ╰─── Assign:
+[line   48]                               │         ├─── Get: "gen"
+[line   48]                               │         │    ╰─── Deref: 
+[line   48]                               │         │         ╰─── Variable: <Identifier   "self"        [48]>
+[line   48]                               │         ╰─── Call:
+[line   48]                               │              ├─── Variable: <Identifier   "filter_impl_generator" [48]>
+[line   48]                               │              ╰─── Variable: <Identifier   "f"           [48]>
+[line   48]                               ╰─── Return:
+[line   49]                                    ╰─── Variable: <Identifier   "i"           [49]>
+[line   53] Function Declaration: main
+[line   53] ╰─── Function Expression:
+[line   53]      ├─── Name: main
+[line   53]      ├─── Return Type: int
+[line   53]      ╰─── Body: 
+[line   54]           ├─── Var Declaration: nats
+[line   54]           │    ╰───  Initializer
+[line   54]           │         ╰─── StructInitializer: struct nat_gen
+[line   54]           │              ╰───  i: 
+[line   54]           │                   ╰─── Literal: 2
+[line   56]           ├─── Var Declaration: gen
+[line   56]           │    ╰───  Initializer
+[line   56]           │         ╰─── StructInitializer: struct seive
+[line   56]           │              ╰───  gen: 
+[line   56]           │                   ╰─── Call:
+[line   56]           │                        ├─── Variable: <Identifier   "nat_gen_impl_generator" [56]>
+[line   56]           │                        ╰─── Ref: 
+[line   56]           │                             ╰─── Variable: <Identifier   "nats"        [56]>
+[line   58]           ├─── Var Declaration: prod
+[line   58]           │    ╰───  Initializer
+[line   58]           │         ╰─── Literal: 1
+[line   59]           ├─── For: 
+[line   59]           │    ├─── Var Declaration: i
+[line   59]           │    │    ╰───  Initializer
+[line   59]           │    │         ╰─── Literal: 0
+[line   59]           │    ├─── Binary: Less
+[line   59]           │    │    ├─── Variable: <Identifier   "i"           [59]>
+[line   59]           │    │    ╰─── Literal: 100
+[line   59]           │    ├─── Assign:
+[line   59]           │    │    ├─── Variable: <Identifier   "i"           [59]>
+[line   59]           │    │    ╰─── Binary: Plus
+[line   59]           │    │         ├─── Variable: <Identifier   "i"           [59]>
+[line   59]           │    │         ╰─── Literal: 1
+[line   59]           │    ╰─── Block: 
+[line   60]           │         ├─── Var Declaration: p
+[line   60]           │         │    ╰───  Initializer
+[line   60]           │         │         ╰─── Call:
+[line   60]           │         │              ╰─── Get: "next"
+[line   60]           │         │                   ╰─── Variable: <Identifier   "gen"         [60]>
+[line   61]           │         ╰─── Expression: 
+[line   61]           │              ╰─── Assign:
+[line   61]           │                   ├─── Variable: <Identifier   "prod"        [61]>
+[line   61]           │                   ╰─── Binary: Star
+[line   61]           │                        ├─── Variable: <Identifier   "prod"        [61]>
+[line   61]           │                        ╰─── Variable: <Identifier   "p"           [61]>
+[line   62]           ╰─── Return:
+[line   63]                ╰─── Variable: <Identifier   "prod"        [63]>

@@ -394,7 +394,7 @@ impl SerenityParser {
         let line_no = self.previous.line;
         if self.constants.contains_key(&self.previous.lexeme) {
             return Expression::Literal(LiteralExpression {
-                value: self.constants[&self.previous.lexeme].clone(),
+                value: self.constants[&self.previous.lexeme],
                 line_no,
             });
         }

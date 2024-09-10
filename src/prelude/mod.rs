@@ -10,14 +10,14 @@ use std::fmt::Debug;
 
 #[derive(Clone)]
 pub struct ParseResult {
-    pub ast: Vec<ast::ASTNode>,
+    pub ast: Ast,
     pub custom_structs: std::collections::HashMap<SharedString, CustomStruct>,
 }
 
 impl Default for ParseResult {
     fn default() -> Self {
         ParseResult {
-            ast: vec![ast::ASTNode::Empty],
+            ast: Ast{roots:vec![ast::ASTNode::Empty]},
             custom_structs: std::collections::HashMap::new(),
         }
     }
@@ -25,8 +25,8 @@ impl Default for ParseResult {
 
 impl Debug for ParseResult {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for node in &self.ast {
-            write!(f, "{:?}", node)?;
+        for node in &self.ast.roots {
+            writeln!(f, "{:?}", node)?;
         }
         Ok(())
     }

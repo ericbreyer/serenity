@@ -2,4 +2,4 @@
 source: src/prelude/ast/to_str.rs
 expression: result
 ---
-[line    1] StringLiteral: test
+[line    1] StringLiteral: "test"

@@ -2,4 +2,4 @@
 source: src/parser/serenity_parser/test.rs
 expression: err
 ---
-[line 1] error at ':' : Expect variable name.
+"[line 1] error at ':' : Expect variable name.\n"

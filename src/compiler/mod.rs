@@ -43,16 +43,16 @@ mod ffi_funcs {
     }
 }
 
-pub fn compile<'ctx>(context: &'ctx Context, pr: ParseResult) -> Result<Module<'ctx>> {
+pub fn compile(context: &Context, pr: ParseResult) -> Result<Module<'_>> {
     let ffi = ffi_funcs::ffi_funcs();
     let typechecker = Typechecker::new(pr.custom_structs.clone(), ffi.as_ref());
-    for ast in &pr.ast {
-        typechecker.compile(&ast)?;
+    for ast in &pr.ast.roots {
+        typechecker.compile(ast)?;
     }
     info!("Typechecking complete");
 
-    let compiler = LLVMCompiler::new(&context, pr.custom_structs, ffi.as_ref());
-    for ast in pr.ast {
+    let compiler = LLVMCompiler::new(context, pr.custom_structs, ffi.as_ref());
+    for ast in pr.ast.roots {
         compiler.compile(&ast)?;
     }
     info!("Compilation complete");
@@ -80,7 +80,7 @@ mod tests {
         let pr = SerenityParser::parse(input.into(), "test_compile".into()).unwrap();
 
         let result = compile(&context, pr);
-        if !result.is_ok() {
+        if result.is_err() {
             println!("{:?}", result);
             panic!("Failed to compile {:?}", result.err().unwrap());
         }

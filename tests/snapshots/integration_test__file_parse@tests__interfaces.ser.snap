@@ -1,0 +1,240 @@
+---
+source: tests/integration_test.rs
+expression: ast
+---
+[line    1] Function Declaration: 2829016387971047709_add
+[line    1] ╰─── Function Expression:
+[line    1]      ├─── Name: 2829016387971047709_add
+[line    1]      ├─── Return Type: fn[*struct adder_impl](int) -> int
+[line    1]      ├─── Params:
+[line    1]      │    ╰─── self: *struct adder_impl
+[line    1]      ╰─── Body: 
+[line    1]           ╰─── Return:
+[line    0]                ╰─── Function: 2829016387971047709_add_inner
+[line    0]                     ╰─── Function Expression:
+[line    0]                          ├─── Name: 2829016387971047709_add_inner
+[line    0]                          ├─── Return Type: int
+[line    0]                          ├─── Captures:
+[line    0]                          │    ╰─── self
+[line    0]                          ├─── Params:
+[line    0]                          │    ╰─── a0: int
+[line    0]                          ╰─── Body: 
+[line    1]                               ╰─── Return:
+[line    2]                                    ╰─── Call:
+[line    2]                                         ├─── Call:
+[line    2]                                         │    ├─── Get: "add"
+[line    2]                                         │    │    ╰─── Deref: 
+[line    2]                                         │    │         ╰─── Get: "vtable"
+[line    2]                                         │    │              ╰─── Deref: 
+[line    2]                                         │    │                   ╰─── Variable: <Identifier   "self"        [2]>
+[line    2]                                         │    ╰─── Get: "self"
+[line    2]                                         │         ╰─── Deref: 
+[line    2]                                         │              ╰─── Variable: <Identifier   "self"        [2]>
+[line    2]                                         ╰─── Variable: <Identifier   "a0"          [2]>
+[line    1] Function Declaration: 13651395103432406490_add
+[line    1] ╰─── Function Expression:
+[line    1]      ├─── Name: 13651395103432406490_add
+[line    1]      ├─── Return Type: fn[*struct c](int) -> int
+[line    1]      ├─── Params:
+[line    1]      │    ╰─── self: *struct c
+[line    1]      ╰─── Body: 
+[line    1]           ╰─── Return:
+[line    0]                ╰─── Function: 13651395103432406490_add_inner
+[line    0]                     ╰─── Function Expression:
+[line    0]                          ├─── Name: 13651395103432406490_add_inner
+[line    0]                          ├─── Return Type: int
+[line    0]                          ├─── Captures:
+[line    0]                          │    ╰─── self
+[line    0]                          ├─── Params:
+[line    0]                          │    ╰─── a0: int
+[line    1] Var Declaration: c_adder_vtable
+[line    3] Function Declaration: c_impl_adder
+[line    3] ╰─── Function Expression:
+[line    3]      ├─── Name: c_impl_adder
+[line    3]      ├─── Return Type: struct adder_impl
+[line    3]      ├─── Params:
+[line    3]      │    ╰─── self: *struct c
+[line    3]      ╰─── Body: 
+[line    4]           ├─── Expression: 
+[line    4]           │    ╰─── Assign:
+[line    4]           │         ├─── Get: "add"
+[line    4]           │         │    ╰─── Variable: <Identifier   "c_adder_vtable" [4]>
+[line    4]           │         ╰─── Variable: <Identifier   "13651395103432406490_add" [4]>
+[line    4]           ╰─── Return:
+[line    6]                ╰─── StructInitializer: struct adder_impl
+[line    6]                     ├───  vtable: 
+[line    6]                     │    ╰─── Ref: 
+[line    6]                     │         ╰─── Variable: <Identifier   "c_adder_vtable" [6]>
+[line    6]                     ╰───  self: 
+[line    6]                          ╰─── Variable: <Identifier   "self"        [6]>
+[line    9] Function Declaration: 13651395103432406490_add
+[line    9] ╰─── Function Expression:
+[line    9]      ├─── Name: 13651395103432406490_add
+[line    9]      ├─── Return Type: fn[*struct c](int) -> int
+[line    9]      ├─── Params:
+[line    9]      │    ╰─── self: *struct c
+[line    9]      ╰─── Body: 
+[line    9]           ╰─── Return:
+[line    0]                ╰─── Function: 13651395103432406490_add_inner
+[line    0]                     ╰─── Function Expression:
+[line    0]                          ├─── Name: 13651395103432406490_add_inner
+[line    0]                          ├─── Return Type: int
+[line    0]                          ├─── Captures:
+[line    0]                          │    ╰─── self
+[line    0]                          ├─── Params:
+[line    0]                          │    ╰─── j: int
+[line    0]                          ╰─── Body: 
+[line   10]                               ├─── Var Declaration: rself
+[line   10]                               │    ╰───  Initializer
+[line   10]                               │         ╰─── Cast: *struct c
+[line   10]                               │              ╰─── Variable: <Identifier   "self"        [10]>
+[line   10]                               ╰─── Return:
+[line   11]                                    ╰─── Assign:
+[line   11]                                         ├─── Get: "i"
+[line   11]                                         │    ╰─── Deref: 
+[line   11]                                         │         ╰─── Variable: <Identifier   "rself"       [11]>
+[line   11]                                         ╰─── Binary: Plus
+[line   11]                                              ├─── Get: "i"
+[line   11]                                              │    ╰─── Deref: 
+[line   11]                                              │         ╰─── Variable: <Identifier   "rself"       [11]>
+[line   11]                                              ╰─── Variable: <Identifier   "j"           [11]>
+[line    1] Function Declaration: 16084469161707638809_add
+[line    1] ╰─── Function Expression:
+[line    1]      ├─── Name: 16084469161707638809_add
+[line    1]      ├─── Return Type: fn[*struct d](int) -> int
+[line    1]      ├─── Params:
+[line    1]      │    ╰─── self: *struct d
+[line    1]      ╰─── Body: 
+[line    1]           ╰─── Return:
+[line    0]                ╰─── Function: 16084469161707638809_add_inner
+[line    0]                     ╰─── Function Expression:
+[line    0]                          ├─── Name: 16084469161707638809_add_inner
+[line    0]                          ├─── Return Type: int
+[line    0]                          ├─── Captures:
+[line    0]                          │    ╰─── self
+[line    0]                          ├─── Params:
+[line    0]                          │    ╰─── a0: int
+[line    1] Var Declaration: d_adder_vtable
+[line    3] Function Declaration: d_impl_adder
+[line    3] ╰─── Function Expression:
+[line    3]      ├─── Name: d_impl_adder
+[line    3]      ├─── Return Type: struct adder_impl
+[line    3]      ├─── Params:
+[line    3]      │    ╰─── self: *struct d
+[line    3]      ╰─── Body: 
+[line    4]           ├─── Expression: 
+[line    4]           │    ╰─── Assign:
+[line    4]           │         ├─── Get: "add"
+[line    4]           │         │    ╰─── Variable: <Identifier   "d_adder_vtable" [4]>
+[line    4]           │         ╰─── Variable: <Identifier   "16084469161707638809_add" [4]>
+[line    4]           ╰─── Return:
+[line    6]                ╰─── StructInitializer: struct adder_impl
+[line    6]                     ├───  vtable: 
+[line    6]                     │    ╰─── Ref: 
+[line    6]                     │         ╰─── Variable: <Identifier   "d_adder_vtable" [6]>
+[line    6]                     ╰───  self: 
+[line    6]                          ╰─── Variable: <Identifier   "self"        [6]>
+[line   18] Function Declaration: 16084469161707638809_add
+[line   18] ╰─── Function Expression:
+[line   18]      ├─── Name: 16084469161707638809_add
+[line   18]      ├─── Return Type: fn[*struct d](int) -> int
+[line   18]      ├─── Params:
+[line   18]      │    ╰─── self: *struct d
+[line   18]      ╰─── Body: 
+[line   18]           ╰─── Return:
+[line    0]                ╰─── Function: 16084469161707638809_add_inner
+[line    0]                     ╰─── Function Expression:
+[line    0]                          ├─── Name: 16084469161707638809_add_inner
+[line    0]                          ├─── Return Type: int
+[line    0]                          ├─── Captures:
+[line    0]                          │    ╰─── self
+[line    0]                          ├─── Params:
+[line    0]                          │    ╰─── j: int
+[line    0]                          ╰─── Body: 
+[line   19]                               ├─── Var Declaration: rself
+[line   19]                               │    ╰───  Initializer
+[line   19]                               │         ╰─── Cast: *struct d
+[line   19]                               │              ╰─── Variable: <Identifier   "self"        [19]>
+[line   19]                               ╰─── Return:
+[line   20]                                    ╰─── Assign:
+[line   20]                                         ├─── Get: "i"
+[line   20]                                         │    ╰─── Deref: 
+[line   20]                                         │         ╰─── Variable: <Identifier   "rself"       [20]>
+[line   20]                                         ╰─── Binary: Minus
+[line   20]                                              ├─── Get: "i"
+[line   20]                                              │    ╰─── Deref: 
+[line   20]                                              │         ╰─── Variable: <Identifier   "rself"       [20]>
+[line   20]                                              ╰─── Variable: <Identifier   "j"           [20]>
+[line   31] Function Declaration: stuff
+[line   31] ╰─── Function Expression:
+[line   31]      ├─── Name: stuff
+[line   31]      ├─── Return Type: int
+[line   31]      ├─── Params:
+[line   31]      │    ╰─── adder: struct adder_impl
+[line   31]      ╰─── Body: 
+[line   31]           ╰─── Return:
+[line   32]                ╰─── Call:
+[line   32]                     ├─── Get: "add"
+[line   32]                     │    ╰─── Variable: <Identifier   "adder"       [32]>
+[line   32]                     ╰─── Literal: 2
+[line   35] Function Declaration: main
+[line   35] ╰─── Function Expression:
+[line   35]      ├─── Name: main
+[line   35]      ├─── Return Type: int
+[line   35]      ╰─── Body: 
+[line   37]           ├─── Var Declaration: c_conc
+[line   37]           │    ╰───  Initializer
+[line   37]           │         ╰─── StructInitializer: struct c
+[line   37]           │              ╰───  i: 
+[line   37]           │                   ╰─── Literal: 0
+[line   38]           ├─── Var Declaration: c_impl
+[line   38]           │    ╰───  Initializer
+[line   38]           │         ╰─── Call:
+[line   38]           │              ├─── Variable: <Identifier   "c_impl_adder" [38]>
+[line   38]           │              ╰─── Ref: 
+[line   38]           │                   ╰─── Variable: <Identifier   "c_conc"      [38]>
+[line   40]           ├─── Var Declaration: d_conc
+[line   40]           │    ╰───  Initializer
+[line   40]           │         ╰─── StructInitializer: struct d
+[line   40]           │              ╰───  i: 
+[line   40]           │                   ╰─── Literal: 0
+[line   41]           ├─── Var Declaration: d_impl
+[line   41]           │    ╰───  Initializer
+[line   41]           │         ╰─── Call:
+[line   41]           │              ├─── Variable: <Identifier   "d_impl_adder" [41]>
+[line   41]           │              ╰─── Ref: 
+[line   41]           │                   ╰─── Variable: <Identifier   "d_conc"      [41]>
+[line   43]           ├─── Expression: 
+[line   43]           │    ╰─── Call:
+[line   43]           │         ├─── Get: "add"
+[line   43]           │         │    ╰─── Variable: <Identifier   "c_impl"      [43]>
+[line   43]           │         ╰─── Literal: 2
+[line   44]           ├─── Expression: 
+[line   44]           │    ╰─── Call:
+[line   44]           │         ├─── Get: "add"
+[line   44]           │         │    ╰─── Variable: <Identifier   "c_conc"      [44]>
+[line   44]           │         ╰─── Literal: 2
+[line   45]           ├─── Expression: 
+[line   45]           │    ╰─── Call:
+[line   45]           │         ├─── Variable: <Identifier   "stuff"       [45]>
+[line   45]           │         ╰─── Variable: <Identifier   "c_impl"      [45]>
+[line   47]           ├─── Expression: 
+[line   47]           │    ╰─── Call:
+[line   47]           │         ├─── Get: "add"
+[line   47]           │         │    ╰─── Variable: <Identifier   "d_impl"      [47]>
+[line   47]           │         ╰─── Literal: 2
+[line   48]           ├─── Expression: 
+[line   48]           │    ╰─── Call:
+[line   48]           │         ├─── Get: "add"
+[line   48]           │         │    ╰─── Variable: <Identifier   "d_conc"      [48]>
+[line   48]           │         ╰─── Literal: 2
+[line   49]           ├─── Expression: 
+[line   49]           │    ╰─── Call:
+[line   49]           │         ├─── Variable: <Identifier   "stuff"       [49]>
+[line   49]           │         ╰─── Variable: <Identifier   "d_impl"      [49]>
+[line   49]           ╰─── Return:
+[line   51]                ╰─── Binary: Minus
+[line   51]                     ├─── Get: "i"
+[line   51]                     │    ╰─── Variable: <Identifier   "c_conc"      [51]>
+[line   51]                     ╰─── Get: "i"
+[line   51]                          ╰─── Variable: <Identifier   "d_conc"      [51]>

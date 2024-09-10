@@ -1,0 +1,118 @@
+---
+source: tests/integration_test.rs
+expression: ast
+---
+[line    1] Function Declaration: 4790282172664744994_next
+[line    1] ╰─── Function Expression:
+[line    1]      ├─── Name: 4790282172664744994_next
+[line    1]      ├─── Return Type: fn[*struct generator_impl]() -> int
+[line    1]      ├─── Params:
+[line    1]      │    ╰─── self: *struct generator_impl
+[line    1]      ╰─── Body: 
+[line    1]           ╰─── Return:
+[line    0]                ╰─── Function: 4790282172664744994_next_inner
+[line    0]                     ╰─── Function Expression:
+[line    0]                          ├─── Name: 4790282172664744994_next_inner
+[line    0]                          ├─── Return Type: int
+[line    0]                          ├─── Captures:
+[line    0]                          │    ╰─── self
+[line    0]                          ╰─── Body: 
+[line    1]                               ╰─── Return:
+[line    2]                                    ╰─── Call:
+[line    2]                                         ╰─── Call:
+[line    2]                                              ├─── Get: "next"
+[line    2]                                              │    ╰─── Deref: 
+[line    2]                                              │         ╰─── Get: "vtable"
+[line    2]                                              │              ╰─── Deref: 
+[line    2]                                              │                   ╰─── Variable: <Identifier   "self"        [2]>
+[line    2]                                              ╰─── Get: "self"
+[line    2]                                                   ╰─── Deref: 
+[line    2]                                                        ╰─── Variable: <Identifier   "self"        [2]>
+[line    1] Function Declaration: 1434270213535685306_next
+[line    1] ╰─── Function Expression:
+[line    1]      ├─── Name: 1434270213535685306_next
+[line    1]      ├─── Return Type: fn[*struct nat_gen]() -> int
+[line    1]      ├─── Params:
+[line    1]      │    ╰─── self: *struct nat_gen
+[line    1]      ╰─── Body: 
+[line    1]           ╰─── Return:
+[line    0]                ╰─── Function: 1434270213535685306_next_inner
+[line    0]                     ╰─── Function Expression:
+[line    0]                          ├─── Name: 1434270213535685306_next_inner
+[line    0]                          ├─── Return Type: int
+[line    0]                          ├─── Captures:
+[line    0]                          │    ╰─── self
+[line    1] Var Declaration: nat_gen_generator_vtable
+[line    3] Function Declaration: nat_gen_impl_generator
+[line    3] ╰─── Function Expression:
+[line    3]      ├─── Name: nat_gen_impl_generator
+[line    3]      ├─── Return Type: struct generator_impl
+[line    3]      ├─── Params:
+[line    3]      │    ╰─── self: *struct nat_gen
+[line    3]      ╰─── Body: 
+[line    4]           ├─── Expression: 
+[line    4]           │    ╰─── Assign:
+[line    4]           │         ├─── Get: "next"
+[line    4]           │         │    ╰─── Variable: <Identifier   "nat_gen_generator_vtable" [4]>
+[line    4]           │         ╰─── Variable: <Identifier   "1434270213535685306_next" [4]>
+[line    4]           ╰─── Return:
+[line    6]                ╰─── StructInitializer: struct generator_impl
+[line    6]                     ├───  vtable: 
+[line    6]                     │    ╰─── Ref: 
+[line    6]                     │         ╰─── Variable: <Identifier   "nat_gen_generator_vtable" [6]>
+[line    6]                     ╰───  self: 
+[line    6]                          ╰─── Variable: <Identifier   "self"        [6]>
+[line    9] Function Declaration: 1434270213535685306_next
+[line    9] ╰─── Function Expression:
+[line    9]      ├─── Name: 1434270213535685306_next
+[line    9]      ├─── Return Type: fn[*struct nat_gen]() -> int
+[line    9]      ├─── Params:
+[line    9]      │    ╰─── self: *struct nat_gen
+[line    9]      ╰─── Body: 
+[line    9]           ╰─── Return:
+[line    0]                ╰─── Function: 1434270213535685306_next_inner
+[line    0]                     ╰─── Function Expression:
+[line    0]                          ├─── Name: 1434270213535685306_next_inner
+[line    0]                          ├─── Return Type: int
+[line    0]                          ├─── Captures:
+[line    0]                          │    ╰─── self
+[line    0]                          ╰─── Body: 
+[line   10]                               ├─── Var Declaration: i
+[line   10]                               │    ╰───  Initializer
+[line   10]                               │         ╰─── Get: "i"
+[line   10]                               │              ╰─── Deref: 
+[line   10]                               │                   ╰─── Variable: <Identifier   "self"        [10]>
+[line   11]                               ├─── Expression: 
+[line   11]                               │    ╰─── Assign:
+[line   11]                               │         ├─── Get: "i"
+[line   11]                               │         │    ╰─── Deref: 
+[line   11]                               │         │         ╰─── Variable: <Identifier   "self"        [11]>
+[line   11]                               │         ╰─── Binary: Plus
+[line   11]                               │              ├─── Variable: <Identifier   "i"           [11]>
+[line   11]                               │              ╰─── Literal: 1
+[line   11]                               ╰─── Return:
+[line   12]                                    ╰─── Variable: <Identifier   "i"           [12]>
+[line   15] Function Declaration: main
+[line   15] ╰─── Function Expression:
+[line   15]      ├─── Name: main
+[line   15]      ├─── Return Type: int
+[line   15]      ╰─── Body: 
+[line   16]           ├─── Var Declaration: gen
+[line   16]           │    ╰───  Initializer
+[line   16]           │         ╰─── StructInitializer: struct nat_gen
+[line   16]           │              ╰───  i: 
+[line   16]           │                   ╰─── Literal: 0
+[line   17]           ├─── Var Declaration: g
+[line   17]           │    ╰───  Initializer
+[line   17]           │         ╰─── Call:
+[line   17]           │              ├─── Variable: <Identifier   "nat_gen_impl_generator" [17]>
+[line   17]           │              ╰─── Ref: 
+[line   17]           │                   ╰─── Variable: <Identifier   "gen"         [17]>
+[line   17]           ╰─── Return:
+[line   18]                ╰─── Binary: Plus
+[line   18]                     ├─── Call:
+[line   18]                     │    ╰─── Get: "next"
+[line   18]                     │         ╰─── Variable: <Identifier   "g"           [18]>
+[line   18]                     ╰─── Call:
+[line   18]                          ╰─── Get: "next"
+[line   18]                               ╰─── Variable: <Identifier   "g"           [18]>

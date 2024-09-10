@@ -33,7 +33,7 @@ impl PartialEq for SharedString {
 
 impl Debug for SharedString {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
+        f.pad(&format!("{:?}", self.0))
     }
 }
 
@@ -47,6 +47,6 @@ impl Deref for SharedString {
 
 impl Display for SharedString {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
+        f.pad(&format!("{}", self.0))
     }
 }

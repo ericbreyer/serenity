@@ -37,7 +37,7 @@ impl SerenityParser {
                 return vec![ASTNode::Empty];
             };
             self.custom_types.extend(parse_result.custom_structs);
-            return parse_result.ast;
+            return parse_result.ast.roots;
         } else {
             ret = ASTNode::Statement(self.statement());
         }
@@ -55,10 +55,10 @@ impl SerenityParser {
         let line_no = self.previous.line;
         if self.match_token(TokenType::LeftBrace) {
             let statements = self.block();
-            return Statement::Block(BlockStatement {
+            Statement::Block(BlockStatement {
                 statements,
                 line_no,
-            });
+            })
         } else if self.match_token(TokenType::If) {
             return self.if_statement();
         } else if self.match_token(TokenType::While) {
@@ -362,7 +362,7 @@ impl SerenityParser {
                         self.custom_types.clone(),
                     )
                     .unwrap()
-                    .ast,
+                    .ast.roots,
                 );
             }
         }
@@ -519,7 +519,7 @@ impl SerenityParser {
                     self.custom_types.clone(),
                 )
                 .unwrap()
-                .ast
+                .ast.roots
             })
             .collect()
     }
@@ -580,7 +580,7 @@ impl SerenityParser {
             return Expression::Empty;
         };
         self.consume(TokenType::LeftBrace, "Expect '{' after struct name.");
-        let mut fields = HashMap::new();
+        let mut fields = IndexMap::new();
         while self.current.token_type != TokenType::RightBrace {
             self.consume(TokenType::Identifier, "Expect field name.");
             let name = self.previous.clone();
@@ -669,7 +669,7 @@ impl SerenityParser {
 
         ASTNode::Declaration(Declaration::Function(FunctionDeclaration {
             prototype: node.prototype,
-            body: node.body.into(),
+            body: node.body,
             line_no,
         }))
     }

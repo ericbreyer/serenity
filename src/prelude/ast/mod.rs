@@ -1,6 +1,9 @@
-use std::{cell::RefCell, collections::HashMap, fmt::Debug};
+use core::fmt;
+use std::{cell::RefCell, fmt::Debug};
 
 mod to_str;
+
+use indexmap::IndexMap;
 
 use crate::{
     lexer::{Token, TokenType},
@@ -57,6 +60,20 @@ pub trait Acceptor<T, V> {
 }
 
 #[derive(Clone)]
+pub struct Ast {
+    pub roots: Vec<ASTNode>,
+}
+
+impl Debug for Ast {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for node in &self.roots {
+            write!(f, "{:?}", node)?;
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone)]
 pub enum ASTNode {
     Empty,
     Statement(Statement),
@@ -78,15 +95,23 @@ where
     }
 }
 
-impl ASTNode {
-    pub fn to_string(&self) -> String {
-        self.accept(&to_str::ToStrVisitor::new(&RefCell::new([false; 100]), 0, None))
+impl fmt::Display for ASTNode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            self.accept(&to_str::ToStrVisitor::new(
+                &RefCell::new([false; 100]),
+                0,
+                None
+            ))
+        )
     }
 }
 
 impl Debug for ASTNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.to_string())
+        write!(f, "{}", self)
     }
 }
 
@@ -292,10 +317,10 @@ pub enum Expression {
 impl Expression {
     pub fn eval_constexpr(&self) -> Option<Value> {
         match self {
-            Expression::Literal(e) => Some(e.value.clone()),
+            Expression::Literal(e) => Some(e.value),
             Expression::Unary(e) => {
                 let operand = e.operand.eval_constexpr()?;
-                
+
                 match (e.operator, operand) {
                     (TokenType::Minus, Value::Integer(i)) => Some(Value::Integer(-i)),
                     (TokenType::Minus, Value::UInteger(i)) => Some(Value::Integer(-(i as i64))),
@@ -307,36 +332,94 @@ impl Expression {
                 let left = e.left.eval_constexpr()?;
                 let right = e.right.eval_constexpr()?;
                 match (e.operator, left, right) {
-                    (TokenType::Plus, Value::Integer(l), Value::Integer(r)) => Some(Value::Integer(l + r)),
-                    (TokenType::Minus, Value::Integer(l), Value::Integer(r)) => Some(Value::Integer(l - r)),
-                    (TokenType::Star, Value::Integer(l), Value::Integer(r)) => Some(Value::Integer(l * r)),
-                    (TokenType::Slash, Value::Integer(l), Value::Integer(r)) => Some(Value::Integer(l / r)),
-                    (TokenType::Plus, Value::UInteger(l), Value::UInteger(r)) => Some(Value::UInteger(l + r)),
-                    (TokenType::Minus, Value::UInteger(l), Value::UInteger(r)) => Some(Value::UInteger(l - r)),
-                    (TokenType::Star, Value::UInteger(l), Value::UInteger(r)) => Some(Value::UInteger(l * r)),
-                    (TokenType::Slash, Value::UInteger(l), Value::UInteger(r)) => Some(Value::UInteger(l / r)),
-                    (TokenType::Plus, Value::Float(l), Value::Float(r)) => Some(Value::Float(l + r)),
-                    (TokenType::Minus, Value::Float(l), Value::Float(r)) => Some(Value::Float(l - r)),
-                    (TokenType::Star, Value::Float(l), Value::Float(r)) => Some(Value::Float(l * r)),
-                    (TokenType::Slash, Value::Float(l), Value::Float(r)) => Some(Value::Float(l / r)),
-                    (TokenType::Greater, Value::Integer(l), Value::Integer(r)) => Some(Value::Bool(l > r)),
-                    (TokenType::GreaterEqual, Value::Integer(l), Value::Integer(r)) => Some(Value::Bool(l >= r)),
-                    (TokenType::Less, Value::Integer(l), Value::Integer(r)) => Some(Value::Bool(l < r)),
-                    (TokenType::LessEqual, Value::Integer(l), Value::Integer(r)) => Some(Value::Bool(l <= r)),
-                    (TokenType::EqualEqual, Value::Integer(l), Value::Integer(r)) => Some(Value::Bool(l == r)),
-                    (TokenType::BangEqual, Value::Integer(l), Value::Integer(r)) => Some(Value::Bool(l != r)),
-                    (TokenType::Greater, Value::UInteger(l), Value::UInteger(r)) => Some(Value::Bool(l > r)),
-                    (TokenType::GreaterEqual, Value::UInteger(l), Value::UInteger(r)) => Some(Value::Bool(l >= r)),
-                    (TokenType::Less, Value::UInteger(l), Value::UInteger(r)) => Some(Value::Bool(l < r)),
-                    (TokenType::LessEqual, Value::UInteger(l), Value::UInteger(r)) => Some(Value::Bool(l <= r)),
-                    (TokenType::EqualEqual, Value::UInteger(l), Value::UInteger(r)) => Some(Value::Bool(l == r)),
-                    (TokenType::BangEqual, Value::UInteger(l), Value::UInteger(r)) => Some(Value::Bool(l != r)),
-                    (TokenType::Greater, Value::Float(l), Value::Float(r)) => Some(Value::Bool(l > r)),
-                    (TokenType::GreaterEqual, Value::Float(l), Value::Float(r)) => Some(Value::Bool(l >= r)),
+                    (TokenType::Plus, Value::Integer(l), Value::Integer(r)) => {
+                        Some(Value::Integer(l + r))
+                    }
+                    (TokenType::Minus, Value::Integer(l), Value::Integer(r)) => {
+                        Some(Value::Integer(l - r))
+                    }
+                    (TokenType::Star, Value::Integer(l), Value::Integer(r)) => {
+                        Some(Value::Integer(l * r))
+                    }
+                    (TokenType::Slash, Value::Integer(l), Value::Integer(r)) => {
+                        Some(Value::Integer(l / r))
+                    }
+                    (TokenType::Plus, Value::UInteger(l), Value::UInteger(r)) => {
+                        Some(Value::UInteger(l + r))
+                    }
+                    (TokenType::Minus, Value::UInteger(l), Value::UInteger(r)) => {
+                        Some(Value::UInteger(l - r))
+                    }
+                    (TokenType::Star, Value::UInteger(l), Value::UInteger(r)) => {
+                        Some(Value::UInteger(l * r))
+                    }
+                    (TokenType::Slash, Value::UInteger(l), Value::UInteger(r)) => {
+                        Some(Value::UInteger(l / r))
+                    }
+                    (TokenType::Plus, Value::Float(l), Value::Float(r)) => {
+                        Some(Value::Float(l + r))
+                    }
+                    (TokenType::Minus, Value::Float(l), Value::Float(r)) => {
+                        Some(Value::Float(l - r))
+                    }
+                    (TokenType::Star, Value::Float(l), Value::Float(r)) => {
+                        Some(Value::Float(l * r))
+                    }
+                    (TokenType::Slash, Value::Float(l), Value::Float(r)) => {
+                        Some(Value::Float(l / r))
+                    }
+                    (TokenType::Greater, Value::Integer(l), Value::Integer(r)) => {
+                        Some(Value::Bool(l > r))
+                    }
+                    (TokenType::GreaterEqual, Value::Integer(l), Value::Integer(r)) => {
+                        Some(Value::Bool(l >= r))
+                    }
+                    (TokenType::Less, Value::Integer(l), Value::Integer(r)) => {
+                        Some(Value::Bool(l < r))
+                    }
+                    (TokenType::LessEqual, Value::Integer(l), Value::Integer(r)) => {
+                        Some(Value::Bool(l <= r))
+                    }
+                    (TokenType::EqualEqual, Value::Integer(l), Value::Integer(r)) => {
+                        Some(Value::Bool(l == r))
+                    }
+                    (TokenType::BangEqual, Value::Integer(l), Value::Integer(r)) => {
+                        Some(Value::Bool(l != r))
+                    }
+                    (TokenType::Greater, Value::UInteger(l), Value::UInteger(r)) => {
+                        Some(Value::Bool(l > r))
+                    }
+                    (TokenType::GreaterEqual, Value::UInteger(l), Value::UInteger(r)) => {
+                        Some(Value::Bool(l >= r))
+                    }
+                    (TokenType::Less, Value::UInteger(l), Value::UInteger(r)) => {
+                        Some(Value::Bool(l < r))
+                    }
+                    (TokenType::LessEqual, Value::UInteger(l), Value::UInteger(r)) => {
+                        Some(Value::Bool(l <= r))
+                    }
+                    (TokenType::EqualEqual, Value::UInteger(l), Value::UInteger(r)) => {
+                        Some(Value::Bool(l == r))
+                    }
+                    (TokenType::BangEqual, Value::UInteger(l), Value::UInteger(r)) => {
+                        Some(Value::Bool(l != r))
+                    }
+                    (TokenType::Greater, Value::Float(l), Value::Float(r)) => {
+                        Some(Value::Bool(l > r))
+                    }
+                    (TokenType::GreaterEqual, Value::Float(l), Value::Float(r)) => {
+                        Some(Value::Bool(l >= r))
+                    }
                     (TokenType::Less, Value::Float(l), Value::Float(r)) => Some(Value::Bool(l < r)),
-                    (TokenType::LessEqual, Value::Float(l), Value::Float(r)) => Some(Value::Bool(l <= r)),
-                    (TokenType::EqualEqual, Value::Float(l), Value::Float(r)) => Some(Value::Bool(l == r)),
-                    (TokenType::BangEqual, Value::Float(l), Value::Float(r)) => Some(Value::Bool(l != r)),
+                    (TokenType::LessEqual, Value::Float(l), Value::Float(r)) => {
+                        Some(Value::Bool(l <= r))
+                    }
+                    (TokenType::EqualEqual, Value::Float(l), Value::Float(r)) => {
+                        Some(Value::Bool(l == r))
+                    }
+                    (TokenType::BangEqual, Value::Float(l), Value::Float(r)) => {
+                        Some(Value::Bool(l != r))
+                    }
                     (TokenType::And, Value::Bool(l), Value::Bool(r)) => Some(Value::Bool(l && r)),
                     (TokenType::Or, Value::Bool(l), Value::Bool(r)) => Some(Value::Bool(l || r)),
                     _ => None,
@@ -446,7 +529,7 @@ pub struct CastExpression {
 #[derive(Clone)]
 pub struct StructInitializerExpression {
     pub struct_type: CustomStruct,
-    pub fields: HashMap<SharedString, Expression>,
+    pub fields: IndexMap<SharedString, Expression>,
     pub line_no: usize,
 }
 
@@ -742,7 +825,7 @@ pub struct ArrayDeclaration {
 pub struct FunctionDeclaration {
     pub prototype: Prototype,
     pub line_no: usize,
-    pub body: Option<Vec<ASTNode>>
+    pub body: Option<Vec<ASTNode>>,
 }
 
 // Declaration

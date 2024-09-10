@@ -1,0 +1,79 @@
+const NPRIMES = 10000000u;
+ 
+fn pow(base: int, exp: int) -> int {
+    var result = 1;
+    var i = 0;
+    while (i < exp) {
+        result = result * base;
+        i = i + 1;
+    }
+    return result;
+}
+
+fn seive(candidates: *int, n: int) {
+    var i = 2;
+    while (i < n) {
+        if (candidates[i] == 0) {
+            i = i + 1;
+            continue;
+        }
+        var j = i + i;
+        while (j < n) {
+            candidates[j] = 0;
+            j = j + i;
+        }
+        i = i + 1;
+    }
+}
+
+
+var PRIMES: [int; NPRIMES];
+
+var transitions: [[int; 10]; 10];
+
+fn main() -> int {
+
+    
+    var i = 0;
+
+    while (i < NPRIMES) {
+        PRIMES[i] = i;
+        i = i + 1;
+    }
+    
+    seive(PRIMES, NPRIMES);
+
+    i = 3;
+    var last_prime = 2;
+
+    while (i < NPRIMES) {
+        if (PRIMES[i] != 0) {
+            transitions[last_prime % 10][PRIMES[i] % 10] = transitions[last_prime % 10][last_prime % 10] + 1;
+            last_prime = PRIMES[i];
+        }
+        i = i + 1;
+    }
+
+    var result = 0;
+
+    i = 0;
+    var j = 0;
+    while (i < 10) {
+        if(i != 1 and i != 2 and i != 3 and i != 5 and i != 7) {
+            i = i + 1;
+            continue;
+        }
+        while (j < 10) {
+            if(j!= 1 and j != 3 and j != 5 and j != 7) {
+                j = j + 1;
+                continue;
+            }
+            result = result + transitions[i][j] * pow(2, i) * pow(3, j);
+            j = j + 1;
+        }
+        i = i + 1;
+        j = 0;
+    }
+
+    return result;
+}

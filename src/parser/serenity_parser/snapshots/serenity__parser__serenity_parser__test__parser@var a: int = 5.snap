@@ -2,4 +2,4 @@
 source: src/parser/serenity_parser/test.rs
 expression: err
 ---
-[line 1] error at end : Expect ';' after variable name.
+"[line 1] error at end : Expect ';' after variable name.\n"

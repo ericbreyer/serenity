@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 use strum::EnumCount as _;
-use strum_macros::EnumCount;
+use strum_macros::{Display, EnumCount};
 use trie_rs::{Trie, TrieBuilder};
 
 use crate::prelude::*;
@@ -13,7 +13,7 @@ pub struct Lexer {
     keywords: Trie<u8>,
 }
 
-#[derive(Debug, PartialEq, Copy, Clone, EnumCount)]
+#[derive(Debug, Display,PartialEq, Copy, Clone, EnumCount)]
 pub enum TokenType {
     LeftParen,
     RightParen,
@@ -131,9 +131,15 @@ pub struct Token {
     pub line: usize,
 }
 
+impl Token {
+    pub fn is_eof(&self) -> bool {
+        self.token_type == TokenType::Eof
+    }
+}
+
 impl Debug for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.lexeme)
+        write!(f, r#"<{:12} {:13?} [{}]>"#, self.token_type, self.lexeme, self.line)
     }
 }
 

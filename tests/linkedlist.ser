@@ -6,18 +6,16 @@ type linkedList struct {
 fn main () -> int {
     var head = struct linkedList{data: 10, next: 0};
     var current = &head;
-    var i = 0;
-    while (i < 10) {
+    
+    for(var i = 0; i < 10; i = i + 1) {
         current->next = malloc(sizeof struct linkedList);
         current->next->data = 9 - i;
         current = current->next;
-        i = i + 1;
     }
-    current = &head;
+    
     var sum = 0;
-    while (current->data != 0) {
+    for (var current = &head; current->data != 0; current = current->next) {
         sum = sum + current->data;
-        current = current->next;
     }
     return sum;
 }

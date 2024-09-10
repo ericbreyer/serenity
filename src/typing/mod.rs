@@ -100,12 +100,12 @@ thread_local! {
 
 impl ValueType {
     pub fn new_type_var() -> UValueType {
-        return ValueType::TypeVar(TVAR.with(|u| {
+        ValueType::TypeVar(TVAR.with(|u| {
             u.set(u.get() + 1);
             SUBSTITUTIONS.with_borrow_mut(|v| v.push(ValueType::TypeVar(u.get()).intern()));
             u.get()
         }))
-        .intern();
+        .intern()
     }
 
     pub fn decay(&self) -> UValueType {
@@ -279,14 +279,11 @@ impl ValueType {
                 return new.substitute();
             }
         };
-        return new;
+        new
     }
 
     pub fn is_nil(&self) -> bool {
-        match self {
-            Self::Nil => true,
-            _ => false,
-        }
+        matches!(self, Self::Nil)
     }
 
     pub fn to_string(&self) -> SharedString {

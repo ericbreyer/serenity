@@ -8,6 +8,7 @@ use std::{cell::Cell, collections::HashMap};
 use num_enum::FromPrimitive;
 use pratt_parse::ParseTable;
 use tracing::instrument;
+use anyhow::{Error, Result};
 
 use crate::{
     lexer::{Lexer, Token, TokenType},
@@ -50,7 +51,7 @@ pub struct SerenityParser {
     current: Token,
     previous: Token,
     lexer: Lexer,
-    had_error: Cell<Option<SharedString>>,
+    had_error: Cell<Option<Error>>,
     panic_mode: Cell<bool>,
     parse_table: ParseTable,
     custom_types: HashMap<SharedString, CustomStruct>,
@@ -311,7 +312,7 @@ impl SerenityParser {
 
         err_msg = format!("{err_msg} : {message}\n");
         print!("{err_msg}");
-        self.had_error.set(Some(err_msg.into()));
+        self.had_error.set(Some(Error::msg(err_msg)));
     }
 
     fn warn(&self, message: &str) {
@@ -339,8 +340,7 @@ impl SerenityParser {
 }
 
 impl Parser for SerenityParser {
-    #[instrument(skip(source))]
-    fn parse(source: SharedString, name: SharedString) -> Result<ParseResult, SharedString> {
+    fn parse(source: SharedString, name: SharedString) -> Result<ParseResult> {
         SerenityParser::parse_helper(source, name, true, HashMap::default())
     }
 }
@@ -351,9 +351,10 @@ impl SerenityParser {
         name: SharedString,
         _top_level: bool,
         custom_types: HashMap<SharedString, CustomStruct>,
-    ) -> Result<ParseResult, SharedString> {
+    ) -> Result<ParseResult> {
+        tracing::info!("Starting parse of {name}");
         let mut ret = ParseResult::default();
-        let errors: Option<SharedString>;
+        let errors: Option<Error>;
         {
             let lexer = crate::lexer::Lexer::new(source);
             let mut parser = SerenityParser::new(lexer);
@@ -386,7 +387,7 @@ impl SerenityParser {
             // }
 
             parser.consume(TokenType::Eof, "Expect end of file.");
-            ret.ast = nodes;
+            ret.ast.roots = nodes;
             errors = parser.had_error.into_inner();
             ret.custom_structs = parser.custom_types.clone();
         }

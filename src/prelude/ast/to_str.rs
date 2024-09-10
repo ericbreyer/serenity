@@ -557,8 +557,8 @@ impl<'a> StatementVisitor<String> for ToStrVisitor<'a> {
 impl<'a> DeclarationVisitor<String> for ToStrVisitor<'a> {
     fn visit_var_declaration(&self, declaration: &super::VarDeclaration) -> String {
         let mindent = self.indent.strip_suffix(INDENT_PIPE_END);
-        let indent = if mindent.is_some() {
-            mindent.unwrap().to_owned() + INDENT
+        let indent = if let Some(indent) = mindent {
+            indent.to_owned() + INDENT
         } else {
             self.indent.to_owned()
         };

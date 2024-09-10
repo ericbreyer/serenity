@@ -96,9 +96,9 @@ impl<'ctx> LLVMCompiler<'ctx> {
         } = ffi;
         self.module.add_function(
             name,
-            ret.llvm(&self.context)?.fn_type(
+            ret.llvm(self.context)?.fn_type(
                 args.iter()
-                    .map(|t| anyhow::Ok(t.llvm(&self.context)?.as_basic_type_enum()))
+                    .map(|t| anyhow::Ok(t.llvm(self.context)?.as_basic_type_enum()))
                     .map(|m| Ok(BasicMetadataTypeEnum::from(m?)))
                     .collect::<Result<Vec<_>>>()?
                     .as_slice(),
@@ -140,7 +140,7 @@ impl<'ctx> LLVMCompiler<'ctx> {
             types: custom_structs,
         };
         ffi_functions
-            .into_iter()
+            .iter()
             .for_each(|f| c.register_ffi_function(f).unwrap());
 
         c
@@ -280,13 +280,11 @@ impl<'ctx> ExprResultInner<'ctx> {
             ValueType::LValue(ref t, _) => match t.as_ref() {
                 ValueType::Array(a, _) => {
                     let ptr = self.value.into_pointer_value();
-                    let v = unsafe {
-                        compiler.builder.build_bit_cast(
-                            ptr,
-                            compiler.context.ptr_type(AddressSpace::default()),
-                            "arrayptr",
-                        )?
-                    };
+                    let v = compiler.builder.build_bit_cast(
+                        ptr,
+                        compiler.context.ptr_type(AddressSpace::default()),
+                        "arrayptr",
+                    )?;
                     Ok(ExprResultInner::new(
                         v.as_basic_value_enum(),
                         ValueType::Pointer(*a, false).intern(),
@@ -452,7 +450,7 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
         let a = array.serenity_type.substitute();
 
         let t = match a.as_ref() {
-            ValueType::Pointer(t, i) => t,
+            ValueType::Pointer(t, _i) => t,
             _ => {
                 return Err(anyhow::anyhow!(
                     "Invalid index expression array type was {:?}",
@@ -529,7 +527,7 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
                         "addptr",
                     )?
                 };
-                ExprResultInner::new(ptr.into(), lhs.serenity_type.clone())
+                ExprResultInner::new(ptr.into(), lhs.serenity_type)
             }
             (TokenType::Plus, ValueType::Array(t1, s), ValueType::Integer) if s.is_some() => {
                 let ptr = unsafe {
@@ -821,7 +819,7 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
         };
         self.builder
             .build_store(lhs.value.into_pointer_value(), rhs.value)?;
-        Ok(ExprResultInner::new(rhs.value, t.clone()))
+        Ok(ExprResultInner::new(rhs.value, *t))
     }
 
     fn visit_logical_expression(&self, expression: &LogicalExpression) -> ExprResult<'ctx> {
@@ -1026,7 +1024,7 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
             .find(|(_i, (name, _t))| *name == &expression.field)
             .map(|(i, _)| i);
 
-        if !ofield.is_some() {
+        if ofield.is_none() {
             let method_name = &format!("{}_{}", st.unique_string(), expression.field).into();
             if let Some(method_name) = t.methods.borrow().get(method_name) {
                 return Expression::Call(CallExpression {
@@ -1063,7 +1061,7 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
         )?;
         let x = Ok(ExprResultInner::new(
             field_ptr.as_basic_value_enum(),
-            ValueType::LValue(t.fields.borrow()[&expression.field].value.clone(), false).intern(),
+            ValueType::LValue(t.fields.borrow()[&expression.field].value, false).intern(),
         ));
         x
     }
@@ -1443,7 +1441,7 @@ impl<'a, 'ctx> LLVMFunctionCompiler<'a, 'ctx> {
             .map(|capture| {
                 self.builder
                     .build_load(
-                        self.get_variable(capture).unwrap().1.llvm(&self.context)?,
+                        self.get_variable(capture).unwrap().1.llvm(self.context)?,
                         self.get_variable(capture).unwrap().0,
                         capture,
                     )
@@ -1456,9 +1454,9 @@ impl<'a, 'ctx> LLVMFunctionCompiler<'a, 'ctx> {
                 .as_pointer_value()
                 .as_basic_value_enum(),
         );
-        let struct_value;
-        if self.function.is_none() {
-            struct_value = closure_type.const_named_struct(struct_init.as_slice());
+        
+        let struct_value = if self.function.is_none() {
+            closure_type.const_named_struct(struct_init.as_slice())
         } else {
             let struct_value_ptr =
                 self.make_alloca(self.function_type_serenity(&prototype), "closure")?;
@@ -1471,11 +1469,11 @@ impl<'a, 'ctx> LLVMFunctionCompiler<'a, 'ctx> {
                 )?;
                 self.builder.build_store(ptr, *v)?;
             }
-            struct_value = self
+            self
                 .builder
                 .build_load(closure_type, struct_value_ptr, "closure")?
-                .into_struct_value();
-        }
+                .into_struct_value()
+        };
         if let Some(body) = &body {
             let cur_block = self.builder.get_insert_block();
             let entry = self.context.append_basic_block(fn_value, "entry");
@@ -1518,8 +1516,8 @@ impl<'a, 'ctx> LLVMFunctionCompiler<'a, 'ctx> {
             }
 
             self.variables.end_scope();
-            if cur_block.is_some() {
-                self.builder.position_at_end(cur_block.unwrap());
+            if let Some(b) = cur_block {
+                self.builder.position_at_end(b);
             }
         }
 
@@ -1677,9 +1675,13 @@ impl<'a, 'ctx> StatementVisitor<Result<()>> for LLVMFunctionCompiler<'a, 'ctx> {
 
         self.builder.position_at_end(then_block);
         statement.then_branch.accept(self)?;
-        self.builder.position_at_end(then_block);
-
-        if then_block.get_terminator().is_none() {
+        if self
+            .builder
+            .get_insert_block()
+            .unwrap()
+            .get_terminator()
+            .is_none()
+        {
             self.builder.build_unconditional_branch(merge_block)?;
         }
 
@@ -1688,8 +1690,13 @@ impl<'a, 'ctx> StatementVisitor<Result<()>> for LLVMFunctionCompiler<'a, 'ctx> {
         if let Some(el) = &statement.else_branch {
             el.accept(self)?;
         }
-        self.builder.position_at_end(else_block);
-        if else_block.get_terminator().is_none() {
+        if self
+            .builder
+            .get_insert_block()
+            .unwrap()
+            .get_terminator()
+            .is_none()
+        {
             self.builder.build_unconditional_branch(merge_block)?;
         }
         self.builder.position_at_end(merge_block);
@@ -1752,15 +1759,71 @@ impl<'a, 'ctx> StatementVisitor<Result<()>> for LLVMFunctionCompiler<'a, 'ctx> {
         Ok(())
     }
 
-    fn visit_for_statement(&self, _statement: &ForStatement) -> Result<()> {
-        todo!()
+    fn visit_for_statement(&self, statement: &ForStatement) -> Result<()> {
+        self.variables.begin_scope();
+        let loop_block = self.context.append_basic_block(
+            *self.function.unwrap(),
+            &format!("loop_{}", statement.line_no),
+        );
+        let body_block = self.context.append_basic_block(
+            *self.function.unwrap(),
+            &format!("body_{}", statement.line_no),
+        );
+        let merge_block = self.context.append_basic_block(
+            *self.function.unwrap(),
+            &format!("merge_{}", statement.line_no),
+        );
+
+        self.break_continue_contexts
+            .borrow_mut()
+            .push_front((merge_block, loop_block));
+
+        if let Some(init) = &statement.init {
+            init.accept(self)?;
+        }
+
+        self.builder.build_unconditional_branch(loop_block)?;
+
+        self.builder.position_at_end(loop_block);
+        
+        let cond = statement
+            .condition
+            .as_ref()
+            .map(|c| {
+                c.accept(self)
+                    .context("For statement condition")
+                    .map(|c| anyhow::Ok(c.rvalue(self)?.value.into_int_value()))
+            })
+            .transpose()?;
+        self.builder
+            .build_conditional_branch(cond.unwrap_or_else(|| Ok(self.context.bool_type().const_all_ones()))?, body_block, merge_block)?;
+
+        self.builder.position_at_end(body_block);
+        statement.body.accept(self)?;
+        if self
+            .builder
+            .get_insert_block()
+            .unwrap()
+            .get_terminator()
+            .is_none()
+        {
+            if let Some(update) = &statement.increment {
+                update.accept(self)?;
+            }
+            self.builder.build_unconditional_branch(loop_block)?;
+        }
+        self.builder.position_at_end(merge_block);
+
+        self.break_continue_contexts.borrow_mut().pop_front();
+        self.variables.end_scope();
+
+        Ok(())
     }
 
     fn visit_break_statement(&self, _statement: &BreakStatement) -> Result<()> {
         self.builder.build_unconditional_branch(
             self.break_continue_contexts
-                .borrow()
-                .get(0)
+                .borrow().front()
                 .map(|(b, _)| *b)
                 .context("Break statement")?,
         )?;
@@ -1770,8 +1833,7 @@ impl<'a, 'ctx> StatementVisitor<Result<()>> for LLVMFunctionCompiler<'a, 'ctx> {
     fn visit_continue_statement(&self, _statement: &ContinueStatement) -> Result<()> {
         self.builder.build_unconditional_branch(
             self.break_continue_contexts
-                .borrow()
-                .get(0)
+                .borrow().front()
                 .map(|(_, c)| *c)
                 .context("Continue statement")?,
         )?;
@@ -2147,6 +2209,29 @@ mod tests {
         return sum(arr, 4);
     }
     "##, 10; "struct_array_ptr")]
+    #[test_case(r##"
+    // nested if
+    fn main() -> int {
+        let x = 1;
+        let y = 2;
+        if (x == 1) {
+            if (y == 2) {
+                return 1;
+            }
+        }
+        return 0;
+    }
+    "##, 1; "nested_if")]
+    #[test_case(r##"
+    // for loop
+    fn main() -> int {
+        let sum = 0;
+        for (let i = 0; i < 10; i = i + 1) {
+            sum = sum + i;
+        }
+        return sum;
+    }
+    "##, 45; "for_loop")]
 
     fn test_program_integer_return(prog: &str, expected: i64) {
         let ast = crate::parser::SerenityParser::parse(prog.into(), "mod".into()).unwrap();
@@ -2154,21 +2239,21 @@ mod tests {
         let ctx = Context::create();
         let ffi = crate::compiler::ffi_funcs::ffi_funcs();
         let t = crate::compiler::Typechecker::new(ast.custom_structs.clone(), ffi.as_ref());
-        for n in ast.ast.iter() {
+        for n in ast.ast.roots.iter() {
             let r = t.compile(n);
             assert!(r.is_ok(), "{:#}", r.unwrap_err());
         }
         let c = LLVMCompiler::new(&ctx, ast.custom_structs, ffi.as_ref());
-        for n in ast.ast {
+        for n in ast.ast.roots {
             let r = c.compile(&n);
             assert!(r.is_ok(), "{:#}", r.unwrap_err());
         }
 
-        c.module.print_to_file("test.ll").unwrap();
         c.module
             .verify()
             .map_err(|e| anyhow::anyhow!("{:?}", e))
             .unwrap();
+
 
         let jit = c
             .module
