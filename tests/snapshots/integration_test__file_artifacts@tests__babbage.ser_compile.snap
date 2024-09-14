@@ -1,0 +1,61 @@
+---
+source: tests/integration_test.rs
+expression: result
+---
+; ModuleID = 'main'
+source_filename = "main"
+
+@mod = global { ptr } { ptr @mod_fn }
+@main = global { ptr } { ptr @main_fn }
+
+declare i8 @printf(ptr, ...)
+
+declare ptr @malloc(i64)
+
+declare i8 @free(ptr)
+
+define i64 @mod_fn(i64 %0, i64 %1) {
+entry:
+  %i = alloca i64, align 8
+  %j = alloca i64, align 8
+  store i64 %0, ptr %i, align 4
+  store i64 %1, ptr %j, align 4
+  %rval = load i64, ptr %i, align 4
+  %rval1 = load i64, ptr %i, align 4
+  %rval2 = load i64, ptr %j, align 4
+  %divtmp = sdiv i64 %rval1, %rval2
+  %rval3 = load i64, ptr %j, align 4
+  %multmp = mul i64 %divtmp, %rval3
+  %subtmp = sub i64 %rval, %multmp
+  ret i64 %subtmp
+}
+
+define i64 @main_fn() {
+entry:
+  %num = alloca i64, align 8
+  store i64 1, ptr %num, align 4
+  %calltmp3 = alloca i64, align 8
+  br label %loop_7
+
+loop_7:                                           ; preds = %body_7, %entry
+  %rval = load { ptr }, ptr @mod, align 8
+  %rval1 = load i64, ptr %num, align 4
+  %rval2 = load i64, ptr %num, align 4
+  %multmp = mul i64 %rval1, %rval2
+  %fnptr = extractvalue { ptr } %rval, 0
+  %calltmp = call i64 %fnptr(i64 %multmp, i64 1000000)
+  store i64 %calltmp, ptr %calltmp3, align 4
+  %rval4 = load i64, ptr %calltmp3, align 4
+  %neqtmp = icmp ne i64 %rval4, 269696
+  br i1 %neqtmp, label %body_7, label %merge_7
+
+body_7:                                           ; preds = %loop_7
+  %rval5 = load i64, ptr %num, align 4
+  %addtmp = add i64 %rval5, 1
+  store i64 %addtmp, ptr %num, align 4
+  br label %loop_7
+
+merge_7:                                          ; preds = %loop_7
+  %rval6 = load i64, ptr %num, align 4
+  ret i64 %rval6
+}

@@ -1,6 +1,6 @@
 ---
 source: tests/integration_test.rs
-expression: ir
+expression: result
 ---
 ; ModuleID = 'main'
 source_filename = "main"

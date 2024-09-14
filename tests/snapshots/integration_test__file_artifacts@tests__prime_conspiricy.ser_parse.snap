@@ -1,0 +1,285 @@
+---
+source: tests/integration_test.rs
+expression: result
+---
+[line    3] Function Declaration: pow
+[line    3] ╰─── Function Expression:
+[line    3]      ├─── Name: pow
+[line    3]      ├─── Return Type: int
+[line    3]      ├─── Params:
+[line    3]      │    ├─── base: int
+[line    3]      │    ╰─── exp: int
+[line    3]      ╰─── Body: 
+[line    4]           ├─── Var Declaration: result
+[line    4]           │    ╰───  Initializer
+[line    4]           │         ╰─── Literal: 1
+[line    5]           ├─── Var Declaration: i
+[line    5]           │    ╰───  Initializer
+[line    5]           │         ╰─── Literal: 0
+[line    6]           ├─── While: 
+[line    6]           │    ├─── Binary: Less
+[line    6]           │    │    ├─── Variable: <Identifier   "i"           [6]>
+[line    6]           │    │    ╰─── Variable: <Identifier   "exp"         [6]>
+[line    6]           │    ╰─── Block: 
+[line    7]           │         ├─── Expression: 
+[line    7]           │         │    ╰─── Assign:
+[line    7]           │         │         ├─── Variable: <Identifier   "result"      [7]>
+[line    7]           │         │         ╰─── Binary: Star
+[line    7]           │         │              ├─── Variable: <Identifier   "result"      [7]>
+[line    7]           │         │              ╰─── Variable: <Identifier   "base"        [7]>
+[line    8]           │         ╰─── Expression: 
+[line    8]           │              ╰─── Assign:
+[line    8]           │                   ├─── Variable: <Identifier   "i"           [8]>
+[line    8]           │                   ╰─── Binary: Plus
+[line    8]           │                        ├─── Variable: <Identifier   "i"           [8]>
+[line    8]           │                        ╰─── Literal: 1
+[line    9]           ╰─── Return:
+[line   10]                ╰─── Variable: <Identifier   "result"      [10]>
+[line   13] Function Declaration: seive
+[line   13] ╰─── Function Expression:
+[line   13]      ├─── Name: seive
+[line   13]      ├─── Return Type: $4
+[line   13]      ├─── Params:
+[line   13]      │    ├─── candidates: *int
+[line   13]      │    ╰─── n: int
+[line   13]      ╰─── Body: 
+[line   14]           ├─── Var Declaration: i
+[line   14]           │    ╰───  Initializer
+[line   14]           │         ╰─── Literal: 2
+[line   15]           ╰─── While: 
+[line   15]                ├─── Binary: Less
+[line   15]                │    ├─── Variable: <Identifier   "i"           [15]>
+[line   15]                │    ╰─── Variable: <Identifier   "n"           [15]>
+[line   15]                ╰─── Block: 
+[line   16]                     ├─── If: 
+[line   16]                     │    ├─── Binary: EqualEqual
+[line   16]                     │    │    ├─── Index:
+[line   16]                     │    │    │    ├─── Variable: <Identifier   "candidates"  [16]>
+[line   16]                     │    │    │    ╰─── Variable: <Identifier   "i"           [16]>
+[line   16]                     │    │    ╰─── Literal: 0
+[line   16]                     │    ╰─── Block: 
+[line   17]                     │         ├─── Expression: 
+[line   17]                     │         │    ╰─── Assign:
+[line   17]                     │         │         ├─── Variable: <Identifier   "i"           [17]>
+[line   17]                     │         │         ╰─── Binary: Plus
+[line   17]                     │         │              ├─── Variable: <Identifier   "i"           [17]>
+[line   17]                     │         │              ╰─── Literal: 1
+[line   17]                     │         ╰─── Continue
+[line   20]                     ├─── Var Declaration: j
+[line   20]                     │    ╰───  Initializer
+[line   20]                     │         ╰─── Binary: Plus
+[line   20]                     │              ├─── Variable: <Identifier   "i"           [20]>
+[line   20]                     │              ╰─── Variable: <Identifier   "i"           [20]>
+[line   21]                     ├─── While: 
+[line   21]                     │    ├─── Binary: Less
+[line   21]                     │    │    ├─── Variable: <Identifier   "j"           [21]>
+[line   21]                     │    │    ╰─── Variable: <Identifier   "n"           [21]>
+[line   21]                     │    ╰─── Block: 
+[line   22]                     │         ├─── Expression: 
+[line   22]                     │         │    ╰─── Assign:
+[line   22]                     │         │         ├─── Index:
+[line   22]                     │         │         │    ├─── Variable: <Identifier   "candidates"  [22]>
+[line   22]                     │         │         │    ╰─── Variable: <Identifier   "j"           [22]>
+[line   22]                     │         │         ╰─── Literal: 0
+[line   23]                     │         ╰─── Expression: 
+[line   23]                     │              ╰─── Assign:
+[line   23]                     │                   ├─── Variable: <Identifier   "j"           [23]>
+[line   23]                     │                   ╰─── Binary: Plus
+[line   23]                     │                        ├─── Variable: <Identifier   "j"           [23]>
+[line   23]                     │                        ╰─── Variable: <Identifier   "i"           [23]>
+[line   25]                     ╰─── Expression: 
+[line   25]                          ╰─── Assign:
+[line   25]                               ├─── Variable: <Identifier   "i"           [25]>
+[line   25]                               ╰─── Binary: Plus
+[line   25]                                    ├─── Variable: <Identifier   "i"           [25]>
+[line   25]                                    ╰─── Literal: 1
+[line   30] Var Declaration: PRIMES
+[line   32] Var Declaration: transitions
+[line   34] Function Declaration: main
+[line   34] ╰─── Function Expression:
+[line   34]      ├─── Name: main
+[line   34]      ├─── Return Type: int
+[line   34]      ╰─── Body: 
+[line   37]           ├─── Var Declaration: i
+[line   37]           │    ╰───  Initializer
+[line   37]           │         ╰─── Literal: 0
+[line   39]           ├─── While: 
+[line   39]           │    ├─── Binary: Less
+[line   39]           │    │    ├─── Variable: <Identifier   "i"           [39]>
+[line   39]           │    │    ╰─── Literal: 10000000u
+[line   39]           │    ╰─── Block: 
+[line   40]           │         ├─── Expression: 
+[line   40]           │         │    ╰─── Assign:
+[line   40]           │         │         ├─── Index:
+[line   40]           │         │         │    ├─── Variable: <Identifier   "PRIMES"      [40]>
+[line   40]           │         │         │    ╰─── Variable: <Identifier   "i"           [40]>
+[line   40]           │         │         ╰─── Variable: <Identifier   "i"           [40]>
+[line   41]           │         ╰─── Expression: 
+[line   41]           │              ╰─── Assign:
+[line   41]           │                   ├─── Variable: <Identifier   "i"           [41]>
+[line   41]           │                   ╰─── Binary: Plus
+[line   41]           │                        ├─── Variable: <Identifier   "i"           [41]>
+[line   41]           │                        ╰─── Literal: 1
+[line   44]           ├─── Expression: 
+[line   44]           │    ╰─── Call:
+[line   44]           │         ├─── Variable: <Identifier   "seive"       [44]>
+[line   44]           │         ├─── Variable: <Identifier   "PRIMES"      [44]>
+[line   44]           │         ╰─── Literal: 10000000u
+[line   46]           ├─── Expression: 
+[line   46]           │    ╰─── Assign:
+[line   46]           │         ├─── Variable: <Identifier   "i"           [46]>
+[line   46]           │         ╰─── Literal: 3
+[line   47]           ├─── Var Declaration: last_prime
+[line   47]           │    ╰───  Initializer
+[line   47]           │         ╰─── Literal: 2
+[line   49]           ├─── While: 
+[line   49]           │    ├─── Binary: Less
+[line   49]           │    │    ├─── Variable: <Identifier   "i"           [49]>
+[line   49]           │    │    ╰─── Literal: 10000000u
+[line   49]           │    ╰─── Block: 
+[line   50]           │         ├─── If: 
+[line   50]           │         │    ├─── Binary: BangEqual
+[line   50]           │         │    │    ├─── Index:
+[line   50]           │         │    │    │    ├─── Variable: <Identifier   "PRIMES"      [50]>
+[line   50]           │         │    │    │    ╰─── Variable: <Identifier   "i"           [50]>
+[line   50]           │         │    │    ╰─── Literal: 0
+[line   50]           │         │    ╰─── Block: 
+[line   51]           │         │         ├─── Expression: 
+[line   51]           │         │         │    ╰─── Assign:
+[line   51]           │         │         │         ├─── Index:
+[line   51]           │         │         │         │    ├─── Index:
+[line   51]           │         │         │         │    │    ├─── Variable: <Identifier   "transitions" [51]>
+[line   51]           │         │         │         │    │    ╰─── Binary: Percent
+[line   51]           │         │         │         │    │         ├─── Variable: <Identifier   "last_prime"  [51]>
+[line   51]           │         │         │         │    │         ╰─── Literal: 10
+[line   51]           │         │         │         │    ╰─── Binary: Percent
+[line   51]           │         │         │         │         ├─── Index:
+[line   51]           │         │         │         │         │    ├─── Variable: <Identifier   "PRIMES"      [51]>
+[line   51]           │         │         │         │         │    ╰─── Variable: <Identifier   "i"           [51]>
+[line   51]           │         │         │         │         ╰─── Literal: 10
+[line   51]           │         │         │         ╰─── Binary: Plus
+[line   51]           │         │         │              ├─── Index:
+[line   51]           │         │         │              │    ├─── Index:
+[line   51]           │         │         │              │    │    ├─── Variable: <Identifier   "transitions" [51]>
+[line   51]           │         │         │              │    │    ╰─── Binary: Percent
+[line   51]           │         │         │              │    │         ├─── Variable: <Identifier   "last_prime"  [51]>
+[line   51]           │         │         │              │    │         ╰─── Literal: 10
+[line   51]           │         │         │              │    ╰─── Binary: Percent
+[line   51]           │         │         │              │         ├─── Variable: <Identifier   "last_prime"  [51]>
+[line   51]           │         │         │              │         ╰─── Literal: 10
+[line   51]           │         │         │              ╰─── Literal: 1
+[line   52]           │         │         ╰─── Expression: 
+[line   52]           │         │              ╰─── Assign:
+[line   52]           │         │                   ├─── Variable: <Identifier   "last_prime"  [52]>
+[line   52]           │         │                   ╰─── Index:
+[line   52]           │         │                        ├─── Variable: <Identifier   "PRIMES"      [52]>
+[line   52]           │         │                        ╰─── Variable: <Identifier   "i"           [52]>
+[line   54]           │         ╰─── Expression: 
+[line   54]           │              ╰─── Assign:
+[line   54]           │                   ├─── Variable: <Identifier   "i"           [54]>
+[line   54]           │                   ╰─── Binary: Plus
+[line   54]           │                        ├─── Variable: <Identifier   "i"           [54]>
+[line   54]           │                        ╰─── Literal: 1
+[line   57]           ├─── Var Declaration: result
+[line   57]           │    ╰───  Initializer
+[line   57]           │         ╰─── Literal: 0
+[line   59]           ├─── For: 
+[line   59]           │    ├─── Var Declaration: i
+[line   59]           │    │    ╰───  Initializer
+[line   59]           │    │         ╰─── Literal: 0
+[line   59]           │    ├─── Binary: Less
+[line   59]           │    │    ├─── Variable: <Identifier   "i"           [59]>
+[line   59]           │    │    ╰─── Literal: 10
+[line   59]           │    ├─── Assign:
+[line   59]           │    │    ├─── Variable: <Identifier   "i"           [59]>
+[line   59]           │    │    ╰─── Binary: Plus
+[line   59]           │    │         ├─── Variable: <Identifier   "i"           [59]>
+[line   59]           │    │         ╰─── Literal: 1
+[line   59]           │    ╰─── Block: 
+[line   60]           │         ├─── If: 
+[line   60]           │         │    ├─── Logical: And 
+[line   60]           │         │    │    ├─── Binary: BangEqual
+[line   60]           │         │    │    │    ├─── Variable: <Identifier   "i"           [60]>
+[line   60]           │         │    │    │    ╰─── Literal: 1
+[line   60]           │         │    │    ╰─── Logical: And 
+[line   60]           │         │    │         ├─── Binary: BangEqual
+[line   60]           │         │    │         │    ├─── Variable: <Identifier   "i"           [60]>
+[line   60]           │         │    │         │    ╰─── Literal: 2
+[line   60]           │         │    │         ╰─── Logical: And 
+[line   60]           │         │    │              ├─── Binary: BangEqual
+[line   60]           │         │    │              │    ├─── Variable: <Identifier   "i"           [60]>
+[line   60]           │         │    │              │    ╰─── Literal: 3
+[line   60]           │         │    │              ╰─── Logical: And 
+[line   60]           │         │    │                   ├─── Binary: BangEqual
+[line   60]           │         │    │                   │    ├─── Variable: <Identifier   "i"           [60]>
+[line   60]           │         │    │                   │    ╰─── Literal: 5
+[line   60]           │         │    │                   ╰─── Binary: BangEqual
+[line   60]           │         │    │                        ├─── Variable: <Identifier   "i"           [60]>
+[line   60]           │         │    │                        ╰─── Literal: 7
+[line   60]           │         │    ╰─── Block: 
+[line   61]           │         │         ├─── Expression: 
+[line   61]           │         │         │    ╰─── Assign:
+[line   61]           │         │         │         ├─── Variable: <Identifier   "i"           [61]>
+[line   61]           │         │         │         ╰─── Binary: Plus
+[line   61]           │         │         │              ├─── Variable: <Identifier   "i"           [61]>
+[line   61]           │         │         │              ╰─── Literal: 1
+[line   61]           │         │         ╰─── Continue
+[line   64]           │         ╰─── For: 
+[line   64]           │              ├─── Var Declaration: j
+[line   64]           │              │    ╰───  Initializer
+[line   64]           │              │         ╰─── Literal: 0
+[line   64]           │              ├─── Binary: Less
+[line   64]           │              │    ├─── Variable: <Identifier   "j"           [64]>
+[line   64]           │              │    ╰─── Literal: 10
+[line   64]           │              ├─── Assign:
+[line   64]           │              │    ├─── Variable: <Identifier   "j"           [64]>
+[line   64]           │              │    ╰─── Binary: Plus
+[line   64]           │              │         ├─── Variable: <Identifier   "j"           [64]>
+[line   64]           │              │         ╰─── Literal: 1
+[line   64]           │              ╰─── Block: 
+[line   65]           │                   ├─── If: 
+[line   65]           │                   │    ├─── Logical: And 
+[line   65]           │                   │    │    ├─── Binary: BangEqual
+[line   65]           │                   │    │    │    ├─── Variable: <Identifier   "j"           [65]>
+[line   65]           │                   │    │    │    ╰─── Literal: 1
+[line   65]           │                   │    │    ╰─── Logical: And 
+[line   65]           │                   │    │         ├─── Binary: BangEqual
+[line   65]           │                   │    │         │    ├─── Variable: <Identifier   "j"           [65]>
+[line   65]           │                   │    │         │    ╰─── Literal: 3
+[line   65]           │                   │    │         ╰─── Logical: And 
+[line   65]           │                   │    │              ├─── Binary: BangEqual
+[line   65]           │                   │    │              │    ├─── Variable: <Identifier   "j"           [65]>
+[line   65]           │                   │    │              │    ╰─── Literal: 5
+[line   65]           │                   │    │              ╰─── Binary: BangEqual
+[line   65]           │                   │    │                   ├─── Variable: <Identifier   "j"           [65]>
+[line   65]           │                   │    │                   ╰─── Literal: 7
+[line   65]           │                   │    ╰─── Block: 
+[line   66]           │                   │         ├─── Expression: 
+[line   66]           │                   │         │    ╰─── Assign:
+[line   66]           │                   │         │         ├─── Variable: <Identifier   "j"           [66]>
+[line   66]           │                   │         │         ╰─── Binary: Plus
+[line   66]           │                   │         │              ├─── Variable: <Identifier   "j"           [66]>
+[line   66]           │                   │         │              ╰─── Literal: 1
+[line   66]           │                   │         ╰─── Continue
+[line   69]           │                   ╰─── Expression: 
+[line   69]           │                        ╰─── Assign:
+[line   69]           │                             ├─── Variable: <Identifier   "result"      [69]>
+[line   69]           │                             ╰─── Binary: Plus
+[line   69]           │                                  ├─── Variable: <Identifier   "result"      [69]>
+[line   69]           │                                  ╰─── Binary: Star
+[line   69]           │                                       ├─── Binary: Star
+[line   69]           │                                       │    ├─── Index:
+[line   69]           │                                       │    │    ├─── Index:
+[line   69]           │                                       │    │    │    ├─── Variable: <Identifier   "transitions" [69]>
+[line   69]           │                                       │    │    │    ╰─── Variable: <Identifier   "i"           [69]>
+[line   69]           │                                       │    │    ╰─── Variable: <Identifier   "j"           [69]>
+[line   69]           │                                       │    ╰─── Call:
+[line   69]           │                                       │         ├─── Variable: <Identifier   "pow"         [69]>
+[line   69]           │                                       │         ├─── Literal: 2
+[line   69]           │                                       │         ╰─── Variable: <Identifier   "i"           [69]>
+[line   69]           │                                       ╰─── Call:
+[line   69]           │                                            ├─── Variable: <Identifier   "pow"         [69]>
+[line   69]           │                                            ├─── Literal: 3
+[line   69]           │                                            ╰─── Variable: <Identifier   "j"           [69]>
+[line   71]           ╰─── Return:
+[line   73]                ╰─── Variable: <Identifier   "result"      [73]>

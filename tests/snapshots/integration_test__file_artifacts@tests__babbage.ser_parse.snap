@@ -1,0 +1,46 @@
+---
+source: tests/integration_test.rs
+expression: result
+---
+[line    1] Function Declaration: mod
+[line    1] ╰─── Function Expression:
+[line    1]      ├─── Name: mod
+[line    1]      ├─── Return Type: int
+[line    1]      ├─── Params:
+[line    1]      │    ├─── i: int
+[line    1]      │    ╰─── j: int
+[line    1]      ╰─── Body: 
+[line    1]           ╰─── Return:
+[line    2]                ╰─── Binary: Minus
+[line    2]                     ├─── Variable: <Identifier   "i"           [2]>
+[line    2]                     ╰─── Binary: Star
+[line    2]                          ├─── Binary: Slash
+[line    2]                          │    ├─── Variable: <Identifier   "i"           [2]>
+[line    2]                          │    ╰─── Variable: <Identifier   "j"           [2]>
+[line    2]                          ╰─── Variable: <Identifier   "j"           [2]>
+[line    5] Function Declaration: main
+[line    5] ╰─── Function Expression:
+[line    5]      ├─── Name: main
+[line    5]      ├─── Return Type: int
+[line    5]      ╰─── Body: 
+[line    6]           ├─── Var Declaration: num
+[line    6]           │    ╰───  Initializer
+[line    6]           │         ╰─── Literal: 1
+[line    7]           ├─── While: 
+[line    7]           │    ├─── Binary: BangEqual
+[line    7]           │    │    ├─── Call:
+[line    7]           │    │    │    ├─── Variable: <Identifier   "mod"         [7]>
+[line    7]           │    │    │    ├─── Binary: Star
+[line    7]           │    │    │    │    ├─── Variable: <Identifier   "num"         [7]>
+[line    7]           │    │    │    │    ╰─── Variable: <Identifier   "num"         [7]>
+[line    7]           │    │    │    ╰─── Literal: 1000000
+[line    7]           │    │    ╰─── Literal: 269696
+[line    7]           │    ╰─── Block: 
+[line    8]           │         ╰─── Expression: 
+[line    8]           │              ╰─── Assign:
+[line    8]           │                   ├─── Variable: <Identifier   "num"         [8]>
+[line    8]           │                   ╰─── Binary: Plus
+[line    8]           │                        ├─── Variable: <Identifier   "num"         [8]>
+[line    8]           │                        ╰─── Literal: 1
+[line    9]           ╰─── Return:
+[line   10]                ╰─── Variable: <Identifier   "num"         [10]>

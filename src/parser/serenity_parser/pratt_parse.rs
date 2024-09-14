@@ -87,7 +87,7 @@ impl SerenityParser {
         let (node, cast_type) = if self.match_token(TokenType::LeftParen) {
             let node = self.expression();
             let cast_type = if self.match_token(TokenType::Comma) {
-                self.parse_complex_type(&None)
+                self.parse_complex_type(None, None)
             } else {
                 ValueType::new_type_var()
             };
@@ -165,7 +165,7 @@ impl SerenityParser {
                 }
                 let name = self.previous.lexeme.clone();
                 self.consume(TokenType::Colon, "Expect ':' after parameter name.");
-                let p_type = self.parse_complex_type(&None);
+                let p_type = self.parse_complex_type(None, None);
 
                 if let ValueType::Array(_, _) = *p_type {
                     self.warn("Passing arrays by value may be expensive");
@@ -183,7 +183,7 @@ impl SerenityParser {
         self.consume(TokenType::RightParen, "Expect ')' after parameters.");
         let mut return_type = ValueType::new_type_var();
         if self.match_token(TokenType::RightArrow) {
-            return_type = self.parse_complex_type(&None);
+            return_type = self.parse_complex_type(None, None);
         }
         param_types.push(return_type);
 
@@ -280,7 +280,7 @@ impl SerenityParser {
 
     fn sizeof(&mut self, _can_assign: bool) -> Expression {
         let line_no = self.previous.line;
-        let tipe = self.parse_complex_type(&None);
+        let tipe = self.parse_complex_type(None, None);
         Expression::Sizeof(SizeofExpression { tipe, line_no })
     }
 
@@ -406,7 +406,7 @@ impl SerenityParser {
 
     fn type_expression(&mut self) -> Expression {
         let was_struct = self.current.token_type == TokenType::Struct;
-        let t = self.parse_complex_type(&None);
+        let t = self.parse_complex_type(None, None);
 
         if was_struct && self.current.token_type == TokenType::LeftBrace {
             self.struct_initializer(t)

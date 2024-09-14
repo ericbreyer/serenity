@@ -196,11 +196,24 @@ impl SerenityParser {
     //----Declarations----//
 
     fn type_declaration(&mut self) -> Vec<ASTNode> {
+
+        let mut type_params = Vec::new();
+        if self.match_token(TokenType::Less) {
+            while self.current.token_type != TokenType::Greater {
+                self.consume(TokenType::Identifier, "Expect type parameter name.");
+                type_params.push(self.previous.lexeme.clone());
+                if !self.match_token(TokenType::Comma) {
+                    break;
+                }
+            }
+            self.consume(TokenType::Greater, "Expect '>' after type parameters.");
+        }
+
         self.consume(TokenType::Identifier, "Expect type name.");
         let name = self.previous.lexeme.clone();
 
         if self.match_token(TokenType::Struct) {
-            self.struct_declaration(name)
+            self.struct_declaration(name, type_params)
         } else if self.match_token(TokenType::Interface) {
             self.interface_definition(name)
         } else {
@@ -209,10 +222,8 @@ impl SerenityParser {
         }
     }
 
-    fn struct_declaration(&mut self, name: SharedString) -> Vec<ASTNode> {
+    fn struct_declaration(&mut self, name: SharedString, type_params : Vec<SharedString>) -> Vec<ASTNode> {
         let _line = self.previous.line;
-
-        debug!("before Struct: {}", name);
 
         if self.custom_types.contains_key(&name) {
             self.error("Struct with that name already exists.");
@@ -228,6 +239,7 @@ impl SerenityParser {
                 fields: fields.clone().into(),
                 embed: None,
                 methods: HashSet::new().into(),
+                type_vars: type_params.clone().into(),
             },
         );
         let mut embed = None;
@@ -265,7 +277,7 @@ impl SerenityParser {
 
             let field_name = self.previous.clone();
             self.consume(TokenType::Colon, "Expect ':' after field name.");
-            let mut field_type = self.parse_complex_type(&Some(name.clone()));
+            let field_type = self.parse_complex_type(Some(&name), Some(&type_params));
 
             // if the field is this struct throw an error
             if let ValueType::Struct(s) = field_type.as_ref() {
@@ -274,18 +286,18 @@ impl SerenityParser {
                 }
             }
 
-            // if it is a pointer to this struct it is a pointer to selfstruct
-            if let ValueType::Pointer(s, _) = field_type.as_ref() {
-                if let ValueType::Struct(s) = s.as_ref() {
-                    if s.name == name {
-                        field_type = ValueType::Pointer(
-                            ValueType::SelfStruct(s.name.clone()).intern(),
-                            true,
-                        )
-                        .intern();
-                    }
-                }
-            }
+            // // if it is a pointer to this struct it is a pointer to selfstruct
+            // if let ValueType::Pointer(s, _) = field_type.as_ref() {
+            //     if let ValueType::Struct(s) = s.as_ref() {
+            //         if s.name == name {
+            //             field_type = ValueType::Pointer(
+            //                 ValueType::SelfStruct(s.name.clone()).intern(),
+            //                 true,
+            //             )
+            //             .intern();
+            //         }
+            //     }
+            // }
 
             fields.insert(
                 field_name.lexeme.clone(),
@@ -392,6 +404,7 @@ impl SerenityParser {
                 fields: fields.clone().into(),
                 embed: None,
                 methods: HashSet::new().into(),
+                type_vars: vec![].into(),
             },
         );
         let mut methods: Vec<(SharedString, SharedString)> = vec![];
@@ -404,7 +417,7 @@ impl SerenityParser {
 
             let field_name = self.previous.clone();
             self.consume(TokenType::Colon, "Expect ':' after field name.");
-            let field_type = self.parse_complex_type(&Some(vtable_name.clone()));
+            let field_type = self.parse_complex_type(Some(&vtable_name), None);
 
             // if the field is this struct throw an error
             let ValueType::Closure(args, upvals, ret) = &mut field_type.as_ref() else {
@@ -505,6 +518,7 @@ impl SerenityParser {
             .into(),
             embed: None,
             methods: RefCell::new(methods.iter().map(|(name, _)| name.clone()).collect()),
+            type_vars: vec![].into(),
         };
 
         self.custom_types.insert(impler_name, impler);
@@ -532,7 +546,7 @@ impl SerenityParser {
 
         let mut var_type = None;
         if self.match_token(TokenType::Colon) {
-            var_type = self.parse_complex_type(&None).into();
+            var_type = self.parse_complex_type(None, None).into();
         }
         let mut initializer = None;
         if self.match_token(TokenType::Equal) {
@@ -609,7 +623,7 @@ impl SerenityParser {
             self.consume(TokenType::Identifier, "Expect receiver name.");
             let receiver = self.previous.lexeme.clone();
             self.consume(TokenType::Colon, "Expect ':' after receiver  name.");
-            let receiver_type = self.parse_complex_type(&None);
+            let receiver_type = self.parse_complex_type(None, None);
             self.consume(TokenType::RightParen, "Expect ')' after receiver.");
             let ValueType::Pointer(s, _) = receiver_type.as_ref() else {
                 self.error("Receiver must be a struct pointer.");

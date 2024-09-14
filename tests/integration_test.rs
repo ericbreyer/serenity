@@ -1,82 +1,50 @@
 #![cfg(test)]
 
-use anyhow::Result;
-use insta::{assert_debug_snapshot, assert_snapshot};
-use test_case::test_case;
+use anyhow::{bail, Result};
+use insta::assert_snapshot;
+use test_case::{test_case, test_matrix};
 
-#[test_case("trivial.ser", 1; "trivial")]
-#[test_case("prime_sieve.ser", 8181807856294299570; "prime_sieve")]
-#[test_case("interfaces.ser", 12; "interfaces")]
-#[test_case("babbage.ser", 25264; "babbage")]
-#[test_case("linkedlist.ser", 55; "linkedlist")]
-#[test_case("prime_conspiricy.ser", 7942686168; "prime_conspiricy")]
-#[test_case("highly_composites.ser", 355168; "highly_composites")]
-pub fn test_file_run(file : &str, ecode: i64) -> Result<()> {
+#[test_case("trivial.ser" => matches Ok(1))]
+#[test_case("prime_sieve.ser" => matches Ok(8181807856294299570))]
+#[test_case("interfaces.ser" => matches Ok(12))]
+#[test_case("babbage.ser" => matches Ok(25264))]
+#[test_case("linkedlist.ser" => matches Ok(55))]
+#[test_case("prime_conspiricy.ser" => matches Ok(7942686168))]
+#[test_case("highly_composites.ser" => matches Ok(355168))]
+#[test_case("generic.ser" => matches Ok(6))]
+pub fn test_file_run(file : &str) -> Result<usize> {
 
     let file = format!("tests/{}", file);
 
     let mut out = Vec::new();
     let code = serenity::run_file(&file, &mut out)?;
-
-    assert!(code == ecode, "Expected: {}, Got: {}", ecode, code);    
     
-    Ok(())
+    Ok(code as usize)
 }
 
-#[test_case("trivial.ser"; "trivial")]
-#[test_case("prime_sieve.ser"; "prime_sieve")]
-#[test_case("interfaces.ser"; "interfaces")]
-#[test_case("babbage.ser"; "babbage")]
-#[test_case("linkedlist.ser"; "linkedlist")]
-#[test_case("prime_conspiricy.ser"; "prime_conspiricy")]
-#[test_case("highly_composites.ser"; "highly_composites")]
-pub fn test_file_scan(file : &str) -> Result<()> {
+#[test_matrix(
+    ["trivial.ser", "prime_sieve.ser", "interfaces.ser", "babbage.ser", "linkedlist.ser", "prime_conspiricy.ser", "highly_composites.ser", "generic.ser"],
+    ["scan", "parse", "compile"]
+)]
+fn test_file_artifacts(file : &str, mode: &str) -> Result<()> {
     let file = format!("tests/{}", file);
-    let tokens = serenity::scan(&file)?;
+    let result = match mode {
+        "scan" => serenity::scan(&file)?.iter().fold(String::new(), |acc, x| acc + &format!("{}\n", x)),
+        "parse" => serenity::parse(&file)?,
+        "compile" => serenity::compile(&file)?,
+        _ => bail!("Invalid mode"),
+    };
 
     let mut settings = insta::Settings::clone_current();
-    settings.set_snapshot_suffix(file);
+    settings.set_snapshot_suffix(format!("{}_{}", file, mode));
     let _guard = settings.bind_to_scope();
 
-    assert_debug_snapshot!(tokens);
+    match mode {
+        "scan" => assert_snapshot!(result),
+        "parse" => assert_snapshot!(result),
+        "compile" => assert_snapshot!(result),
+        _ => bail!("Invalid mode"),
+    }
+
     Ok(())
 }
-
-#[test_case("trivial.ser"; "trivial")]
-#[test_case("prime_sieve.ser"; "prime_sieve")]
-#[test_case("interfaces.ser"; "interfaces")]
-#[test_case("babbage.ser"; "babbage")]
-#[test_case("linkedlist.ser"; "linkedlist")]
-#[test_case("prime_conspiricy.ser"; "prime_conspiricy")]
-#[test_case("highly_composites.ser"; "highly_composites")]
-pub fn test_file_parse(file : &str) -> Result<()> {
-    let file = format!("tests/{}", file);
-    let ast = serenity::parse(&file)?;
-
-    let mut settings = insta::Settings::clone_current();
-    settings.set_snapshot_suffix(file);
-    let _guard = settings.bind_to_scope();
-
-    assert_snapshot!(ast);
-    Ok(())
-}
-
-#[test_case("trivial.ser"; "trivial")]
-#[test_case("prime_sieve.ser"; "prime_sieve")]
-#[test_case("interfaces.ser"; "interfaces")]
-#[test_case("babbage.ser"; "babbage")]
-#[test_case("linkedlist.ser"; "linkedlist")]
-#[test_case("prime_conspiricy.ser"; "prime_conspiricy")]
-#[test_case("highly_composites.ser"; "highly_composites")]
-pub fn test_file_compile(file : &str) -> Result<()> {
-    let file = format!("tests/{}", file);
-    let ir = serenity::compile(&file)?;
-
-    let mut settings = insta::Settings::clone_current();
-    settings.set_snapshot_suffix(file);
-    let _guard = settings.bind_to_scope();
-
-    assert_snapshot!(ir);
-    Ok(())
-}
-

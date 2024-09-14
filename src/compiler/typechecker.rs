@@ -367,8 +367,38 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
         Ok(expr)
     }
 
-    fn visit_ternary_expression(&self, _expression: &TernaryExpression) -> ExprResult {
-        todo!()
+    fn visit_ternary_expression(&self, expression: &TernaryExpression) -> ExprResult {
+        let cond = expression
+            .condition
+            .accept(self)
+            .context("Ternary expression condition")?
+            .rvalue()
+            .context("Rvalue")?;
+        ValueType::unify(ValueType::Bool.intern(), cond.0).context(format!(
+            "Ternary expression unification {:?} = {:?}",
+            ValueType::Bool.intern(),
+            cond.0
+        ))?;
+
+        let lhs = expression
+            .then_branch
+            .accept(self)
+            .context("Ternary expression then")?
+            .rvalue()
+            .context("Rvalue")?;
+        let rhs = expression
+            .else_branch
+            .accept(self)
+            .context("Ternary expression else")?
+            .rvalue()
+            .context("Rvalue")?;
+
+        ValueType::unify(lhs.0, rhs.0).context(format!(
+            "Ternary expression unification {:?} = {:?}",
+            lhs.0, rhs.0
+        ))?;
+
+        Ok(ExprResultInner::new(lhs.0))
     }
 
     fn visit_variable_expression(&self, expression: &VariableExpression) -> ExprResult {
@@ -383,7 +413,7 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
         let rhs = expression
             .value
             .accept(self)
-            .context("Assign expression rhs")?
+            .with_context(|| format!("Assign expression rhs {:?}", ASTNode::Expression(*expression.value.clone())))?
             .rvalue()
             .context("Rvalue")?;
         let lhs = expression

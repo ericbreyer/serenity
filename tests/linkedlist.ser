@@ -1,6 +1,6 @@
-type linkedList struct {
-    data :int,
-    next :*linkedList
+type<T> linkedList struct {
+    data : T,
+    next :*struct linkedList<T>
 };
 
 fn main () -> int {
@@ -8,7 +8,7 @@ fn main () -> int {
     var current = &head;
     
     for(var i = 0; i < 10; i = i + 1) {
-        current->next = malloc(sizeof struct linkedList);
+        current->next = malloc(sizeof struct linkedList<int>);
         current->next->data = 9 - i;
         current = current->next;
     }

@@ -1,0 +1,89 @@
+---
+source: tests/integration_test.rs
+expression: result
+---
+; ModuleID = 'main'
+source_filename = "main"
+
+@main = global { ptr } { ptr @main_fn }
+
+declare i8 @printf(ptr, ...)
+
+declare ptr @malloc(i64)
+
+declare i8 @free(ptr)
+
+define i64 @main_fn() {
+entry:
+  %struct_init = alloca { i64, ptr }, align 8
+  %field = getelementptr inbounds { i64, ptr }, ptr %struct_init, i32 0, i32 0
+  store i64 10, ptr %field, align 4
+  %field1 = getelementptr inbounds { i64, ptr }, ptr %struct_init, i32 0, i32 1
+  store i64 0, ptr %field1, align 4
+  %head = alloca { i64, ptr }, align 8
+  %struct_init2 = load { i64, ptr }, ptr %struct_init, align 8
+  %current = alloca ptr, align 8
+  store { i64, ptr } %struct_init2, ptr %head, align 8
+  %i = alloca i64, align 8
+  store ptr %head, ptr %current, align 8
+  store i64 0, ptr %i, align 4
+  %sum = alloca i64, align 8
+  %current15 = alloca ptr, align 8
+  br label %loop_10
+
+loop_10:                                          ; preds = %body_10, %entry
+  %rval = load i64, ptr %i, align 4
+  %lttmp = icmp slt i64 %rval, 10
+  br i1 %lttmp, label %body_10, label %merge_10
+
+body_10:                                          ; preds = %loop_10
+  %rval3 = load ptr, ptr @malloc, align 8
+  %calltmp = call ptr @malloc(i64 ptrtoint (ptr getelementptr ({ i64, ptr }, ptr null, i32 1) to i64))
+  %rval4 = load ptr, ptr %current, align 8
+  %field5 = getelementptr inbounds { i64, ptr }, ptr %rval4, i32 0, i32 1
+  store ptr %calltmp, ptr %field5, align 8
+  %rval6 = load i64, ptr %i, align 4
+  %subtmp = sub i64 9, %rval6
+  %rval7 = load ptr, ptr %current, align 8
+  %field8 = getelementptr inbounds { i64, ptr }, ptr %rval7, i32 0, i32 1
+  %rval9 = load ptr, ptr %field8, align 8
+  %field10 = getelementptr inbounds { i64, ptr }, ptr %rval9, i32 0, i32 0
+  store i64 %subtmp, ptr %field10, align 4
+  %rval11 = load ptr, ptr %current, align 8
+  %field12 = getelementptr inbounds { i64, ptr }, ptr %rval11, i32 0, i32 1
+  %rval13 = load ptr, ptr %field12, align 8
+  store ptr %rval13, ptr %current, align 8
+  %rval14 = load i64, ptr %i, align 4
+  %addtmp = add i64 %rval14, 1
+  store i64 %addtmp, ptr %i, align 4
+  br label %loop_10
+
+merge_10:                                         ; preds = %loop_10
+  store i64 0, ptr %sum, align 4
+  store ptr %head, ptr %current15, align 8
+  br label %loop_17
+
+loop_17:                                          ; preds = %body_17, %merge_10
+  %rval16 = load ptr, ptr %current15, align 8
+  %field17 = getelementptr inbounds { i64, ptr }, ptr %rval16, i32 0, i32 0
+  %rval18 = load i64, ptr %field17, align 4
+  %neqtmp = icmp ne i64 %rval18, 0
+  br i1 %neqtmp, label %body_17, label %merge_17
+
+body_17:                                          ; preds = %loop_17
+  %rval19 = load i64, ptr %sum, align 4
+  %rval20 = load ptr, ptr %current15, align 8
+  %field21 = getelementptr inbounds { i64, ptr }, ptr %rval20, i32 0, i32 0
+  %rval22 = load i64, ptr %field21, align 4
+  %addtmp23 = add i64 %rval19, %rval22
+  store i64 %addtmp23, ptr %sum, align 4
+  %rval24 = load ptr, ptr %current15, align 8
+  %field25 = getelementptr inbounds { i64, ptr }, ptr %rval24, i32 0, i32 1
+  %rval26 = load ptr, ptr %field25, align 8
+  store ptr %rval26, ptr %current15, align 8
+  br label %loop_17
+
+merge_17:                                         ; preds = %loop_17
+  %rval27 = load i64, ptr %sum, align 4
+  ret i64 %rval27
+}

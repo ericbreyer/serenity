@@ -1,6 +1,6 @@
 ---
 source: tests/integration_test.rs
-expression: ast
+expression: result
 ---
 [line    6] Function Declaration: main
 [line    6] ╰─── Function Expression:

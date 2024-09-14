@@ -1,0 +1,11 @@
+type<T, S> s struct {
+    i : T,
+    j : S
+};
+
+fn main() -> int {
+    let s_conc: struct s = struct s{i: 6.2, j: 0.0};
+    let s_conc2: struct s<int, float>;
+    s_conc2.i = 6;
+    return s_conc2.i;
+}

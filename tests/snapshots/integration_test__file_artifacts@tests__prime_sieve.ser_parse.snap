@@ -1,6 +1,6 @@
 ---
 source: tests/integration_test.rs
-expression: ast
+expression: result
 ---
 [line    1] Function Declaration: 7250923139693181361_next
 [line    1] ╰─── Function Expression:

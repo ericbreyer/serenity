@@ -876,20 +876,6 @@ mod test {
             value: Value::Integer(1),
         })),
     }), "cast"; "test_cast")]
-    // #[test_case(Expression::StructInitializer(StructInitializerExpression {
-    //     line_no: 1,
-    //     struct_type: CustomStruct{ name: todo!(), fields: todo!(), embed: todo!(), methods: todo!() }},
-    //     fields: [
-    //         (SharedString::from("test"), Expression::Literal(LiteralExpression {
-    //             line_no: 1,
-    //             value: Value::Integer(1),
-    //         })),
-    //         ("test".into(), Expression::Literal(LiteralExpression {
-    //             line_no: 1,
-    //             value: Value::Integer(1),
-    //         })),
-    //     ].into(),
-    // }), "struct_initializer"; "test_struct_initializer")]
     fn test_to_str_for_expr(expr: Expression, name: &str) {
         let depth_has_scope_open = RefCell::new([false; 100]);
 

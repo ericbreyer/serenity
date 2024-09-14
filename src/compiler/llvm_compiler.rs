@@ -789,8 +789,62 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
         Ok(expr)
     }
 
-    fn visit_ternary_expression(&self, _expression: &TernaryExpression) -> ExprResult<'ctx> {
-        todo!()
+    fn visit_ternary_expression(&self, expression: &TernaryExpression) -> ExprResult<'ctx> {
+        let cond = expression
+            .condition
+            .accept(self)
+            .context("Ternary expression condition")?
+            .rvalue(self)
+            .context("Rvalue")?;
+        let thenblock = self
+            .context
+            .append_basic_block(*self.function.unwrap(), "then");
+        let elseblock = self
+            .context
+            .append_basic_block(*self.function.unwrap(), "else");
+        let merge = self
+            .context
+            .append_basic_block(*self.function.unwrap(), "merge");
+
+        self.builder
+            .build_conditional_branch(cond.value.into_int_value(), thenblock, elseblock)
+            .context("Build conditional branch")?;
+
+        self.builder.position_at_end(thenblock);
+        let then = expression
+            .then_branch
+            .accept(self)
+            .context("Ternary expression then")?
+            .rvalue(self)
+            .context("Rvalue")?;
+        let thenfrom = self
+            .builder
+            .get_insert_block()
+            .context("Get insert block")?;
+        self.builder.build_unconditional_branch(merge)?;
+
+
+        self.builder.position_at_end(elseblock);
+        let else_branch = expression
+            .else_branch
+            .accept(self)
+            .context("Ternary expression else")?
+            .rvalue(self)
+            .context("Rvalue")?;
+        let elsefrom = self
+            .builder
+            .get_insert_block()
+            .context("Get insert block")?;
+        self.builder.build_unconditional_branch(merge)?;
+
+        self.builder.position_at_end(merge);
+        let phi = self
+            .builder
+            .build_phi(then.value.get_type(), "iftmp")
+            .context("Build phi")?;
+        phi.add_incoming(&[(&then.value, thenfrom), (&else_branch.value, elsefrom)]);
+
+        Ok(ExprResultInner::new(phi.as_basic_value(), then.serenity_type))
     }
 
     fn visit_variable_expression(&self, expression: &VariableExpression) -> ExprResult<'ctx> {
@@ -806,7 +860,7 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
         let rhs = expression
             .value
             .accept(self)
-            .context("Assign expression rhs")?
+            .with_context(|| format!("Assign expression rhs {:?}", ASTNode::Expression(*expression.value.clone())))?
             .rvalue(self)
             .context("Rvalue")?;
         let lhs = expression
@@ -1100,8 +1154,8 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
             (ValueType::Float, ValueType::LValue(_, _)) => todo!(),
             (ValueType::Float, ValueType::Array(_, _)) => todo!(),
             (ValueType::Float, ValueType::Struct(_)) => todo!(),
-            (ValueType::Float, ValueType::SelfStruct(_)) => todo!(),
-            (ValueType::Float, ValueType::_GenericParam(_)) => todo!(),
+            (ValueType::Float, ValueType::SelfStruct(_, _)) => todo!(),
+            (ValueType::Float, ValueType::GenericParam(_)) => todo!(),
             (ValueType::Float, ValueType::Err) => todo!(),
             (ValueType::Integer, ValueType::Float) => {
                 let v = self.builder.build_signed_int_to_float(
@@ -1127,8 +1181,8 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
             (ValueType::Integer, ValueType::LValue(_, _)) => todo!(),
             (ValueType::Integer, ValueType::Array(_, _)) => todo!(),
             (ValueType::Integer, ValueType::Struct(_)) => todo!(),
-            (ValueType::Integer, ValueType::SelfStruct(_)) => todo!(),
-            (ValueType::Integer, ValueType::_GenericParam(_)) => todo!(),
+            (ValueType::Integer, ValueType::SelfStruct(_, _)) => todo!(),
+            (ValueType::Integer, ValueType::GenericParam(_)) => todo!(),
             (ValueType::Integer, ValueType::Err) => todo!(),
             (ValueType::Char, ValueType::Float) => todo!(),
             (ValueType::Char, ValueType::Integer) => todo!(),
@@ -1140,8 +1194,8 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
             (ValueType::Char, ValueType::LValue(_, _)) => todo!(),
             (ValueType::Char, ValueType::Array(_, _)) => todo!(),
             (ValueType::Char, ValueType::Struct(_)) => todo!(),
-            (ValueType::Char, ValueType::SelfStruct(_)) => todo!(),
-            (ValueType::Char, ValueType::_GenericParam(_)) => todo!(),
+            (ValueType::Char, ValueType::SelfStruct(_, _)) => todo!(),
+            (ValueType::Char, ValueType::GenericParam(_)) => todo!(),
             (ValueType::Char, ValueType::Err) => todo!(),
             (ValueType::Bool, ValueType::Float) => todo!(),
             (ValueType::Bool, ValueType::Integer) => todo!(),
@@ -1153,8 +1207,8 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
             (ValueType::Bool, ValueType::LValue(_, _)) => todo!(),
             (ValueType::Bool, ValueType::Array(_, _)) => todo!(),
             (ValueType::Bool, ValueType::Struct(_)) => todo!(),
-            (ValueType::Bool, ValueType::SelfStruct(_)) => todo!(),
-            (ValueType::Bool, ValueType::_GenericParam(_)) => todo!(),
+            (ValueType::Bool, ValueType::SelfStruct(_, _)) => todo!(),
+            (ValueType::Bool, ValueType::GenericParam(_)) => todo!(),
             (ValueType::Bool, ValueType::Err) => todo!(),
             (ValueType::Nil, ValueType::Float) => todo!(),
             (ValueType::Nil, ValueType::Integer) => todo!(),
@@ -1166,8 +1220,8 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
             (ValueType::Nil, ValueType::LValue(_, _)) => todo!(),
             (ValueType::Nil, ValueType::Array(_, _)) => todo!(),
             (ValueType::Nil, ValueType::Struct(_)) => todo!(),
-            (ValueType::Nil, ValueType::SelfStruct(_)) => todo!(),
-            (ValueType::Nil, ValueType::_GenericParam(_)) => todo!(),
+            (ValueType::Nil, ValueType::SelfStruct(_, _)) => todo!(),
+            (ValueType::Nil, ValueType::GenericParam(_)) => todo!(),
             (ValueType::Nil, ValueType::Err) => todo!(),
             (ValueType::Closure(_, _, _), ValueType::Float) => todo!(),
             (ValueType::Closure(_, _, _), ValueType::Integer) => todo!(),
@@ -1179,8 +1233,8 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
             (ValueType::Closure(_, _, _), ValueType::LValue(_, _)) => todo!(),
             (ValueType::Closure(_, _, _), ValueType::Array(_, _)) => todo!(),
             (ValueType::Closure(_, _, _), ValueType::Struct(_)) => todo!(),
-            (ValueType::Closure(_, _, _), ValueType::SelfStruct(_)) => todo!(),
-            (ValueType::Closure(_, _, _), ValueType::_GenericParam(_)) => todo!(),
+            (ValueType::Closure(_, _, _), ValueType::SelfStruct(_, _)) => todo!(),
+            (ValueType::Closure(_, _, _), ValueType::GenericParam(_)) => todo!(),
             (ValueType::Closure(_, _, _), ValueType::Err) => todo!(),
             (ValueType::Pointer(_, _), ValueType::Float) => todo!(),
             (ValueType::Pointer(_, _), ValueType::Integer) => todo!(),
@@ -1194,8 +1248,8 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
             (ValueType::Pointer(_, _), ValueType::LValue(_, _)) => todo!(),
             (ValueType::Pointer(_, _), ValueType::Array(_, _)) => todo!(),
             (ValueType::Pointer(_, _), ValueType::Struct(_)) => todo!(),
-            (ValueType::Pointer(_, _), ValueType::SelfStruct(_)) => todo!(),
-            (ValueType::Pointer(_, _), ValueType::_GenericParam(_)) => todo!(),
+            (ValueType::Pointer(_, _), ValueType::SelfStruct(_, _)) => todo!(),
+            (ValueType::Pointer(_, _), ValueType::GenericParam(_)) => todo!(),
             (ValueType::Pointer(_, _), ValueType::Err) => todo!(),
             (ValueType::LValue(_, _), ValueType::Float) => todo!(),
             (ValueType::LValue(_, _), ValueType::Integer) => todo!(),
@@ -1207,8 +1261,8 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
             (ValueType::LValue(_, _), ValueType::LValue(_, _)) => todo!(),
             (ValueType::LValue(_, _), ValueType::Array(_, _)) => todo!(),
             (ValueType::LValue(_, _), ValueType::Struct(_)) => todo!(),
-            (ValueType::LValue(_, _), ValueType::SelfStruct(_)) => todo!(),
-            (ValueType::LValue(_, _), ValueType::_GenericParam(_)) => todo!(),
+            (ValueType::LValue(_, _), ValueType::SelfStruct(_, _)) => todo!(),
+            (ValueType::LValue(_, _), ValueType::GenericParam(_)) => todo!(),
             (ValueType::LValue(_, _), ValueType::Err) => todo!(),
             (ValueType::Array(_, _), ValueType::Float) => todo!(),
             (ValueType::Array(_, _), ValueType::Integer) => todo!(),
@@ -1220,8 +1274,8 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
             (ValueType::Array(_, _), ValueType::LValue(_, _)) => todo!(),
             (ValueType::Array(_, _), ValueType::Array(_, _)) => todo!(),
             (ValueType::Array(_, _), ValueType::Struct(_)) => todo!(),
-            (ValueType::Array(_, _), ValueType::SelfStruct(_)) => todo!(),
-            (ValueType::Array(_, _), ValueType::_GenericParam(_)) => todo!(),
+            (ValueType::Array(_, _), ValueType::SelfStruct(_, _)) => todo!(),
+            (ValueType::Array(_, _), ValueType::GenericParam(_)) => todo!(),
             (ValueType::Array(_, _), ValueType::Err) => todo!(),
             (ValueType::Struct(_), ValueType::Float) => todo!(),
             (ValueType::Struct(_), ValueType::Integer) => todo!(),
@@ -1233,35 +1287,35 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
             (ValueType::Struct(_), ValueType::LValue(_, _)) => todo!(),
             (ValueType::Struct(_), ValueType::Array(_, _)) => todo!(),
             (ValueType::Struct(_), ValueType::Struct(_)) => todo!(),
-            (ValueType::Struct(_), ValueType::SelfStruct(_)) => todo!(),
-            (ValueType::Struct(_), ValueType::_GenericParam(_)) => todo!(),
+            (ValueType::Struct(_), ValueType::SelfStruct(_, _)) => todo!(),
+            (ValueType::Struct(_), ValueType::GenericParam(_)) => todo!(),
             (ValueType::Struct(_), ValueType::Err) => todo!(),
-            (ValueType::SelfStruct(_), ValueType::Float) => todo!(),
-            (ValueType::SelfStruct(_), ValueType::Integer) => todo!(),
-            (ValueType::SelfStruct(_), ValueType::Char) => todo!(),
-            (ValueType::SelfStruct(_), ValueType::Bool) => todo!(),
-            (ValueType::SelfStruct(_), ValueType::Nil) => todo!(),
-            (ValueType::SelfStruct(_), ValueType::Closure(_, _, _)) => todo!(),
-            (ValueType::SelfStruct(_), ValueType::Pointer(_, _)) => todo!(),
-            (ValueType::SelfStruct(_), ValueType::LValue(_, _)) => todo!(),
-            (ValueType::SelfStruct(_), ValueType::Array(_, _)) => todo!(),
-            (ValueType::SelfStruct(_), ValueType::Struct(_)) => todo!(),
-            (ValueType::SelfStruct(_), ValueType::SelfStruct(_)) => todo!(),
-            (ValueType::SelfStruct(_), ValueType::_GenericParam(_)) => todo!(),
-            (ValueType::SelfStruct(_), ValueType::Err) => todo!(),
-            (ValueType::_GenericParam(_), ValueType::Float) => todo!(),
-            (ValueType::_GenericParam(_), ValueType::Integer) => todo!(),
-            (ValueType::_GenericParam(_), ValueType::Char) => todo!(),
-            (ValueType::_GenericParam(_), ValueType::Bool) => todo!(),
-            (ValueType::_GenericParam(_), ValueType::Nil) => todo!(),
-            (ValueType::_GenericParam(_), ValueType::Closure(_, _, _)) => todo!(),
-            (ValueType::_GenericParam(_), ValueType::Pointer(_, _)) => todo!(),
-            (ValueType::_GenericParam(_), ValueType::LValue(_, _)) => todo!(),
-            (ValueType::_GenericParam(_), ValueType::Array(_, _)) => todo!(),
-            (ValueType::_GenericParam(_), ValueType::Struct(_)) => todo!(),
-            (ValueType::_GenericParam(_), ValueType::SelfStruct(_)) => todo!(),
-            (ValueType::_GenericParam(_), ValueType::_GenericParam(_)) => todo!(),
-            (ValueType::_GenericParam(_), ValueType::Err) => todo!(),
+            (ValueType::SelfStruct(_, _), ValueType::Float) => todo!(),
+            (ValueType::SelfStruct(_, _), ValueType::Integer) => todo!(),
+            (ValueType::SelfStruct(_, _), ValueType::Char) => todo!(),
+            (ValueType::SelfStruct(_, _), ValueType::Bool) => todo!(),
+            (ValueType::SelfStruct(_, _), ValueType::Nil) => todo!(),
+            (ValueType::SelfStruct(_, _), ValueType::Closure(_, _, _)) => todo!(),
+            (ValueType::SelfStruct(_, _), ValueType::Pointer(_, _)) => todo!(),
+            (ValueType::SelfStruct(_, _), ValueType::LValue(_, _)) => todo!(),
+            (ValueType::SelfStruct(_, _), ValueType::Array(_, _)) => todo!(),
+            (ValueType::SelfStruct(_, _), ValueType::Struct(_)) => todo!(),
+            (ValueType::SelfStruct(_, _), ValueType::SelfStruct(_, _)) => todo!(),
+            (ValueType::SelfStruct(_, _), ValueType::GenericParam(_)) => todo!(),
+            (ValueType::SelfStruct(_, _), ValueType::Err) => todo!(),
+            (ValueType::GenericParam(_), ValueType::Float) => todo!(),
+            (ValueType::GenericParam(_), ValueType::Integer) => todo!(),
+            (ValueType::GenericParam(_), ValueType::Char) => todo!(),
+            (ValueType::GenericParam(_), ValueType::Bool) => todo!(),
+            (ValueType::GenericParam(_), ValueType::Nil) => todo!(),
+            (ValueType::GenericParam(_), ValueType::Closure(_, _, _)) => todo!(),
+            (ValueType::GenericParam(_), ValueType::Pointer(_, _)) => todo!(),
+            (ValueType::GenericParam(_), ValueType::LValue(_, _)) => todo!(),
+            (ValueType::GenericParam(_), ValueType::Array(_, _)) => todo!(),
+            (ValueType::GenericParam(_), ValueType::Struct(_)) => todo!(),
+            (ValueType::GenericParam(_), ValueType::SelfStruct(_, _)) => todo!(),
+            (ValueType::GenericParam(_), ValueType::GenericParam(_)) => todo!(),
+            (ValueType::GenericParam(_), ValueType::Err) => todo!(),
             (ValueType::Err, ValueType::Float) => todo!(),
             (ValueType::Err, ValueType::Integer) => todo!(),
             (ValueType::Err, ValueType::Char) => todo!(),
@@ -1272,8 +1326,8 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
             (ValueType::Err, ValueType::LValue(_, _)) => todo!(),
             (ValueType::Err, ValueType::Array(_, _)) => todo!(),
             (ValueType::Err, ValueType::Struct(_)) => todo!(),
-            (ValueType::Err, ValueType::SelfStruct(_)) => todo!(),
-            (ValueType::Err, ValueType::_GenericParam(_)) => todo!(),
+            (ValueType::Err, ValueType::SelfStruct(_, _)) => todo!(),
+            (ValueType::Err, ValueType::GenericParam(_)) => todo!(),
             (ValueType::Err, ValueType::Err) => todo!(),
             (_, _) => Err(anyhow::anyhow!(
                 "Invalid cast expression {:?} {:?}",
@@ -2232,6 +2286,33 @@ mod tests {
         return sum;
     }
     "##, 45; "for_loop")]
+    #[test_case(r##"
+    // ternary
+    fn main() -> int {
+        let x = 1;
+        return x == 1 ? 1 : 0;
+    }
+    "##, 1; "ternary")]
+    #[test_case(r##"
+    // ternary complicated
+    fn main() -> int {
+        let x = 1;
+        let y = 2;
+        return x == 1 ? (y == 2 ? 1 : 0) : 0;
+    }
+    "##, 1; "ternary_complicated")]
+    #[test_case(r##"
+    // generic struct
+    type<T> s struct {
+        x: T,
+    };
+
+    fn main() -> int {
+        let s: struct s<int> = struct s<int> {x: 1};
+        return s.x;
+    }
+    "##, 1; "generic_struct")]
+    
 
     fn test_program_integer_return(prog: &str, expected: i64) {
         let ast = crate::parser::SerenityParser::parse(prog.into(), "mod".into()).unwrap();

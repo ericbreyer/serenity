@@ -1,0 +1,350 @@
+---
+source: tests/integration_test.rs
+expression: result
+---
+; ModuleID = 'main'
+source_filename = "main"
+
+@pow = global { ptr } { ptr @pow_fn }
+@seive = global { ptr } { ptr @seive_fn }
+@PRIMES = global [10000000 x i64] zeroinitializer
+@transitions = global [10 x [10 x i64]] zeroinitializer
+@main = global { ptr } { ptr @main_fn }
+
+declare i8 @printf(ptr, ...)
+
+declare ptr @malloc(i64)
+
+declare i8 @free(ptr)
+
+define i64 @pow_fn(i64 %0, i64 %1) {
+entry:
+  %base = alloca i64, align 8
+  %exp = alloca i64, align 8
+  store i64 %0, ptr %base, align 4
+  %result = alloca i64, align 8
+  store i64 %1, ptr %exp, align 4
+  %i = alloca i64, align 8
+  store i64 1, ptr %result, align 4
+  store i64 0, ptr %i, align 4
+  br label %loop_6
+
+loop_6:                                           ; preds = %body_6, %entry
+  %rval = load i64, ptr %i, align 4
+  %rval1 = load i64, ptr %exp, align 4
+  %lttmp = icmp slt i64 %rval, %rval1
+  br i1 %lttmp, label %body_6, label %merge_6
+
+body_6:                                           ; preds = %loop_6
+  %rval2 = load i64, ptr %result, align 4
+  %rval3 = load i64, ptr %base, align 4
+  %multmp = mul i64 %rval2, %rval3
+  store i64 %multmp, ptr %result, align 4
+  %rval4 = load i64, ptr %i, align 4
+  %addtmp = add i64 %rval4, 1
+  store i64 %addtmp, ptr %i, align 4
+  br label %loop_6
+
+merge_6:                                          ; preds = %loop_6
+  %rval5 = load i64, ptr %result, align 4
+  ret i64 %rval5
+}
+
+define i8 @seive_fn(ptr %0, i64 %1) {
+entry:
+  %candidates = alloca ptr, align 8
+  %n = alloca i64, align 8
+  store ptr %0, ptr %candidates, align 8
+  %i = alloca i64, align 8
+  store i64 %1, ptr %n, align 4
+  store i64 2, ptr %i, align 4
+  %j = alloca i64, align 8
+  br label %loop_15
+
+loop_15:                                          ; preds = %merge_21, %then, %entry
+  %rval = load i64, ptr %i, align 4
+  %rval1 = load i64, ptr %n, align 4
+  %lttmp = icmp slt i64 %rval, %rval1
+  br i1 %lttmp, label %body_15, label %merge_15
+
+body_15:                                          ; preds = %loop_15
+  %rval2 = load ptr, ptr %candidates, align 8
+  %rval3 = load i64, ptr %i, align 4
+  %indexptr = getelementptr i64, ptr %rval2, i64 %rval3
+  %rval4 = load i64, ptr %indexptr, align 4
+  %eqtmp = icmp eq i64 %rval4, 0
+  br i1 %eqtmp, label %then, label %else
+
+merge_15:                                         ; preds = %loop_15
+  ret i8 0
+
+then:                                             ; preds = %body_15
+  %rval5 = load i64, ptr %i, align 4
+  %addtmp = add i64 %rval5, 1
+  store i64 %addtmp, ptr %i, align 4
+  br label %loop_15
+
+else:                                             ; preds = %body_15
+  br label %ifcont
+
+ifcont:                                           ; preds = %else
+  %rval6 = load i64, ptr %i, align 4
+  %rval7 = load i64, ptr %i, align 4
+  %addtmp8 = add i64 %rval6, %rval7
+  store i64 %addtmp8, ptr %j, align 4
+  br label %loop_21
+
+loop_21:                                          ; preds = %body_21, %ifcont
+  %rval9 = load i64, ptr %j, align 4
+  %rval10 = load i64, ptr %n, align 4
+  %lttmp11 = icmp slt i64 %rval9, %rval10
+  br i1 %lttmp11, label %body_21, label %merge_21
+
+body_21:                                          ; preds = %loop_21
+  %rval12 = load ptr, ptr %candidates, align 8
+  %rval13 = load i64, ptr %j, align 4
+  %indexptr14 = getelementptr i64, ptr %rval12, i64 %rval13
+  store i64 0, ptr %indexptr14, align 4
+  %rval15 = load i64, ptr %j, align 4
+  %rval16 = load i64, ptr %i, align 4
+  %addtmp17 = add i64 %rval15, %rval16
+  store i64 %addtmp17, ptr %j, align 4
+  br label %loop_21
+
+merge_21:                                         ; preds = %loop_21
+  %rval18 = load i64, ptr %i, align 4
+  %addtmp19 = add i64 %rval18, 1
+  store i64 %addtmp19, ptr %i, align 4
+  br label %loop_15
+}
+
+define i64 @main_fn() {
+entry:
+  %i = alloca i64, align 8
+  store i64 0, ptr %i, align 4
+  %calltmp5 = alloca i8, align 1
+  %last_prime = alloca i64, align 8
+  %result = alloca i64, align 8
+  %i31 = alloca i64, align 8
+  %j = alloca i64, align 8
+  %calltmp92 = alloca i64, align 8
+  %calltmp98 = alloca i64, align 8
+  br label %loop_39
+
+loop_39:                                          ; preds = %body_39, %entry
+  %rval = load i64, ptr %i, align 4
+  %lttmp = icmp slt i64 %rval, 10000000
+  br i1 %lttmp, label %body_39, label %merge_39
+
+body_39:                                          ; preds = %loop_39
+  %rval1 = load i64, ptr %i, align 4
+  %rval2 = load i64, ptr %i, align 4
+  %indexptr = getelementptr i64, ptr @PRIMES, i64 %rval2
+  store i64 %rval1, ptr %indexptr, align 4
+  %rval3 = load i64, ptr %i, align 4
+  %addtmp = add i64 %rval3, 1
+  store i64 %addtmp, ptr %i, align 4
+  br label %loop_39
+
+merge_39:                                         ; preds = %loop_39
+  %rval4 = load { ptr }, ptr @seive, align 8
+  %fnptr = extractvalue { ptr } %rval4, 0
+  %calltmp = call i8 %fnptr(ptr @PRIMES, i64 10000000)
+  store i8 %calltmp, ptr %calltmp5, align 1
+  store i64 3, ptr %i, align 4
+  store i64 2, ptr %last_prime, align 4
+  br label %loop_49
+
+loop_49:                                          ; preds = %ifcont, %merge_39
+  %rval6 = load i64, ptr %i, align 4
+  %lttmp7 = icmp slt i64 %rval6, 10000000
+  br i1 %lttmp7, label %body_49, label %merge_49
+
+body_49:                                          ; preds = %loop_49
+  %rval8 = load i64, ptr %i, align 4
+  %indexptr9 = getelementptr i64, ptr @PRIMES, i64 %rval8
+  %rval10 = load i64, ptr %indexptr9, align 4
+  %neqtmp = icmp ne i64 %rval10, 0
+  br i1 %neqtmp, label %then, label %else
+
+merge_49:                                         ; preds = %loop_49
+  store i64 0, ptr %result, align 4
+  store i64 0, ptr %i31, align 4
+  br label %loop_59
+
+then:                                             ; preds = %body_49
+  %rval11 = load i64, ptr %last_prime, align 4
+  %remtmp = srem i64 %rval11, 10
+  %indexptr12 = getelementptr [10 x i64], ptr @transitions, i64 %remtmp
+  %rval13 = load i64, ptr %last_prime, align 4
+  %remtmp14 = srem i64 %rval13, 10
+  %indexptr15 = getelementptr i64, ptr %indexptr12, i64 %remtmp14
+  %rval16 = load i64, ptr %indexptr15, align 4
+  %addtmp17 = add i64 %rval16, 1
+  %rval18 = load i64, ptr %last_prime, align 4
+  %remtmp19 = srem i64 %rval18, 10
+  %indexptr20 = getelementptr [10 x i64], ptr @transitions, i64 %remtmp19
+  %rval21 = load i64, ptr %i, align 4
+  %indexptr22 = getelementptr i64, ptr @PRIMES, i64 %rval21
+  %rval23 = load i64, ptr %indexptr22, align 4
+  %remtmp24 = srem i64 %rval23, 10
+  %indexptr25 = getelementptr i64, ptr %indexptr20, i64 %remtmp24
+  store i64 %addtmp17, ptr %indexptr25, align 4
+  %rval26 = load i64, ptr %i, align 4
+  %indexptr27 = getelementptr i64, ptr @PRIMES, i64 %rval26
+  %rval28 = load i64, ptr %indexptr27, align 4
+  store i64 %rval28, ptr %last_prime, align 4
+  br label %ifcont
+
+else:                                             ; preds = %body_49
+  br label %ifcont
+
+ifcont:                                           ; preds = %else, %then
+  %rval29 = load i64, ptr %i, align 4
+  %addtmp30 = add i64 %rval29, 1
+  store i64 %addtmp30, ptr %i, align 4
+  br label %loop_49
+
+loop_59:                                          ; preds = %merge_64, %then34, %merge_49
+  %rval32 = load i64, ptr %i31, align 4
+  %lttmp33 = icmp slt i64 %rval32, 10
+  br i1 %lttmp33, label %body_59, label %merge_59
+
+body_59:                                          ; preds = %loop_59
+  %rval37 = load i64, ptr %i31, align 4
+  %neqtmp38 = icmp ne i64 %rval37, 1
+  br i1 %neqtmp38, label %rhs, label %merge
+
+merge_59:                                         ; preds = %loop_59
+  %rval106 = load i64, ptr %result, align 4
+  ret i64 %rval106
+
+then34:                                           ; preds = %merge
+  %rval56 = load i64, ptr %i31, align 4
+  %addtmp57 = add i64 %rval56, 1
+  store i64 %addtmp57, ptr %i31, align 4
+  br label %loop_59
+
+else35:                                           ; preds = %merge
+  br label %ifcont36
+
+ifcont36:                                         ; preds = %else35
+  store i64 0, ptr %j, align 4
+  br label %loop_64
+
+rhs:                                              ; preds = %body_59
+  %rval41 = load i64, ptr %i31, align 4
+  %neqtmp42 = icmp ne i64 %rval41, 2
+  br i1 %neqtmp42, label %rhs39, label %merge40
+
+merge:                                            ; preds = %merge40, %body_59
+  %logicaltmp55 = phi i1 [ %neqtmp38, %body_59 ], [ %logicaltmp54, %merge40 ]
+  br i1 %logicaltmp55, label %then34, label %else35
+
+rhs39:                                            ; preds = %rhs
+  %rval45 = load i64, ptr %i31, align 4
+  %neqtmp46 = icmp ne i64 %rval45, 3
+  br i1 %neqtmp46, label %rhs43, label %merge44
+
+merge40:                                          ; preds = %merge44, %rhs
+  %logicaltmp54 = phi i1 [ %neqtmp42, %rhs ], [ %logicaltmp53, %merge44 ]
+  br label %merge
+
+rhs43:                                            ; preds = %rhs39
+  %rval49 = load i64, ptr %i31, align 4
+  %neqtmp50 = icmp ne i64 %rval49, 5
+  br i1 %neqtmp50, label %rhs47, label %merge48
+
+merge44:                                          ; preds = %merge48, %rhs39
+  %logicaltmp53 = phi i1 [ %neqtmp46, %rhs39 ], [ %logicaltmp, %merge48 ]
+  br label %merge40
+
+rhs47:                                            ; preds = %rhs43
+  %rval51 = load i64, ptr %i31, align 4
+  %neqtmp52 = icmp ne i64 %rval51, 7
+  br label %merge48
+
+merge48:                                          ; preds = %rhs47, %rhs43
+  %logicaltmp = phi i1 [ %neqtmp50, %rhs43 ], [ %neqtmp52, %rhs47 ]
+  br label %merge44
+
+loop_64:                                          ; preds = %ifcont62, %then60, %ifcont36
+  %rval58 = load i64, ptr %j, align 4
+  %lttmp59 = icmp slt i64 %rval58, 10
+  br i1 %lttmp59, label %body_64, label %merge_64
+
+body_64:                                          ; preds = %loop_64
+  %rval65 = load i64, ptr %j, align 4
+  %neqtmp66 = icmp ne i64 %rval65, 1
+  br i1 %neqtmp66, label %rhs63, label %merge64
+
+merge_64:                                         ; preds = %loop_64
+  %rval104 = load i64, ptr %i31, align 4
+  %addtmp105 = add i64 %rval104, 1
+  store i64 %addtmp105, ptr %i31, align 4
+  br label %loop_59
+
+then60:                                           ; preds = %merge64
+  %rval80 = load i64, ptr %j, align 4
+  %addtmp81 = add i64 %rval80, 1
+  store i64 %addtmp81, ptr %j, align 4
+  br label %loop_64
+
+else61:                                           ; preds = %merge64
+  br label %ifcont62
+
+ifcont62:                                         ; preds = %else61
+  %rval82 = load i64, ptr %result, align 4
+  %rval83 = load i64, ptr %i31, align 4
+  %indexptr84 = getelementptr [10 x i64], ptr @transitions, i64 %rval83
+  %rval85 = load i64, ptr %j, align 4
+  %indexptr86 = getelementptr i64, ptr %indexptr84, i64 %rval85
+  %rval87 = load i64, ptr %indexptr86, align 4
+  %rval88 = load { ptr }, ptr @pow, align 8
+  %rval89 = load i64, ptr %i31, align 4
+  %fnptr90 = extractvalue { ptr } %rval88, 0
+  %calltmp91 = call i64 %fnptr90(i64 2, i64 %rval89)
+  store i64 %calltmp91, ptr %calltmp92, align 4
+  %rval93 = load i64, ptr %calltmp92, align 4
+  %multmp = mul i64 %rval87, %rval93
+  %rval94 = load { ptr }, ptr @pow, align 8
+  %rval95 = load i64, ptr %j, align 4
+  %fnptr96 = extractvalue { ptr } %rval94, 0
+  %calltmp97 = call i64 %fnptr96(i64 3, i64 %rval95)
+  store i64 %calltmp97, ptr %calltmp98, align 4
+  %rval99 = load i64, ptr %calltmp98, align 4
+  %multmp100 = mul i64 %multmp, %rval99
+  %addtmp101 = add i64 %rval82, %multmp100
+  store i64 %addtmp101, ptr %result, align 4
+  %rval102 = load i64, ptr %j, align 4
+  %addtmp103 = add i64 %rval102, 1
+  store i64 %addtmp103, ptr %j, align 4
+  br label %loop_64
+
+rhs63:                                            ; preds = %body_64
+  %rval69 = load i64, ptr %j, align 4
+  %neqtmp70 = icmp ne i64 %rval69, 3
+  br i1 %neqtmp70, label %rhs67, label %merge68
+
+merge64:                                          ; preds = %merge68, %body_64
+  %logicaltmp79 = phi i1 [ %neqtmp66, %body_64 ], [ %logicaltmp78, %merge68 ]
+  br i1 %logicaltmp79, label %then60, label %else61
+
+rhs67:                                            ; preds = %rhs63
+  %rval73 = load i64, ptr %j, align 4
+  %neqtmp74 = icmp ne i64 %rval73, 5
+  br i1 %neqtmp74, label %rhs71, label %merge72
+
+merge68:                                          ; preds = %merge72, %rhs63
+  %logicaltmp78 = phi i1 [ %neqtmp70, %rhs63 ], [ %logicaltmp77, %merge72 ]
+  br label %merge64
+
+rhs71:                                            ; preds = %rhs67
+  %rval75 = load i64, ptr %j, align 4
+  %neqtmp76 = icmp ne i64 %rval75, 7
+  br label %merge72
+
+merge72:                                          ; preds = %rhs71, %rhs67
+  %logicaltmp77 = phi i1 [ %neqtmp74, %rhs67 ], [ %neqtmp76, %rhs71 ]
+  br label %merge68
+}

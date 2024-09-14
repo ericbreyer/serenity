@@ -49,12 +49,14 @@ pub fn compile(context: &Context, pr: ParseResult) -> Result<Module<'_>> {
     for ast in &pr.ast.roots {
         typechecker.compile(ast)?;
     }
+    
     info!("Typechecking complete");
 
     let compiler = LLVMCompiler::new(context, pr.custom_structs, ffi.as_ref());
     for ast in pr.ast.roots {
         compiler.compile(&ast)?;
     }
+
     info!("Compilation complete");
     
     Ok(compiler.module())

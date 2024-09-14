@@ -1,0 +1,152 @@
+---
+source: tests/integration_test.rs
+expression: result
+---
+; ModuleID = 'main'
+source_filename = "main"
+
+@highly_composites = global [20 x i64] zeroinitializer
+@count_divisors = global { ptr } { ptr @count_divisors_fn }
+@main = global { ptr } { ptr @main_fn }
+
+declare i8 @printf(ptr, ...)
+
+declare ptr @malloc(i64)
+
+declare i8 @free(ptr)
+
+define i64 @count_divisors_fn(i64 %0) {
+entry:
+  %num = alloca i64, align 8
+  store i64 %0, ptr %num, align 4
+  %rval = load i64, ptr %num, align 4
+  %eqtmp = icmp eq i64 %rval, 1
+  %num_factors = alloca i64, align 8
+  %potential_divisor = alloca i64, align 8
+  br i1 %eqtmp, label %then, label %else
+
+then:                                             ; preds = %entry
+  ret i64 1
+
+else:                                             ; preds = %entry
+  br label %ifcont
+
+ifcont:                                           ; preds = %else
+  store i64 2, ptr %num_factors, align 4
+  store i64 2, ptr %potential_divisor, align 4
+  br label %loop_10
+
+loop_10:                                          ; preds = %ifcont5, %ifcont
+  %rval1 = load i64, ptr %potential_divisor, align 4
+  %rval2 = load i64, ptr %num, align 4
+  %lttmp = icmp slt i64 %rval1, %rval2
+  br i1 %lttmp, label %body_10, label %merge_10
+
+body_10:                                          ; preds = %loop_10
+  %rval6 = load i64, ptr %num, align 4
+  %rval7 = load i64, ptr %potential_divisor, align 4
+  %remtmp = srem i64 %rval6, %rval7
+  %eqtmp8 = icmp eq i64 %remtmp, 0
+  br i1 %eqtmp8, label %then3, label %else4
+
+merge_10:                                         ; preds = %loop_10
+  %rval12 = load i64, ptr %num_factors, align 4
+  ret i64 %rval12
+
+then3:                                            ; preds = %body_10
+  %rval9 = load i64, ptr %num_factors, align 4
+  %addtmp = add i64 %rval9, 1
+  store i64 %addtmp, ptr %num_factors, align 4
+  br label %ifcont5
+
+else4:                                            ; preds = %body_10
+  br label %ifcont5
+
+ifcont5:                                          ; preds = %else4, %then3
+  %rval10 = load i64, ptr %potential_divisor, align 4
+  %addtmp11 = add i64 %rval10, 1
+  store i64 %addtmp11, ptr %potential_divisor, align 4
+  br label %loop_10
+}
+
+define i64 @main_fn() {
+entry:
+  %n = alloca i64, align 8
+  %cur = alloca i64, align 8
+  store i64 0, ptr %n, align 4
+  %max_factors = alloca i64, align 8
+  store i64 1, ptr %cur, align 4
+  store i64 0, ptr %max_factors, align 4
+  %calltmp3 = alloca i64, align 8
+  %factors = alloca i64, align 8
+  %i = alloca i64, align 8
+  %fingerprint = alloca i64, align 8
+  br label %loop_24
+
+loop_24:                                          ; preds = %ifcont, %entry
+  %rval = load i64, ptr %n, align 4
+  %lttmp = icmp slt i64 %rval, 20
+  br i1 %lttmp, label %body_24, label %merge_24
+
+body_24:                                          ; preds = %loop_24
+  %rval1 = load { ptr }, ptr @count_divisors, align 8
+  %rval2 = load i64, ptr %cur, align 4
+  %fnptr = extractvalue { ptr } %rval1, 0
+  %calltmp = call i64 %fnptr(i64 %rval2)
+  store i64 %calltmp, ptr %calltmp3, align 4
+  %rval4 = load i64, ptr %calltmp3, align 4
+  store i64 %rval4, ptr %factors, align 4
+  %rval5 = load i64, ptr %factors, align 4
+  %rval6 = load i64, ptr %max_factors, align 4
+  %gttmp = icmp sgt i64 %rval5, %rval6
+  br i1 %gttmp, label %then, label %else
+
+merge_24:                                         ; preds = %loop_24
+  store i64 0, ptr %i, align 4
+  store i64 0, ptr %fingerprint, align 4
+  br label %loop_35
+
+then:                                             ; preds = %body_24
+  %rval7 = load i64, ptr %cur, align 4
+  %rval8 = load i64, ptr %n, align 4
+  %indexptr = getelementptr i64, ptr @highly_composites, i64 %rval8
+  store i64 %rval7, ptr %indexptr, align 4
+  %rval9 = load i64, ptr %factors, align 4
+  store i64 %rval9, ptr %max_factors, align 4
+  %rval10 = load i64, ptr %n, align 4
+  %addtmp = add i64 %rval10, 1
+  store i64 %addtmp, ptr %n, align 4
+  br label %ifcont
+
+else:                                             ; preds = %body_24
+  br label %ifcont
+
+ifcont:                                           ; preds = %else, %then
+  %rval11 = load i64, ptr %cur, align 4
+  %addtmp12 = add i64 %rval11, 1
+  store i64 %addtmp12, ptr %cur, align 4
+  br label %loop_24
+
+loop_35:                                          ; preds = %body_35, %merge_24
+  %rval13 = load i64, ptr %i, align 4
+  %lttmp14 = icmp slt i64 %rval13, 20
+  br i1 %lttmp14, label %body_35, label %merge_35
+
+body_35:                                          ; preds = %loop_35
+  %rval15 = load i64, ptr %fingerprint, align 4
+  %rval16 = load i64, ptr %i, align 4
+  %indexptr17 = getelementptr i64, ptr @highly_composites, i64 %rval16
+  %rval18 = load i64, ptr %indexptr17, align 4
+  %rval19 = load i64, ptr %i, align 4
+  %multmp = mul i64 %rval18, %rval19
+  %addtmp20 = add i64 %rval15, %multmp
+  store i64 %addtmp20, ptr %fingerprint, align 4
+  %rval21 = load i64, ptr %i, align 4
+  %addtmp22 = add i64 %rval21, 1
+  store i64 %addtmp22, ptr %i, align 4
+  br label %loop_35
+
+merge_35:                                         ; preds = %loop_35
+  %rval23 = load i64, ptr %fingerprint, align 4
+  ret i64 %rval23
+}

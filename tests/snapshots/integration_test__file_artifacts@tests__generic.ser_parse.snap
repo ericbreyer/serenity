@@ -1,0 +1,25 @@
+---
+source: tests/integration_test.rs
+expression: result
+---
+[line    6] Function Declaration: main
+[line    6] ╰─── Function Expression:
+[line    6]      ├─── Name: main
+[line    6]      ├─── Return Type: int
+[line    6]      ╰─── Body: 
+[line    7]           ├─── Var Declaration: s_conc
+[line    7]           │    ╰───  Initializer
+[line    7]           │         ╰─── StructInitializer: struct s {i: $4, j: $5, }
+[line    7]           │              ├───  i: 
+[line    7]           │              │    ╰─── Literal: 6.2
+[line    7]           │              ╰───  j: 
+[line    7]           │                   ╰─── Literal: 0
+[line    8]           ├─── Var Declaration: s_conc2
+[line    9]           ├─── Expression: 
+[line    9]           │    ╰─── Assign:
+[line    9]           │         ├─── Get: "i"
+[line    9]           │         │    ╰─── Variable: <Identifier   "s_conc2"     [9]>
+[line    9]           │         ╰─── Literal: 6
+[line    9]           ╰─── Return:
+[line   10]                ╰─── Get: "i"
+[line   10]                     ╰─── Variable: <Identifier   "s_conc2"     [10]>
