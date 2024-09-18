@@ -229,7 +229,7 @@ impl SerenityParser {
                 self.consume(TokenType::Identifier, "Expect struct name.");
                 let name = self.previous.lexeme.clone();
 
-                if struct_name.clone().is_some_and(|s| *s == name) {
+                if struct_name.is_some_and(|s| *s == name) {
                     let tps = if self.match_token(TokenType::Less) {
                         let mut params = Vec::new();
                         loop {
@@ -280,7 +280,7 @@ impl SerenityParser {
                 self.consume(TokenType::Identifier, "Expect interface name.");
                 let name: SharedString = format!("{}_impl", self.previous.lexeme).into();
 
-                if struct_name.clone().is_some_and(|s| *s == name) {
+                if struct_name.is_some_and(|s| *s == name) {
                     break 'a ValueType::SelfStruct(name, vec![]).intern();
                 }
                 if let Some(s) = self.custom_types.get(&name) {

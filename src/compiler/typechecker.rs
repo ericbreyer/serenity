@@ -87,9 +87,7 @@ impl Typechecker {
             return_type: None.into(),
         };
 
-        ffi_funcs
-            .iter()
-            .for_each(|f| c.register_ffi_function(f));
+        ffi_funcs.iter().for_each(|f| c.register_ffi_function(f));
 
         c
     }
@@ -146,7 +144,9 @@ impl ExprResultInner {
     fn rvalue(self) -> ExprResult {
         match self.0.as_ref() {
             ValueType::LValue(ref t, _) => match t.as_ref() {
-                ValueType::Array(a, _) => Ok(ExprResultInner::new(ValueType::Pointer(*a, false).intern())),
+                ValueType::Array(a, _) => {
+                    Ok(ExprResultInner::new(ValueType::Pointer(*a, false).intern()))
+                }
                 _ => Ok(ExprResultInner::new(*t)),
             },
             _ => Ok(self),
@@ -221,7 +221,8 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
         let pointer = expression
             .array
             .accept(self)
-            .context("Index expression array")?.rvalue()?;
+            .context("Index expression array")?
+            .rvalue()?;
         let index = expression
             .index
             .accept(self)
@@ -230,11 +231,8 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
             .context("Rvalue")?;
         ValueType::unify(ValueType::Integer.intern(), index.0)?;
 
-        
         let t = match pointer.0.as_ref() {
-            ValueType::Pointer(a, _) => {
-                a
-            }
+            ValueType::Pointer(a, _) => a,
             _ => {
                 return Err(anyhow::anyhow!(
                     "Invalid index expression array type was {:?}",
@@ -266,94 +264,47 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
         }
 
         let expr = match (expression.operator, lhs.deref(), rhs.deref()) {
-            (TokenType::Plus, ValueType::Integer, ValueType::Integer) => {
-                ExprResultInner::new(ValueType::Integer.intern())
-            }
+            (
+                TokenType::Plus
+                | TokenType::Minus
+                | TokenType::Star
+                | TokenType::Slash
+                | TokenType::Percent,
+                ValueType::Integer,
+                ValueType::Integer,
+            ) => ExprResultInner::new(ValueType::Integer.intern()),
 
-            (TokenType::Plus, ValueType::Float, ValueType::Float) => {
-                ExprResultInner::new(ValueType::Float.intern())
-            }
+            (
+                TokenType::Plus | TokenType::Minus | TokenType::Star | TokenType::Slash,
+                ValueType::Float,
+                ValueType::Float,
+            ) => ExprResultInner::new(ValueType::Float.intern()),
+
             (TokenType::Plus, ValueType::Pointer(_, _), ValueType::Integer) => {
                 ExprResultInner::new(lhs.0)
             }
-            (TokenType::Plus, ValueType::Array(t1, s), ValueType::Integer) if s.is_some() => {
+            (TokenType::Plus, ValueType::Array(t1, Some(_)), ValueType::Integer) => {
                 ExprResultInner::new(ValueType::Pointer(*t1, false).intern())
             }
-            (TokenType::Minus, ValueType::Integer, ValueType::Integer) => {
-                ExprResultInner::new(ValueType::Integer.intern())
-            }
-            (TokenType::Minus, ValueType::Float, ValueType::Float) => {
-                ExprResultInner::new(ValueType::Float.intern())
-            }
-            (TokenType::Star, ValueType::Integer, ValueType::Integer) => {
-                ExprResultInner::new(ValueType::Integer.intern())
-            }
-            (TokenType::Star, ValueType::Float, ValueType::Float) => {
-                ExprResultInner::new(ValueType::Float.intern())
-            }
-            (TokenType::Slash, ValueType::Integer, ValueType::Integer) => {
-                ExprResultInner::new(ValueType::Integer.intern())
-            }
 
-            (TokenType::Slash, ValueType::Float, ValueType::Float) => {
-                ExprResultInner::new(ValueType::Float.intern())
-            }
-            (TokenType::Greater, ValueType::Integer, ValueType::Integer) => {
+            (op, lhs_type @ (ValueType::Integer | ValueType::Float), rhs_type)
+                if matches!(
+                    op,
+                    TokenType::Greater
+                        | TokenType::GreaterEqual
+                        | TokenType::Less
+                        | TokenType::LessEqual
+                        | TokenType::EqualEqual
+                        | TokenType::BangEqual
+                ) && lhs_type == rhs_type =>
+            {
                 ExprResultInner::new(ValueType::Bool.intern())
             }
 
-            (TokenType::Greater, ValueType::Float, ValueType::Float) => {
-                ExprResultInner::new(ValueType::Bool.intern())
-            }
-            (TokenType::GreaterEqual, ValueType::Integer, ValueType::Integer) => {
-                ExprResultInner::new(ValueType::Bool.intern())
+            (_, ValueType::TypeVar(x), ValueType::TypeVar(y)) if x == y => {
+                ExprResultInner::new(ValueType::TypeVar(*x).intern())
             }
 
-            (TokenType::GreaterEqual, ValueType::Float, ValueType::Float) => {
-                ExprResultInner::new(ValueType::Bool.intern())
-            }
-            (TokenType::Less, ValueType::Integer, ValueType::Integer) => {
-                ExprResultInner::new(ValueType::Bool.intern())
-            }
-
-            (TokenType::Less, ValueType::Float, ValueType::Float) => {
-                ExprResultInner::new(ValueType::Bool.intern())
-            }
-            (TokenType::LessEqual, ValueType::Integer, ValueType::Integer) => {
-                ExprResultInner::new(ValueType::Bool.intern())
-            }
-
-            (TokenType::LessEqual, ValueType::Float, ValueType::Float) => {
-                ExprResultInner::new(ValueType::Bool.intern())
-            }
-            (TokenType::EqualEqual, ValueType::Integer, ValueType::Integer) => {
-                ExprResultInner::new(ValueType::Bool.intern())
-            }
-
-            (TokenType::EqualEqual, ValueType::Float, ValueType::Float) => {
-                ExprResultInner::new(ValueType::Bool.intern())
-            }
-            (TokenType::BangEqual, ValueType::Integer, ValueType::Integer) => {
-                ExprResultInner::new(ValueType::Bool.intern())
-            }
-            (TokenType::BangEqual, ValueType::Float, ValueType::Float) => {
-                ExprResultInner::new(ValueType::Bool.intern())
-            }
-            (TokenType::Percent, ValueType::Integer, ValueType::Integer) => {
-                ExprResultInner::new(ValueType::Integer.intern())
-            }
-            (_, ValueType::TypeVar(x), ValueType::TypeVar(y)) => {
-                if x == y {
-                    ExprResultInner::new(ValueType::TypeVar(*x).intern())
-                } else {
-                    return Err(anyhow::anyhow!(
-                        "Invalid binary expression {:?} {:?} {:?}",
-                        expression.operator,
-                        lhs,
-                        rhs
-                    ));
-                }
-            }
             _ => {
                 return Err(anyhow::anyhow!(
                     "Invalid binary expression {:?} {:?} {:?}",
@@ -413,7 +364,12 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
         let rhs = expression
             .value
             .accept(self)
-            .with_context(|| format!("Assign expression rhs {:?}", ASTNode::Expression(*expression.value.clone())))?
+            .with_context(|| {
+                format!(
+                    "Assign expression rhs {:?}",
+                    ASTNode::Expression(*expression.value.clone())
+                )
+            })?
             .rvalue()
             .context("Rvalue")?;
         let lhs = expression
@@ -562,11 +518,7 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
         }
 
         Ok(ExprResultInner::new(
-            ValueType::LValue(
-                t.fields.clone().borrow()[&expression.field].value,
-                false,
-            )
-            .intern(),
+            ValueType::LValue(t.fields.clone().borrow()[&expression.field].value, false).intern(),
         ))
     }
 
@@ -576,8 +528,7 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
 
         ValueType::unify(expression.prototype.return_type, r_type).context(format!(
             "Function expression unification {:?} = {:?}",
-            expression.prototype.return_type,
-            r_type
+            expression.prototype.return_type, r_type
         ))?;
 
         Ok(ExprResultInner::new(fn_type))
@@ -611,8 +562,7 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
             let expr_t = expr.accept(self)?.rvalue()?;
             ValueType::unify(t.decay(), expr_t.0).context(format!(
                 "Struct initializer expression unification {:?} = {:?}",
-                t,
-                expr_t.0
+                t, expr_t.0
             ))?;
         }
         Ok(ExprResultInner::new(
@@ -655,7 +605,7 @@ impl Typechecker {
 
         self.variables.begin_scope();
 
-        for s in caps.iter(){
+        for s in caps.iter() {
             let arg_type_serenity = self.get_variable(s).unwrap();
             self.set_variable(s, arg_type_serenity);
         }

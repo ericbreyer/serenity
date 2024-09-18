@@ -315,6 +315,7 @@ pub enum Expression {
 }
 
 impl Expression {
+    #[allow(clippy::too_many_lines)]
     pub fn eval_constexpr(&self) -> Option<Value> {
         match self {
             Expression::Literal(e) => Some(e.value),

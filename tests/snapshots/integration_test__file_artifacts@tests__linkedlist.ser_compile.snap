@@ -15,20 +15,20 @@ declare i8 @free(ptr)
 
 define i64 @main_fn() {
 entry:
+  %current15 = alloca ptr, align 8
+  %sum = alloca i64, align 8
+  %i = alloca i64, align 8
+  %current = alloca ptr, align 8
+  %head = alloca { i64, ptr }, align 8
   %struct_init = alloca { i64, ptr }, align 8
   %field = getelementptr inbounds { i64, ptr }, ptr %struct_init, i32 0, i32 0
   store i64 10, ptr %field, align 4
   %field1 = getelementptr inbounds { i64, ptr }, ptr %struct_init, i32 0, i32 1
   store i64 0, ptr %field1, align 4
-  %head = alloca { i64, ptr }, align 8
   %struct_init2 = load { i64, ptr }, ptr %struct_init, align 8
-  %current = alloca ptr, align 8
   store { i64, ptr } %struct_init2, ptr %head, align 8
-  %i = alloca i64, align 8
   store ptr %head, ptr %current, align 8
   store i64 0, ptr %i, align 4
-  %sum = alloca i64, align 8
-  %current15 = alloca ptr, align 8
   br label %loop_10
 
 loop_10:                                          ; preds = %body_10, %entry

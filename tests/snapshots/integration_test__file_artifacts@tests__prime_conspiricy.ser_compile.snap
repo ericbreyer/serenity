@@ -19,12 +19,12 @@ declare i8 @free(ptr)
 
 define i64 @pow_fn(i64 %0, i64 %1) {
 entry:
-  %base = alloca i64, align 8
-  %exp = alloca i64, align 8
-  store i64 %0, ptr %base, align 4
-  %result = alloca i64, align 8
-  store i64 %1, ptr %exp, align 4
   %i = alloca i64, align 8
+  %result = alloca i64, align 8
+  %exp = alloca i64, align 8
+  %base = alloca i64, align 8
+  store i64 %0, ptr %base, align 4
+  store i64 %1, ptr %exp, align 4
   store i64 1, ptr %result, align 4
   store i64 0, ptr %i, align 4
   br label %loop_6
@@ -52,13 +52,13 @@ merge_6:                                          ; preds = %loop_6
 
 define i8 @seive_fn(ptr %0, i64 %1) {
 entry:
-  %candidates = alloca ptr, align 8
-  %n = alloca i64, align 8
-  store ptr %0, ptr %candidates, align 8
+  %j = alloca i64, align 8
   %i = alloca i64, align 8
+  %n = alloca i64, align 8
+  %candidates = alloca ptr, align 8
+  store ptr %0, ptr %candidates, align 8
   store i64 %1, ptr %n, align 4
   store i64 2, ptr %i, align 4
-  %j = alloca i64, align 8
   br label %loop_15
 
 loop_15:                                          ; preds = %merge_21, %then, %entry
@@ -120,15 +120,15 @@ merge_21:                                         ; preds = %loop_21
 
 define i64 @main_fn() {
 entry:
+  %calltmp98 = alloca i64, align 8
+  %calltmp92 = alloca i64, align 8
+  %j = alloca i64, align 8
+  %i31 = alloca i64, align 8
+  %result = alloca i64, align 8
+  %last_prime = alloca i64, align 8
+  %calltmp5 = alloca i8, align 1
   %i = alloca i64, align 8
   store i64 0, ptr %i, align 4
-  %calltmp5 = alloca i8, align 1
-  %last_prime = alloca i64, align 8
-  %result = alloca i64, align 8
-  %i31 = alloca i64, align 8
-  %j = alloca i64, align 8
-  %calltmp92 = alloca i64, align 8
-  %calltmp98 = alloca i64, align 8
   br label %loop_39
 
 loop_39:                                          ; preds = %body_39, %entry

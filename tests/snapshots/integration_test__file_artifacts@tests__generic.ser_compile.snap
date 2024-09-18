@@ -15,14 +15,14 @@ declare i8 @free(ptr)
 
 define i64 @main_fn() {
 entry:
+  %s_conc2 = alloca { i64, double }, align 8
+  %s_conc = alloca { double, double }, align 8
   %struct_init = alloca { double, double }, align 8
   %field = getelementptr inbounds { double, double }, ptr %struct_init, i32 0, i32 0
   store double 6.200000e+00, ptr %field, align 8
   %field1 = getelementptr inbounds { double, double }, ptr %struct_init, i32 0, i32 1
   store double 0.000000e+00, ptr %field1, align 8
-  %s_conc = alloca { double, double }, align 8
   %struct_init2 = load { double, double }, ptr %struct_init, align 8
-  %s_conc2 = alloca { i64, double }, align 8
   store { double, double } %struct_init2, ptr %s_conc, align 8
   %field3 = getelementptr inbounds { i64, double }, ptr %s_conc2, i32 0, i32 0
   store i64 6, ptr %field3, align 4

@@ -10,7 +10,7 @@ use inkwell::{
     builder::Builder,
     context::Context,
     module::{Linkage, Module},
-    types::{BasicMetadataTypeEnum, BasicType, StructType},
+    types::{BasicMetadataTypeEnum, BasicType, FunctionType, StructType},
     values::{
         BasicMetadataValueEnum, BasicValue, BasicValueEnum, FunctionValue, PointerValue,
         StructValue,
@@ -23,44 +23,10 @@ use std::{
     ops::Deref,
     path::Path,
 };
+use variables::Variables;
 
-struct Variables<'ctx> {
-    variables: RefCell<VecDeque<HashMap<String, (PointerValue<'ctx>, UValueType)>>>,
-}
-
-impl<'ctx> Variables<'ctx> {
-    fn new() -> Self {
-        let v = Variables {
-            variables: VecDeque::new().into(),
-        };
-        v.begin_scope();
-        v
-    }
-
-    fn begin_scope(&self) {
-        self.variables.borrow_mut().push_front(HashMap::new());
-    }
-    fn end_scope(&self) {
-        self.variables.borrow_mut().pop_front();
-    }
-
-    fn get_variable(&self, name: &str) -> Result<(PointerValue<'ctx>, UValueType)> {
-        for scope in self.variables.borrow().iter() {
-            if let Some(v) = scope.get(name) {
-                return Ok(*v);
-            }
-        }
-        Err(anyhow::anyhow!("Variable {} not found", name))
-    }
-
-    fn set_variable(&self, name: &str, value: (PointerValue<'ctx>, UValueType)) {
-        self.variables
-            .borrow_mut()
-            .front_mut()
-            .unwrap()
-            .insert(name.into(), value);
-    }
-}
+mod prototypes;
+mod variables;
 
 pub struct LLVMCompiler<'ctx> {
     context: &'ctx Context,
@@ -94,7 +60,7 @@ impl<'ctx> LLVMCompiler<'ctx> {
             args,
             va,
         } = ffi;
-        self.module.add_function(
+        let fnvalue = self.module.add_function(
             name,
             ret.llvm(self.context)?.fn_type(
                 args.iter()
@@ -109,11 +75,7 @@ impl<'ctx> LLVMCompiler<'ctx> {
         self.variables.set_variable(
             name,
             (
-                self.module
-                    .get_function(name)
-                    .unwrap()
-                    .as_global_value()
-                    .as_pointer_value(),
+                fnvalue.as_global_value().as_pointer_value(),
                 ValueType::ExternalFn(*ret, (*name).into()).intern(),
             ),
         );
@@ -195,6 +157,7 @@ impl<'a, 'ctx> LLVMFunctionCompiler<'a, 'ctx> {
             break_continue_contexts: VecDeque::new().into(),
         }
     }
+
     fn get_variable(&self, name: &str) -> Result<(PointerValue<'ctx>, UValueType)> {
         self.variables.get_variable(name).map(|(ptr, t)| {
             let t = t.substitute();
@@ -209,37 +172,38 @@ impl<'a, 'ctx> LLVMFunctionCompiler<'a, 'ctx> {
     fn make_alloca(&self, serenity_type: UValueType, name: &str) -> Result<PointerValue<'ctx>> {
         let serenity_type = serenity_type.substitute();
         if !serenity_type.has_size() {
+            if matches!(
+                serenity_type.as_ref(),
+                ValueType::GenericParam(_) | ValueType::TypeVar(_)
+            ) {
+                return Err(anyhow::anyhow!(
+                    "Cannot allocate variable of unknown type {:?}",
+                    serenity_type
+                ));
+            }
             return Err(anyhow::anyhow!("Cannot allocate variable of unsized type {0:?}, consider adding an element of indirection as in *{0:?}", serenity_type));
         }
-        let llvm_type = serenity_type.llvm(self.context)?;
 
+        // save the current block
         let current_block = self.builder.get_insert_block().unwrap();
-        if self
-            .function
-            .unwrap()
-            .get_first_basic_block()
-            .unwrap()
-            .get_last_instruction()
-            .is_some()
-        {
-            self.builder.position_before(
-                &self
-                    .function
-                    .unwrap()
-                    .get_first_basic_block()
-                    .unwrap()
-                    .get_last_instruction()
-                    .unwrap(),
-            );
+        let first_block = self.function.unwrap().get_first_basic_block().unwrap();
+
+        // Place the alloca at the beginning of the function
+        if let Some(li) = first_block.get_first_instruction() {
+            self.builder.position_before(&li);
         } else {
-            self.builder
-                .position_at_end(self.function.unwrap().get_first_basic_block().unwrap());
+            self.builder.position_at_end(first_block);
         }
+
+        let llvm_type = serenity_type.llvm(self.context)?;
         let var = self
             .builder
             .build_alloca(llvm_type, name)
             .context("Variable allocation")?;
+
+        // return to the current block
         self.builder.position_at_end(current_block);
+
         Ok(var)
     }
 }
@@ -250,8 +214,7 @@ impl NodeVisitor<Result<()>> for LLVMFunctionCompiler<'_, '_> {
     }
 
     fn visit_expression(&self, expression: &Expression) -> Result<()> {
-        let _v = expression.accept(self)?;
-        Ok(())
+        expression.accept(self).map(|_| ())
     }
 
     fn visit_declaration(&self, declaration: &Declaration) -> Result<()> {
@@ -276,19 +239,13 @@ impl<'ctx> ExprResultInner<'ctx> {
     }
 
     fn rvalue(self, compiler: &LLVMFunctionCompiler<'_, 'ctx>) -> ExprResult<'ctx> {
-        match self.serenity_type.as_ref() {
+        Ok(match self.serenity_type.as_ref() {
             ValueType::LValue(ref t, _) => match t.as_ref() {
                 ValueType::Array(a, _) => {
-                    let ptr = self.value.into_pointer_value();
-                    let v = compiler.builder.build_bit_cast(
-                        ptr,
-                        compiler.context.ptr_type(AddressSpace::default()),
-                        "arrayptr",
-                    )?;
-                    Ok(ExprResultInner::new(
-                        v.as_basic_value_enum(),
+                    ExprResultInner::new(
+                        self.value,
                         ValueType::Pointer(*a, false).intern(),
-                    ))
+                    )
                 }
                 _ => {
                     let ptr = self.value.into_pointer_value();
@@ -296,11 +253,11 @@ impl<'ctx> ExprResultInner<'ctx> {
                         .builder
                         .build_load(t.llvm(compiler.context)?, ptr, "rval")
                         .context("Rvalue")?;
-                    Ok(ExprResultInner::new(v, t.substitute()))
+                    ExprResultInner::new(v, t.substitute())
                 }
             },
-            _ => Ok(self),
-        }
+            _ => self,
+        })
     }
 }
 
@@ -823,7 +780,6 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
             .context("Get insert block")?;
         self.builder.build_unconditional_branch(merge)?;
 
-
         self.builder.position_at_end(elseblock);
         let else_branch = expression
             .else_branch
@@ -844,7 +800,10 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
             .context("Build phi")?;
         phi.add_incoming(&[(&then.value, thenfrom), (&else_branch.value, elsefrom)]);
 
-        Ok(ExprResultInner::new(phi.as_basic_value(), then.serenity_type))
+        Ok(ExprResultInner::new(
+            phi.as_basic_value(),
+            then.serenity_type,
+        ))
     }
 
     fn visit_variable_expression(&self, expression: &VariableExpression) -> ExprResult<'ctx> {
@@ -860,7 +819,12 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
         let rhs = expression
             .value
             .accept(self)
-            .with_context(|| format!("Assign expression rhs {:?}", ASTNode::Expression(*expression.value.clone())))?
+            .with_context(|| {
+                format!(
+                    "Assign expression rhs {:?}",
+                    ASTNode::Expression(*expression.value.clone())
+                )
+            })?
             .rvalue(self)
             .context("Rvalue")?;
         let lhs = expression
@@ -945,12 +909,13 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
                     .context("Rvalue")
             })
             .collect::<Result<Vec<_>>>()?;
+
         let arg_values = args.iter().map(|a| a.value).collect::<Vec<_>>();
         let arg_types = args.iter().map(|a| a.serenity_type).collect::<Vec<_>>();
 
-        let fn_type = callee.serenity_type.as_ref();
+        let fn_type = callee.serenity_type.substitute();
 
-        if let ValueType::ExternalFn(r, name) = fn_type {
+        if let ValueType::ExternalFn(r, name) = fn_type.as_ref() {
             let arg_value_meta = arg_values
                 .iter()
                 .map(|v| BasicMetadataValueEnum::from(*v))
@@ -961,6 +926,7 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
                 arg_value_meta.as_slice(),
                 "calltmp",
             )?;
+
             return Ok(ExprResultInner::new(
                 call.try_as_basic_value()
                     .left()
@@ -968,8 +934,8 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
                 *r,
             ));
         }
-        let fn_type = fn_type.substitute();
-        let ValueType::Closure(_args, uvals, r) = fn_type.as_ref() else {
+
+        let ValueType::Closure(_, uvals, r) = fn_type.as_ref() else {
             return Err(anyhow::anyhow!(
                 "Invalid callee serenity type got {:?} {:?}",
                 fn_type,
@@ -1146,17 +1112,6 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
                 )?;
                 Ok(ExprResultInner::new(v.into(), ValueType::Integer.intern()))
             }
-            (ValueType::Float, ValueType::Char) => todo!(),
-            (ValueType::Float, ValueType::Bool) => todo!(),
-            (ValueType::Float, ValueType::Nil) => todo!(),
-            (ValueType::Float, ValueType::Closure(_, _, _)) => todo!(),
-            (ValueType::Float, ValueType::Pointer(_, _)) => todo!(),
-            (ValueType::Float, ValueType::LValue(_, _)) => todo!(),
-            (ValueType::Float, ValueType::Array(_, _)) => todo!(),
-            (ValueType::Float, ValueType::Struct(_)) => todo!(),
-            (ValueType::Float, ValueType::SelfStruct(_, _)) => todo!(),
-            (ValueType::Float, ValueType::GenericParam(_)) => todo!(),
-            (ValueType::Float, ValueType::Err) => todo!(),
             (ValueType::Integer, ValueType::Float) => {
                 let v = self.builder.build_signed_int_to_float(
                     expr.value.into_int_value(),
@@ -1173,162 +1128,9 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
                 )?;
                 Ok(ExprResultInner::new(v.into(), ValueType::Integer.intern()))
             }
-            (ValueType::Integer, ValueType::Char) => todo!(),
-            (ValueType::Integer, ValueType::Bool) => todo!(),
-            (ValueType::Integer, ValueType::Nil) => todo!(),
-            (ValueType::Integer, ValueType::Closure(_, _, _)) => todo!(),
-            (ValueType::Integer, ValueType::Pointer(_, _)) => todo!(),
-            (ValueType::Integer, ValueType::LValue(_, _)) => todo!(),
-            (ValueType::Integer, ValueType::Array(_, _)) => todo!(),
-            (ValueType::Integer, ValueType::Struct(_)) => todo!(),
-            (ValueType::Integer, ValueType::SelfStruct(_, _)) => todo!(),
-            (ValueType::Integer, ValueType::GenericParam(_)) => todo!(),
-            (ValueType::Integer, ValueType::Err) => todo!(),
-            (ValueType::Char, ValueType::Float) => todo!(),
-            (ValueType::Char, ValueType::Integer) => todo!(),
-            (ValueType::Char, ValueType::Char) => todo!(),
-            (ValueType::Char, ValueType::Bool) => todo!(),
-            (ValueType::Char, ValueType::Nil) => todo!(),
-            (ValueType::Char, ValueType::Closure(_, _, _)) => todo!(),
-            (ValueType::Char, ValueType::Pointer(_, _)) => todo!(),
-            (ValueType::Char, ValueType::LValue(_, _)) => todo!(),
-            (ValueType::Char, ValueType::Array(_, _)) => todo!(),
-            (ValueType::Char, ValueType::Struct(_)) => todo!(),
-            (ValueType::Char, ValueType::SelfStruct(_, _)) => todo!(),
-            (ValueType::Char, ValueType::GenericParam(_)) => todo!(),
-            (ValueType::Char, ValueType::Err) => todo!(),
-            (ValueType::Bool, ValueType::Float) => todo!(),
-            (ValueType::Bool, ValueType::Integer) => todo!(),
-            (ValueType::Bool, ValueType::Char) => todo!(),
-            (ValueType::Bool, ValueType::Bool) => todo!(),
-            (ValueType::Bool, ValueType::Nil) => todo!(),
-            (ValueType::Bool, ValueType::Closure(_, _, _)) => todo!(),
-            (ValueType::Bool, ValueType::Pointer(_, _)) => todo!(),
-            (ValueType::Bool, ValueType::LValue(_, _)) => todo!(),
-            (ValueType::Bool, ValueType::Array(_, _)) => todo!(),
-            (ValueType::Bool, ValueType::Struct(_)) => todo!(),
-            (ValueType::Bool, ValueType::SelfStruct(_, _)) => todo!(),
-            (ValueType::Bool, ValueType::GenericParam(_)) => todo!(),
-            (ValueType::Bool, ValueType::Err) => todo!(),
-            (ValueType::Nil, ValueType::Float) => todo!(),
-            (ValueType::Nil, ValueType::Integer) => todo!(),
-            (ValueType::Nil, ValueType::Char) => todo!(),
-            (ValueType::Nil, ValueType::Bool) => todo!(),
-            (ValueType::Nil, ValueType::Nil) => todo!(),
-            (ValueType::Nil, ValueType::Closure(_, _, _)) => todo!(),
-            (ValueType::Nil, ValueType::Pointer(_, _)) => todo!(),
-            (ValueType::Nil, ValueType::LValue(_, _)) => todo!(),
-            (ValueType::Nil, ValueType::Array(_, _)) => todo!(),
-            (ValueType::Nil, ValueType::Struct(_)) => todo!(),
-            (ValueType::Nil, ValueType::SelfStruct(_, _)) => todo!(),
-            (ValueType::Nil, ValueType::GenericParam(_)) => todo!(),
-            (ValueType::Nil, ValueType::Err) => todo!(),
-            (ValueType::Closure(_, _, _), ValueType::Float) => todo!(),
-            (ValueType::Closure(_, _, _), ValueType::Integer) => todo!(),
-            (ValueType::Closure(_, _, _), ValueType::Char) => todo!(),
-            (ValueType::Closure(_, _, _), ValueType::Bool) => todo!(),
-            (ValueType::Closure(_, _, _), ValueType::Nil) => todo!(),
-            (ValueType::Closure(_, _, _), ValueType::Closure(_, _, _)) => todo!(),
-            (ValueType::Closure(_, _, _), ValueType::Pointer(_, _)) => todo!(),
-            (ValueType::Closure(_, _, _), ValueType::LValue(_, _)) => todo!(),
-            (ValueType::Closure(_, _, _), ValueType::Array(_, _)) => todo!(),
-            (ValueType::Closure(_, _, _), ValueType::Struct(_)) => todo!(),
-            (ValueType::Closure(_, _, _), ValueType::SelfStruct(_, _)) => todo!(),
-            (ValueType::Closure(_, _, _), ValueType::GenericParam(_)) => todo!(),
-            (ValueType::Closure(_, _, _), ValueType::Err) => todo!(),
-            (ValueType::Pointer(_, _), ValueType::Float) => todo!(),
-            (ValueType::Pointer(_, _), ValueType::Integer) => todo!(),
-            (ValueType::Pointer(_, _), ValueType::Char) => todo!(),
-            (ValueType::Pointer(_, _), ValueType::Bool) => todo!(),
-            (ValueType::Pointer(_, _), ValueType::Nil) => todo!(),
-            (ValueType::Pointer(_, _), ValueType::Closure(_, _, _)) => todo!(),
             (ValueType::Pointer(_, _), ValueType::Pointer(_, _)) => {
                 Ok(ExprResultInner::new(expr.value, expression.target_type))
             }
-            (ValueType::Pointer(_, _), ValueType::LValue(_, _)) => todo!(),
-            (ValueType::Pointer(_, _), ValueType::Array(_, _)) => todo!(),
-            (ValueType::Pointer(_, _), ValueType::Struct(_)) => todo!(),
-            (ValueType::Pointer(_, _), ValueType::SelfStruct(_, _)) => todo!(),
-            (ValueType::Pointer(_, _), ValueType::GenericParam(_)) => todo!(),
-            (ValueType::Pointer(_, _), ValueType::Err) => todo!(),
-            (ValueType::LValue(_, _), ValueType::Float) => todo!(),
-            (ValueType::LValue(_, _), ValueType::Integer) => todo!(),
-            (ValueType::LValue(_, _), ValueType::Char) => todo!(),
-            (ValueType::LValue(_, _), ValueType::Bool) => todo!(),
-            (ValueType::LValue(_, _), ValueType::Nil) => todo!(),
-            (ValueType::LValue(_, _), ValueType::Closure(_, _, _)) => todo!(),
-            (ValueType::LValue(_, _), ValueType::Pointer(_, _)) => todo!(),
-            (ValueType::LValue(_, _), ValueType::LValue(_, _)) => todo!(),
-            (ValueType::LValue(_, _), ValueType::Array(_, _)) => todo!(),
-            (ValueType::LValue(_, _), ValueType::Struct(_)) => todo!(),
-            (ValueType::LValue(_, _), ValueType::SelfStruct(_, _)) => todo!(),
-            (ValueType::LValue(_, _), ValueType::GenericParam(_)) => todo!(),
-            (ValueType::LValue(_, _), ValueType::Err) => todo!(),
-            (ValueType::Array(_, _), ValueType::Float) => todo!(),
-            (ValueType::Array(_, _), ValueType::Integer) => todo!(),
-            (ValueType::Array(_, _), ValueType::Char) => todo!(),
-            (ValueType::Array(_, _), ValueType::Bool) => todo!(),
-            (ValueType::Array(_, _), ValueType::Nil) => todo!(),
-            (ValueType::Array(_, _), ValueType::Closure(_, _, _)) => todo!(),
-            (ValueType::Array(_, _), ValueType::Pointer(_, _)) => todo!(),
-            (ValueType::Array(_, _), ValueType::LValue(_, _)) => todo!(),
-            (ValueType::Array(_, _), ValueType::Array(_, _)) => todo!(),
-            (ValueType::Array(_, _), ValueType::Struct(_)) => todo!(),
-            (ValueType::Array(_, _), ValueType::SelfStruct(_, _)) => todo!(),
-            (ValueType::Array(_, _), ValueType::GenericParam(_)) => todo!(),
-            (ValueType::Array(_, _), ValueType::Err) => todo!(),
-            (ValueType::Struct(_), ValueType::Float) => todo!(),
-            (ValueType::Struct(_), ValueType::Integer) => todo!(),
-            (ValueType::Struct(_), ValueType::Char) => todo!(),
-            (ValueType::Struct(_), ValueType::Bool) => todo!(),
-            (ValueType::Struct(_), ValueType::Nil) => todo!(),
-            (ValueType::Struct(_), ValueType::Closure(_, _, _)) => todo!(),
-            (ValueType::Struct(_), ValueType::Pointer(_, _)) => todo!(),
-            (ValueType::Struct(_), ValueType::LValue(_, _)) => todo!(),
-            (ValueType::Struct(_), ValueType::Array(_, _)) => todo!(),
-            (ValueType::Struct(_), ValueType::Struct(_)) => todo!(),
-            (ValueType::Struct(_), ValueType::SelfStruct(_, _)) => todo!(),
-            (ValueType::Struct(_), ValueType::GenericParam(_)) => todo!(),
-            (ValueType::Struct(_), ValueType::Err) => todo!(),
-            (ValueType::SelfStruct(_, _), ValueType::Float) => todo!(),
-            (ValueType::SelfStruct(_, _), ValueType::Integer) => todo!(),
-            (ValueType::SelfStruct(_, _), ValueType::Char) => todo!(),
-            (ValueType::SelfStruct(_, _), ValueType::Bool) => todo!(),
-            (ValueType::SelfStruct(_, _), ValueType::Nil) => todo!(),
-            (ValueType::SelfStruct(_, _), ValueType::Closure(_, _, _)) => todo!(),
-            (ValueType::SelfStruct(_, _), ValueType::Pointer(_, _)) => todo!(),
-            (ValueType::SelfStruct(_, _), ValueType::LValue(_, _)) => todo!(),
-            (ValueType::SelfStruct(_, _), ValueType::Array(_, _)) => todo!(),
-            (ValueType::SelfStruct(_, _), ValueType::Struct(_)) => todo!(),
-            (ValueType::SelfStruct(_, _), ValueType::SelfStruct(_, _)) => todo!(),
-            (ValueType::SelfStruct(_, _), ValueType::GenericParam(_)) => todo!(),
-            (ValueType::SelfStruct(_, _), ValueType::Err) => todo!(),
-            (ValueType::GenericParam(_), ValueType::Float) => todo!(),
-            (ValueType::GenericParam(_), ValueType::Integer) => todo!(),
-            (ValueType::GenericParam(_), ValueType::Char) => todo!(),
-            (ValueType::GenericParam(_), ValueType::Bool) => todo!(),
-            (ValueType::GenericParam(_), ValueType::Nil) => todo!(),
-            (ValueType::GenericParam(_), ValueType::Closure(_, _, _)) => todo!(),
-            (ValueType::GenericParam(_), ValueType::Pointer(_, _)) => todo!(),
-            (ValueType::GenericParam(_), ValueType::LValue(_, _)) => todo!(),
-            (ValueType::GenericParam(_), ValueType::Array(_, _)) => todo!(),
-            (ValueType::GenericParam(_), ValueType::Struct(_)) => todo!(),
-            (ValueType::GenericParam(_), ValueType::SelfStruct(_, _)) => todo!(),
-            (ValueType::GenericParam(_), ValueType::GenericParam(_)) => todo!(),
-            (ValueType::GenericParam(_), ValueType::Err) => todo!(),
-            (ValueType::Err, ValueType::Float) => todo!(),
-            (ValueType::Err, ValueType::Integer) => todo!(),
-            (ValueType::Err, ValueType::Char) => todo!(),
-            (ValueType::Err, ValueType::Bool) => todo!(),
-            (ValueType::Err, ValueType::Nil) => todo!(),
-            (ValueType::Err, ValueType::Closure(_, _, _)) => todo!(),
-            (ValueType::Err, ValueType::Pointer(_, _)) => todo!(),
-            (ValueType::Err, ValueType::LValue(_, _)) => todo!(),
-            (ValueType::Err, ValueType::Array(_, _)) => todo!(),
-            (ValueType::Err, ValueType::Struct(_)) => todo!(),
-            (ValueType::Err, ValueType::SelfStruct(_, _)) => todo!(),
-            (ValueType::Err, ValueType::GenericParam(_)) => todo!(),
-            (ValueType::Err, ValueType::Err) => todo!(),
             (_, _) => Err(anyhow::anyhow!(
                 "Invalid cast expression {:?} {:?}",
                 expr.serenity_type,
@@ -1406,79 +1208,16 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
 }
 
 impl<'a, 'ctx> LLVMFunctionCompiler<'a, 'ctx> {
-    fn function_type_serenity(&self, prototype: &Prototype) -> UValueType {
-        ValueType::Closure(
-            prototype
-                .params
-                .iter()
-                .map(|(_s, t, _m)| (t.decay()))
-                .collect::<Vec<_>>()
-                .into_boxed_slice(),
-            prototype
-                .captures
-                .iter()
-                .map(|capture| self.get_variable(capture).unwrap().1)
-                .collect::<Vec<_>>()
-                .into_boxed_slice(),
-            prototype.return_type,
-        )
-        .intern()
-    }
-    fn function_type_llvm(&self, prototype: &Prototype) -> Result<StructType<'ctx>> {
-        Ok(self.context.struct_type(
-            [
-                prototype
-                    .captures
-                    .iter()
-                    .map(|capture| {
-                        self.get_variable(capture)
-                            .unwrap()
-                            .1
-                            .deref()
-                            .clone()
-                            .llvm(self.context)
-                    })
-                    .collect::<Result<Vec<_>>>()?
-                    .as_slice(),
-                &[self
-                    .context
-                    .ptr_type(AddressSpace::default())
-                    .as_basic_type_enum()],
-            ]
-            .concat()
-            .as_slice(),
-            false,
-        ))
-    }
-
     fn function(
         &self,
         prototype: Prototype,
         body: Option<Vec<ASTNode>>,
     ) -> Result<StructValue<'ctx>> {
-        let args = &prototype.params;
-        let caps = &prototype.captures;
+        // the type of the function itself: fn(captures ..., args ... ) -> return_type
+        let fn_type = self.function_prototype_llvm(&prototype)?;
 
-        let fn_type = prototype
-            .return_type
-            .substitute()
-            .llvm(self.context)
-            .context("Function return type")?
-            .fn_type(
-                caps.iter()
-                    .map(|capture| self.get_variable(capture).unwrap().1)
-                    .map(|t| t.deref().clone().llvm(self.context))
-                    .map(|t| Ok(BasicMetadataTypeEnum::from(t?)))
-                    .chain(args.iter().map(|(_s, t, _m)| {
-                        Ok(BasicMetadataTypeEnum::from(
-                            t.substitute().decay().llvm(self.context)?,
-                        ))
-                    }))
-                    .collect::<Result<Vec<_>>>()?
-                    .as_slice(),
-                false,
-            );
-
+        // if the function already exists (e.g. a prototype was
+        // declared before the function definition) we use that
         let fn_value = self
             .module
             .get_function(&format!("{}_fn", prototype.name))
@@ -1487,7 +1226,8 @@ impl<'a, 'ctx> LLVMFunctionCompiler<'a, 'ctx> {
                     .add_function(&format!("{}_fn", prototype.name), fn_type, None)
             });
 
-        let closure_type = self.function_type_llvm(&prototype)?;
+        // the type of the closure: struct { captures ..., fn_ptr }
+        let closure_type = self.closure_type_llvm(&prototype)?;
 
         let mut struct_init = prototype
             .captures
@@ -1508,7 +1248,7 @@ impl<'a, 'ctx> LLVMFunctionCompiler<'a, 'ctx> {
                 .as_pointer_value()
                 .as_basic_value_enum(),
         );
-        
+
         let struct_value = if self.function.is_none() {
             closure_type.const_named_struct(struct_init.as_slice())
         } else {
@@ -1523,8 +1263,7 @@ impl<'a, 'ctx> LLVMFunctionCompiler<'a, 'ctx> {
                 )?;
                 self.builder.build_store(ptr, *v)?;
             }
-            self
-                .builder
+            self.builder
                 .build_load(closure_type, struct_value_ptr, "closure")?
                 .into_struct_value()
         };
@@ -1535,7 +1274,7 @@ impl<'a, 'ctx> LLVMFunctionCompiler<'a, 'ctx> {
             self.variables.begin_scope();
             let fncompiler = self.with_function(&fn_value);
 
-            for (i, s) in caps.iter().enumerate() {
+            for (i, s) in prototype.captures.iter().enumerate() {
                 let arg_type_serenity = self.get_variable(s).unwrap().1;
                 let arg_v = fn_value
                     .get_nth_param(i as u32)
@@ -1545,9 +1284,9 @@ impl<'a, 'ctx> LLVMFunctionCompiler<'a, 'ctx> {
                 self.set_variable(s, (arg, self.get_variable(s).unwrap().1));
             }
 
-            for (i, &(ref s, t, _m)) in args.iter().enumerate() {
+            for (i, &(ref s, t, _m)) in prototype.params.iter().enumerate() {
                 let arg_v = fn_value
-                    .get_nth_param((i + caps.len()) as u32)
+                    .get_nth_param((i + prototype.captures.len()) as u32)
                     .context("Function parameter")?;
                 let arg = fncompiler.make_alloca(t.decay(), s)?;
                 self.builder.build_store(arg, arg_v)?;
@@ -1654,7 +1393,7 @@ impl<'a, 'ctx> DeclarationVisitor<Result<()>> for LLVMFunctionCompiler<'a, 'ctx>
 
     fn visit_function_declaration(&self, declaration: &FunctionDeclaration) -> Result<()> {
         let struct_init = self.function(declaration.prototype.clone(), declaration.body.clone())?;
-        let closure_type = self.function_type_llvm(&declaration.prototype)?;
+        let closure_type = self.closure_type_llvm(&declaration.prototype)?;
 
         let closure = if self.function.is_none() {
             self.module
@@ -1839,7 +1578,7 @@ impl<'a, 'ctx> StatementVisitor<Result<()>> for LLVMFunctionCompiler<'a, 'ctx> {
         self.builder.build_unconditional_branch(loop_block)?;
 
         self.builder.position_at_end(loop_block);
-        
+
         let cond = statement
             .condition
             .as_ref()
@@ -1849,8 +1588,11 @@ impl<'a, 'ctx> StatementVisitor<Result<()>> for LLVMFunctionCompiler<'a, 'ctx> {
                     .map(|c| anyhow::Ok(c.rvalue(self)?.value.into_int_value()))
             })
             .transpose()?;
-        self.builder
-            .build_conditional_branch(cond.unwrap_or_else(|| Ok(self.context.bool_type().const_all_ones()))?, body_block, merge_block)?;
+        self.builder.build_conditional_branch(
+            cond.unwrap_or_else(|| Ok(self.context.bool_type().const_all_ones()))?,
+            body_block,
+            merge_block,
+        )?;
 
         self.builder.position_at_end(body_block);
         statement.body.accept(self)?;
@@ -1877,7 +1619,8 @@ impl<'a, 'ctx> StatementVisitor<Result<()>> for LLVMFunctionCompiler<'a, 'ctx> {
     fn visit_break_statement(&self, _statement: &BreakStatement) -> Result<()> {
         self.builder.build_unconditional_branch(
             self.break_continue_contexts
-                .borrow().front()
+                .borrow()
+                .front()
                 .map(|(b, _)| *b)
                 .context("Break statement")?,
         )?;
@@ -1887,7 +1630,8 @@ impl<'a, 'ctx> StatementVisitor<Result<()>> for LLVMFunctionCompiler<'a, 'ctx> {
     fn visit_continue_statement(&self, _statement: &ContinueStatement) -> Result<()> {
         self.builder.build_unconditional_branch(
             self.break_continue_contexts
-                .borrow().front()
+                .borrow()
+                .front()
                 .map(|(_, c)| *c)
                 .context("Continue statement")?,
         )?;
@@ -2312,7 +2056,6 @@ mod tests {
         return s.x;
     }
     "##, 1; "generic_struct")]
-    
 
     fn test_program_integer_return(prog: &str, expected: i64) {
         let ast = crate::parser::SerenityParser::parse(prog.into(), "mod".into()).unwrap();
@@ -2334,7 +2077,6 @@ mod tests {
             .verify()
             .map_err(|e| anyhow::anyhow!("{:?}", e))
             .unwrap();
-
 
         let jit = c
             .module

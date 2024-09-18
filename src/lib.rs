@@ -1,25 +1,20 @@
-// //! Serenity is a toy programming language written from scratch by Eric Breyer
-// //!
-// //! It is heavily inspired by C, with some QOL features like closures,
-// //! and struct methods. I originally followed the [`Crafting Interpreters`] book
-// //! by Bob Nystrom, but have since diverged from the book's implementation.
-// //!
-// //! Serenity has seperate lexing, parsing, and compiling phases, and currently
-// //! uses a two pass compiler to statically type check the program.
-// //!
-// //! Serenity currently runs on a stack based virtual machine, but I plan to
-// //! implement an LLVM backend in the future.
-// //!
-// //! [`Crafting Interpreters`]: https://craftinginterpreters.com/
-// //!
+//! Serenity is a toy programming language written from scratch by Eric Breyer
+//!
+//! It is heavily inspired by C, with some QOL features like closures,
+//! and struct methods. I originally followed the [`Crafting Interpreters`] book
+//! by Bob Nystrom, but have since diverged from the book's implementation.
+//!
+//! Serenity has seperate lexing, parsing, and compiling phases, and currently
+//! uses a two pass compiler to statically type check the program.
+//!
+//! Serenity currently runs on a stack based virtual machine, but I plan to
+//! implement an LLVM backend in the future.
+//!
+//! [`Crafting Interpreters`]: https://craftinginterpreters.com/
+//!
 
-// #![warn(clippy::pedantic)]
-// #![warn(missing_docs)]
-// #![warn(clippy::missing_docs_in_private_items)]
+#![warn(clippy::too_many_lines)]
 
-// // extern crate getopts;
-
-// use reg_vm::ExitReason;
 use anyhow::{Context, Result};
 
 use tracing::{info, level_filters::LevelFilter, subscriber::DefaultGuard};

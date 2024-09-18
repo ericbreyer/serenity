@@ -17,12 +17,12 @@ declare i8 @free(ptr)
 
 define i64 @count_divisors_fn(i64 %0) {
 entry:
+  %potential_divisor = alloca i64, align 8
+  %num_factors = alloca i64, align 8
   %num = alloca i64, align 8
   store i64 %0, ptr %num, align 4
   %rval = load i64, ptr %num, align 4
   %eqtmp = icmp eq i64 %rval, 1
-  %num_factors = alloca i64, align 8
-  %potential_divisor = alloca i64, align 8
   br i1 %eqtmp, label %then, label %else
 
 then:                                             ; preds = %entry
@@ -71,16 +71,16 @@ ifcont5:                                          ; preds = %else4, %then3
 
 define i64 @main_fn() {
 entry:
-  %n = alloca i64, align 8
-  %cur = alloca i64, align 8
-  store i64 0, ptr %n, align 4
+  %fingerprint = alloca i64, align 8
+  %i = alloca i64, align 8
+  %factors = alloca i64, align 8
+  %calltmp3 = alloca i64, align 8
   %max_factors = alloca i64, align 8
+  %cur = alloca i64, align 8
+  %n = alloca i64, align 8
+  store i64 0, ptr %n, align 4
   store i64 1, ptr %cur, align 4
   store i64 0, ptr %max_factors, align 4
-  %calltmp3 = alloca i64, align 8
-  %factors = alloca i64, align 8
-  %i = alloca i64, align 8
-  %fingerprint = alloca i64, align 8
   br label %loop_24
 
 loop_24:                                          ; preds = %ifcont, %entry

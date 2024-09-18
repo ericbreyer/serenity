@@ -16,8 +16,8 @@ declare i8 @free(ptr)
 
 define i64 @mod_fn(i64 %0, i64 %1) {
 entry:
-  %i = alloca i64, align 8
   %j = alloca i64, align 8
+  %i = alloca i64, align 8
   store i64 %0, ptr %i, align 4
   store i64 %1, ptr %j, align 4
   %rval = load i64, ptr %i, align 4
@@ -32,9 +32,9 @@ entry:
 
 define i64 @main_fn() {
 entry:
+  %calltmp3 = alloca i64, align 8
   %num = alloca i64, align 8
   store i64 1, ptr %num, align 4
-  %calltmp3 = alloca i64, align 8
   br label %loop_7
 
 loop_7:                                           ; preds = %body_7, %entry

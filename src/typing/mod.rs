@@ -359,7 +359,7 @@ impl ValueType {
                 for (k, v) in bg.iter() {
                     s.push_str(&format!("{}: {}, ", k, v.value.to_string()));
                 }
-                s.push_str("}");
+                s.push('}');
                 s.into()                
             }
             ValueType::SelfStruct(s, v) => format!("self{:?} {}", v, s).into(),
@@ -492,7 +492,7 @@ impl ValueType {
         match self {
             Self::GenericParam(s) => {
                 if let Some(v) = generics.get(s) {
-                    v.clone()
+                    *v
                 } else {
                     let tv = ValueType::new_type_var();
                     generics.insert(s.clone(), tv);
