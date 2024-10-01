@@ -1,5 +1,5 @@
 use core::fmt;
-use std::{cell::RefCell, fmt::Debug};
+use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
 mod to_str;
 
@@ -487,7 +487,7 @@ pub struct TernaryExpression {
 
 #[derive(Clone)]
 pub struct VariableExpression {
-    pub token: Token,
+    pub token: Rc<RefCell<Token>>,
     pub line_no: usize,
 }
 
@@ -540,7 +540,7 @@ pub struct SizeofExpression {
     pub line_no: usize,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Prototype {
     pub name: SharedString,
     pub captures: Vec<SharedString>,
@@ -822,11 +822,13 @@ pub struct ArrayDeclaration {
     pub line_no: usize,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct FunctionDeclaration {
     pub prototype: Prototype,
     pub line_no: usize,
     pub body: Option<Vec<ASTNode>>,
+    pub type_params: Vec<SharedString>,
+    pub mapings: IndexMap<SharedString, UValueType>,
 }
 
 // Declaration

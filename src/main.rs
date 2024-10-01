@@ -25,6 +25,7 @@ fn main() -> Result<()> {
     opts.optflag("h", "help", "print this help menu");
     opts.optflag("s", "scan", "scan only");
     opts.optflag("p", "parse", "parse only");
+    opts.optflag("t", "typecheck", "typecheck only");
     opts.optflag("c", "compile", "compile only");
     opts.optflag("r", "run", "run (default)");
 
@@ -77,6 +78,13 @@ fn main() -> Result<()> {
         println!("{}", ir);
         return Ok(());
     };
+
+    if matches.opt_present("t") {
+        let ast = serenity::typecheck(&file_name)?;
+        println!("{}", ast);
+        return Ok(());
+    };
+    
 
     if run {
         let mut out = Vec::new();

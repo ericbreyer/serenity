@@ -122,6 +122,16 @@ pub fn compile(path: &str) -> Result<String> {
     Ok(module.print_to_string().to_string())
 }
 
+pub fn typecheck(path: &str) -> Result<String> {
+    let source = std::fs::read_to_string(path).context("Failed to read file")?;
+    let parsed = parser::SerenityParser::parse(source.into(), path.into())
+        .context("Failed to parse file")?;
+    println!("{:?}", parsed.ast);
+    let ast = compiler::typecheck(parsed)?;
+    
+    Ok(format!("{:?}", ast))
+}
+
 pub fn run_file(path: &str, output: &mut impl std::io::Write) -> Result<i64> {
     let source = std::fs::read_to_string(path).context("Failed to read file")?;
 

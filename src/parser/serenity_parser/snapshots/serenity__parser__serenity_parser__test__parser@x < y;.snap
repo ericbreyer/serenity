@@ -4,5 +4,5 @@ expression: ast
 ---
 [line    1] Expression: 
 [line    1] ╰─── Binary: Less
-[line    1]      ├─── Variable: <Identifier   "x"           [1]>
-[line    1]      ╰─── Variable: <Identifier   "y"           [1]>
+[line    1]      ├─── Variable: RefCell { value: <Identifier   "x"           [1]> }
+[line    1]      ╰─── Variable: RefCell { value: <Identifier   "y"           [1]> }

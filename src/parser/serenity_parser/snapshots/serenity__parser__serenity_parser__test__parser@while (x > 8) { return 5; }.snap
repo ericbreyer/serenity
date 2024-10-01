@@ -4,7 +4,7 @@ expression: ast
 ---
 [line    1] While: 
 [line    1] ├─── Binary: Greater
-[line    1] │    ├─── Variable: <Identifier   "x"           [1]>
+[line    1] │    ├─── Variable: RefCell { value: <Identifier   "x"           [1]> }
 [line    1] │    ╰─── Literal: 8
 [line    1] ╰─── Block: 
 [line    1]      ╰─── Return:

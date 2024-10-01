@@ -2,16 +2,13 @@ mod pratt_parse;
 mod recdec_parse;
 mod templates;
 mod test;
+mod parse_type;
 
-use std::{
-    cell::Cell,
-    collections::HashMap,
-};
+use std::{cell::Cell, collections::HashMap};
 
 use anyhow::{Error, Result};
 use num_enum::FromPrimitive;
 use pratt_parse::ParseTable;
-use tracing::instrument;
 
 use crate::{
     lexer::{Lexer, Token, TokenType},
@@ -19,6 +16,8 @@ use crate::{
 };
 
 use super::Parser;
+
+
 
 #[derive(Debug, PartialEq, PartialOrd, FromPrimitive, Copy, Clone, Default)]
 #[repr(u8)]
@@ -139,187 +138,13 @@ impl SerenityParser {
         }
     }
 
-    #[instrument(skip(self))]
-    fn parse_complex_type(
-        &mut self,
-        struct_name: Option<&SharedString>,
-        type_params: Option<&Vec<SharedString>>,
-    ) -> UValueType {
-        let star = self.match_token(TokenType::Star);
-        let parset_type = 'a: {
-            if self.match_token(TokenType::LeftParen) {
-                let t = self.parse_complex_type(struct_name, type_params);
-                self.consume(TokenType::RightParen, "Expect ')' after type.");
-                break 'a t;
-            }
-
-            if self.match_token(TokenType::LeftBracket) {
-                let t = self.parse_complex_type(struct_name, type_params);
-                let mut index = None;
-                if self.match_token(TokenType::Semicolon) {
-                    let sindex = self.expression().eval_constexpr();
-                    index = Some(match sindex {
-                        Some(Value::UInteger(index)) => index,
-                        Some(Value::Integer(index)) if index >= 0 => index as u64,
-                        _ => {
-                            self.error("Expect constant unsigned index.");
-                            break 'a ValueType::Err.intern();
-                        }
-                    } as usize);
-                }
-
-                self.consume(TokenType::RightBracket, "Expect ']' after index.");
-                break 'a ValueType::Array(t, index).intern();
-            }
-
-            if self.match_token(TokenType::Identifier) {
-                let name = self.previous.lexeme.clone();
-                if let Some(s) = type_params.and_then(|tp| tp.contains(&name).then(|| name.clone()))
-                {
-                    break 'a ValueType::GenericParam(s.clone()).intern();
-                }
-            }
-
-            if self.match_token(TokenType::SimpleType) {
-                break 'a self.previous.lexeme.clone().into();
-            }
-
-            if self.match_token(TokenType::Fun) {
-                let mut param_types = Vec::new();
-
-                let mut captures = Vec::new();
-                if self.match_token(TokenType::LeftBracket) {
-                    loop {
-                        let p_type = self.parse_complex_type(struct_name, type_params);
-                        captures.push(p_type);
-                        if !self.match_token(TokenType::Comma) {
-                            break;
-                        }
-                    }
-                    self.consume(TokenType::RightBracket, "Expect ']' after captures.");
-                }
-
-                self.consume(TokenType::LeftParen, "Expect '(' after 'fun'.");
-                let mut _arg_count = 0;
-                if self.current.token_type != TokenType::RightParen {
-                    loop {
-                        let p_type = self.parse_complex_type(struct_name, type_params);
-                        param_types.push(p_type);
-                        _arg_count += 1;
-                        if !self.match_token(TokenType::Comma) {
-                            break;
-                        }
-                    }
-                }
-                self.consume(TokenType::RightParen, "Expect ')' after arguments.");
-                let mut return_type = ValueType::Nil.intern();
-                if self.match_token(TokenType::RightArrow) {
-                    return_type = self.parse_complex_type(struct_name, type_params);
-                }
-
-                break 'a ValueType::Closure(
-                    param_types.as_slice().into(),
-                    captures.as_slice().into(),
-                    return_type,
-                )
-                .intern();
-            }
-
-            if self.match_token(TokenType::Struct) {
-                self.consume(TokenType::Identifier, "Expect struct name.");
-                let name = self.previous.lexeme.clone();
-
-                if struct_name.is_some_and(|s| *s == name) {
-                    let tps = if self.match_token(TokenType::Less) {
-                        let mut params = Vec::new();
-                        loop {
-                            let p_type = self.parse_complex_type(struct_name, type_params);
-                            params.push(p_type);
-                            if !self.match_token(TokenType::Comma) {
-                                break;
-                            }
-                        }
-                        self.consume(TokenType::Greater, "Expect '>' after type parameters.");
-                        params
-                    } else {
-                        Vec::new()
-                    };
-
-                    break 'a ValueType::SelfStruct(name, tps).intern();
-                }
-                if let Some(s) = self.custom_types.get(&name).cloned() {
-                    if self.match_token(TokenType::Less) {
-                        let mut params = Vec::new();
-                        loop {
-                            let p_type = self.parse_complex_type(struct_name, type_params);
-                            params.push(p_type);
-                            if !self.match_token(TokenType::Comma) {
-                                break;
-                            }
-                        }
-                        self.consume(TokenType::Greater, "Expect '>' after type parameters.");
-                        if params.len() != s.type_vars.borrow().len() {
-                            self.error("Expect same number of type parameters.");
-                            break 'a ValueType::Err.intern();
-                        }
-                        let mut type_params = HashMap::new();
-                        for (name, p_type) in s.type_vars.borrow().iter().zip(params) {
-                            type_params.insert(name.clone(), p_type);
-                        }
-                        break 'a ValueType::Struct(s.clone())
-                            .instantiate_generic(&mut type_params)
-                            .intern();
-                    }
-                    break 'a ValueType::Struct(s.clone())
-                        .instantiate_generic(&mut HashMap::new())
-                        .intern();
-                }
-            }
-
-            if self.match_token(TokenType::Impl) {
-                self.consume(TokenType::Identifier, "Expect interface name.");
-                let name: SharedString = format!("{}_impl", self.previous.lexeme).into();
-
-                if struct_name.is_some_and(|s| *s == name) {
-                    break 'a ValueType::SelfStruct(name, vec![]).intern();
-                }
-                if let Some(s) = self.custom_types.get(&name) {
-                    break 'a ValueType::Struct(s.clone()).intern();
-                }
-            }
-
-            self.error("Expect type.");
-            ValueType::Err.intern()
-        };
-        if self.match_token(TokenType::Star) || star {
-            return ValueType::Pointer(parset_type, true).intern();
-        }
-        parset_type
-    }
-
     fn go(&mut self) -> Vec<ASTNode> {
         let mut nodes = Vec::new();
-
-        // let mut weak_funcs = HashMap::new();
 
         while self.current.token_type != TokenType::Eof {
             let new_nodes = self.declaration();
 
             for node in new_nodes {
-                // if let ASTNode::Declaration(Declaration::Function(FunctionDeclaration {
-                //     prototype,
-                //     line_no,
-                //     body,
-                // })) = &node
-                // {
-                //     if *weak {
-                //         weak_funcs.insert(name.clone(), nodes.len());
-                //     } else if weak_funcs.contains_key(&name) {
-                //         nodes[weak_funcs[&name]] = node.clone();
-                //         continue;
-                //     }
-                // }
-
                 nodes.push(node)
             }
         }
@@ -406,29 +231,6 @@ impl SerenityParser {
             parser.advance();
 
             let nodes = parser.go();
-
-            // if top_level {
-            //     //call the users main function
-            //     nodes.push(ASTNode::CallMain(Box::new(ASTNode::Expression(
-            //         Expression::Call(CallExpression {
-            //             callee: Expression::Variable(VariableExpression {
-            //                 token: Token {
-            //                     token_type: TokenType::Identifier,
-            //                     lexeme: "main".into(),
-            //                     line: 0,
-            //                 },
-            //                 line_no: 0,
-            //             }
-            //             )
-
-            //             .into(),
-            //             arguments: Vec::new(),
-            //             line_no: 0,
-            //         }
-            //         )
-            //         .into(),
-            //     ))));
-            // }
 
             parser.consume(TokenType::Eof, "Expect end of file.");
             ret.ast.roots = nodes;

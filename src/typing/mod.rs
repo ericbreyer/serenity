@@ -1,28 +1,18 @@
 use std::{
     cell::{Cell, RefCell},
-    collections::{HashMap, HashSet},
+    collections::{BTreeMap, HashMap, HashSet},
     fmt::Debug,
     hash::{Hash, Hasher},
-    ops::Deref,
 };
 
 use anyhow::Result;
+use arena_alloc::Arena;
 use indexmap::IndexMap;
 use inkwell::{context::Context, types::BasicType as _, AddressSpace};
-use pinvec::PinVec;
-use pow_of_2::PowOf2;
 
 use crate::prelude::*;
 
-#[allow(clippy::derived_hash_with_manual_eq)]
-#[derive(Copy, Clone, Hash, Eq)]
-pub struct UValueType(usize);
-
-impl PartialEq for UValueType {
-    fn eq(&self, other: &Self) -> bool {
-        self.nretni().eq(other.nretni())
-    }
-}
+pub type UValueType = &'static ValueType;
 
 #[derive(Clone)]
 pub struct CustomStruct {
@@ -61,11 +51,11 @@ impl Debug for CustomStruct {
 }
 
 impl<'ctx> CustomStruct {
-    pub fn llvm(&self, ctx: &'ctx Context) -> Result<inkwell::types::StructType<'ctx>> {
+    pub fn llvm(&self, ctx: &'ctx Context, generics: &HashMap<SharedString, UValueType>) -> Result<inkwell::types::StructType<'ctx>> {
         let mut types = Vec::new();
         let bg = self.fields.borrow();
         for (_, v) in bg.iter() {
-            types.push(v.value.llvm(ctx)?);
+            types.push(v.value.llvm(ctx, generics)?);
         }
         Ok(ctx.struct_type(&types, false))
     }
@@ -81,6 +71,30 @@ pub struct StructEntry {
     pub offset: usize,
 }
 
+#[derive(Clone, Debug, PartialEq, Hash)]
+pub struct Closure {
+    pub args: Box<[UValueType]>,
+    pub upvals: Box<[UValueType]>,
+    pub ret: UValueType,
+    pub generics: BTreeMap<SharedString, UValueType>,
+}
+
+impl Closure {
+    pub fn new(
+        args: Box<[UValueType]>,
+        upvals: Box<[UValueType]>,
+        ret: UValueType,
+        generics: impl Into<Option<BTreeMap<SharedString, UValueType>>>,
+    ) -> Self {
+        Self {
+            args,
+            upvals,
+            ret,
+            generics: generics.into().unwrap_or_default(),
+        }
+    }
+}
+
 #[allow(clippy::derived_hash_with_manual_eq)]
 #[derive(Clone, Hash)]
 #[repr(usize)]
@@ -90,7 +104,7 @@ pub enum ValueType {
     Char,
     Bool,
     Nil,
-    Closure(Box<[UValueType]>, Box<[UValueType]>, UValueType),
+    Closure(Closure),
     ExternalFn(UValueType, SharedString),
     Pointer(UValueType, bool),
     LValue(UValueType, bool),
@@ -125,44 +139,71 @@ impl ValueType {
 
     pub fn decay(&self) -> UValueType {
         match self {
-            Self::Array(p, _) => Self::Pointer(*p, true).intern(),
+            Self::Array(p, _) => Self::Pointer(p, true).intern(),
             _ => self.clone().intern(),
         }
     }
 
-    pub fn unify(t1: UValueType, t2: UValueType) -> Result<()> {
-        match (t1.substitute().nretni(), t2.substitute().nretni()) {
+    pub fn unify(t1: UValueType, t2: UValueType, generics: &HashMap<SharedString, UValueType>) -> Result<()> {
+        match (t1.substitute(generics), t2.substitute(generics)) {
+            (ValueType::GenericParam(s0), _) => {
+                if let Some(v) = generics.get(s0) {
+                    ValueType::unify(v, t2, generics)?;
+                } else {
+                    return Err(anyhow::anyhow!("generic param <{s0}> not resolved"));
+                }
+            }
+            (_, ValueType::GenericParam(s0)) => {
+                if let Some(v) = generics.get(s0) {
+                    ValueType::unify(t1, v, generics)?;
+                } else {
+                    return Err(anyhow::anyhow!("generic param <{s0}> not resolved"));
+                }
+            }
             (ValueType::TypeVar(x), ValueType::TypeVar(y)) if x == y => {}
-            (ValueType::Closure(a0, c0, r0), ValueType::Closure(a1, c1, r1)) => {
+            (
+                ValueType::Closure(Closure {
+                    args: a0,
+                    upvals: c0,
+                    ret: r0,
+                    generics: _,
+                }),
+                ValueType::Closure(Closure {
+                    args: a1,
+                    upvals: c1,
+                    ret: r1,
+                    generics: _,
+                }),
+            ) => {
                 if c0.len() != c1.len() || a0.len() != a1.len() {
                     return Err(anyhow::anyhow!(
                         "closure types do not match {:?} {:?}",
-                        t1.substitute(),
-                        t2.substitute()
+                        t1.substitute(generics),
+                        t2.substitute(generics)
                     ));
                 }
                 for (x, y) in c0.iter().zip(c1.iter()) {
-                    ValueType::unify(*x, *y)?;
+                    ValueType::unify(x, y, generics)?;
                 }
                 for (x, y) in a0.iter().zip(a1.iter()) {
-                    ValueType::unify(*x, *y)?;
+                    ValueType::unify(x, y, generics)?;
                 }
-                ValueType::unify(*r0, *r1)?;
+                ValueType::unify(r0, r1, generics)?;
             }
             (ValueType::Pointer(p0, _b0), ValueType::Pointer(p1, _b1)) => {
-                if p0.nretni() == &ValueType::Nil || p1.nretni() == &ValueType::Nil {
+                if *p0 == &ValueType::Nil || *p1 == &ValueType::Nil {
                     return Ok(());
                 }
-                ValueType::unify(*p0, *p1)?;
+                ValueType::unify(p0, p1, generics)?;
             }
             (ValueType::LValue(p0, _b0), ValueType::LValue(p1, _b1)) => {
-                ValueType::unify(*p0, *p1)?;
+                ValueType::unify(p0, p1, generics)?;
             }
             (ValueType::Array(p0, n0), ValueType::Array(p1, n1)) => {
                 if n0.unwrap_or(n1.unwrap_or(0)) != n1.unwrap_or(0) {
                     return Err(anyhow::anyhow!("array types do not match"));
                 }
-                ValueType::unify(*p0, *p1)?;
+                ValueType::unify(p0, p1, generics)?;
             }
             (ValueType::Struct(s0), ValueType::Struct(s1)) => {
                 if s0.name != s1.name {
@@ -175,7 +216,7 @@ impl ValueType {
                 }
                 for (k, v) in s0.iter() {
                     if let Some(v1) = s1.get(k) {
-                        ValueType::unify(v.value, v1.value)?;
+                        ValueType::unify(v.value, v1.value, generics)?;
                     } else {
                         return Err(anyhow::anyhow!("struct types do not match"));
                     }
@@ -189,33 +230,26 @@ impl ValueType {
                     return Err(anyhow::anyhow!("self struct types do not match"));
                 }
                 for (x, y) in v0.iter().zip(v1.iter()) {
-                    ValueType::unify(*x, *y)?;
-                }
-
-            }
-            (ValueType::GenericParam(s0), ValueType::GenericParam(s1)) => {
-                if s0 != s1 {
-                    return Err(anyhow::anyhow!("generic param types do not match"));
+                    ValueType::unify(x, y, generics)?;
                 }
             }
             (ValueType::Pointer(_p, _), ValueType::Integer)
-                | (ValueType::Integer, ValueType::Pointer(_p, _)) => {
+            | (ValueType::Integer, ValueType::Pointer(_p, _)) => {
                 // ok
             }
             // (ValueType::Pointer(p, _), ValueType::Array(a, _))
             //     | (ValueType::Array(p, _), ValueType::Pointer(a, _)) if p == a => {
             //     // ok
             // }
-
             (ValueType::TypeVar(x), _)
-                if SUBSTITUTIONS.with_borrow(|v| v[*x]).nretni() != &ValueType::TypeVar(*x) =>
+                if SUBSTITUTIONS.with_borrow(|v| v[*x]) != &ValueType::TypeVar(*x) =>
             {
-                ValueType::unify(SUBSTITUTIONS.with_borrow(|v| v[*x]), t2)?;
+                ValueType::unify(SUBSTITUTIONS.with_borrow(|v| v[*x]), t2, generics)?;
             }
             (_, ValueType::TypeVar(x))
-                if SUBSTITUTIONS.with_borrow(|v| v[*x]).nretni() != &ValueType::TypeVar(*x) =>
+                if SUBSTITUTIONS.with_borrow(|v| v[*x]) != &ValueType::TypeVar(*x) =>
             {
-                ValueType::unify(SUBSTITUTIONS.with_borrow(|v| v[*x]), t1)?;
+                ValueType::unify(SUBSTITUTIONS.with_borrow(|v| v[*x]), t1, generics)?;
             }
             (ValueType::TypeVar(x), _) => {
                 if ValueType::occurs_in(*x, t2) {
@@ -239,21 +273,26 @@ impl ValueType {
     }
 
     fn occurs_in(tv1: usize, t2: UValueType) -> bool {
-        match t2.nretni() {
+        match t2 {
             ValueType::TypeVar(x)
-                if SUBSTITUTIONS.with_borrow(|v| v[*x]).nretni() != &ValueType::TypeVar(*x) =>
+                if SUBSTITUTIONS.with_borrow(|v| v[*x]) != &ValueType::TypeVar(*x) =>
             {
                 ValueType::occurs_in(tv1, SUBSTITUTIONS.with_borrow(|v| v[*x]))
             }
             ValueType::TypeVar(x) => tv1 == *x,
-            ValueType::Closure(a, c, r) => {
-                c.iter().any(|x| ValueType::occurs_in(tv1, *x))
-                    || a.iter().any(|x| ValueType::occurs_in(tv1, *x))
-                    || ValueType::occurs_in(tv1, *r)
+            ValueType::Closure(Closure {
+                args: a,
+                upvals: c,
+                ret: r,
+                generics: _,
+            }) => {
+                c.iter().any(|x| ValueType::occurs_in(tv1, x))
+                    || a.iter().any(|x| ValueType::occurs_in(tv1, x))
+                    || ValueType::occurs_in(tv1, r)
             }
-            ValueType::Pointer(p, _) => ValueType::occurs_in(tv1, *p),
-            ValueType::LValue(p, _) => ValueType::occurs_in(tv1, *p),
-            ValueType::Array(p, _) => ValueType::occurs_in(tv1, *p),
+            ValueType::Pointer(p, _) => ValueType::occurs_in(tv1, p),
+            ValueType::LValue(p, _) => ValueType::occurs_in(tv1, p),
+            ValueType::Array(p, _) => ValueType::occurs_in(tv1, p),
             ValueType::Struct(s) => {
                 let s = s.fields.borrow();
                 s.values().any(|x| ValueType::occurs_in(tv1, x.value))
@@ -262,7 +301,9 @@ impl ValueType {
         }
     }
 
-    pub fn substitute(&self) -> UValueType {
+    pub fn substitute<'a>(&self, generics: impl Into<Option<&'a HashMap<SharedString, UValueType>>>) -> UValueType {
+        let empty = HashMap::new();
+        let generics = generics.into().unwrap_or(&empty);
         let new = match self {
             ValueType::Float
             | ValueType::Integer
@@ -270,34 +311,75 @@ impl ValueType {
             | ValueType::Bool
             | ValueType::Nil
             | ValueType::Err => self.clone().intern(),
-            ValueType::Closure(a, c, r) => {
+            ValueType::Closure(Closure {
+                args: a,
+                upvals: c,
+                ret: r,
+                generics: local_generics,
+            }) => {
                 let mut new_c = Vec::with_capacity(c.len());
                 for x in c.iter() {
-                    new_c.push(x.substitute());
+                    new_c.push(x.substitute(generics));
                 }
                 let mut new_a = Vec::with_capacity(a.len());
                 for x in a.iter() {
-                    new_a.push(x.substitute());
+                    new_a.push(x.substitute(generics));
                 }
-                Self::Closure(
+
+                let mut new_generics = BTreeMap::new();
+                for (k, v) in local_generics.iter() {
+                    new_generics.insert(k.clone(), v.substitute(generics));
+                }
+
+                Self::Closure(Closure::new(
                     new_a.into_boxed_slice(),
                     new_c.into_boxed_slice(),
-                    r.substitute(),
-                )
+                    r.substitute(generics),
+                    new_generics,
+                ))
                 .intern()
             }
-            ValueType::ExternalFn(r, n) => Self::ExternalFn(r.substitute(), n.clone()).intern(),
-            ValueType::Pointer(p, b) => Self::Pointer(p.substitute(), *b).intern(),
-            ValueType::LValue(p, b) => Self::LValue(p.substitute(), *b).intern(),
-            ValueType::Array(p, n) => Self::Array(p.substitute(), *n).intern(),
-            ValueType::Struct(s) => s.to_value_type(),
-            ValueType::SelfStruct(s, v) => Self::SelfStruct(s.clone(), v.clone()).intern(),
-            ValueType::GenericParam(s) => Self::GenericParam(s.clone()).intern(),
+            ValueType::ExternalFn(r, n) => Self::ExternalFn(r.substitute(generics), n.clone()).intern(),
+            ValueType::Pointer(p, b) => Self::Pointer(p.substitute(generics), *b).intern(),
+            ValueType::LValue(p, b) => Self::LValue(p.substitute(generics), *b).intern(),
+            ValueType::Array(p, n) => Self::Array(p.substitute(generics), *n).intern(),
+            ValueType::Struct(s) => {
+                let bg = s.fields.borrow();
+                let mut new_fields = IndexMap::new();
+                for (k, v) in bg.iter() {
+                    new_fields.insert(
+                        k.clone(),
+                        StructEntry {
+                            value: v.value.substitute(generics),
+                            offset: v.offset,
+                        },
+                    );
+                }
+
+                Self::Struct(CustomStruct {
+                    name: s.name.clone(),
+                    fields: RefCell::new(new_fields),
+                    embed: s.embed.clone(),
+                    methods: s.methods.clone(),
+                    type_vars: s.type_vars.borrow().clone().into(),
+                })
+                .intern()
+            }
+            ValueType::SelfStruct(s, v) => {
+                Self::SelfStruct(s.clone(), v.iter().map(|t| t.substitute(generics)).collect()).intern()
+            }
+            ValueType::GenericParam(s) => {
+                if let Some(v) = generics.get(s) {
+                    v
+                } else {
+                    ValueType::GenericParam(s.clone()).intern()
+                }
+            }
             ValueType::TypeVar(x) => SUBSTITUTIONS.with_borrow(|v| v[*x]),
         };
-        if let ValueType::TypeVar(x) = new.nretni() {
-            if SUBSTITUTIONS.with_borrow(|v| v[*x]).nretni() != &ValueType::TypeVar(*x) {
-                return new.substitute();
+        if let ValueType::TypeVar(x) = new {
+            if SUBSTITUTIONS.with_borrow(|v| v[*x]) != &ValueType::TypeVar(*x) {
+                return new.substitute(generics);
             }
         };
         new
@@ -314,7 +396,7 @@ impl ValueType {
             ValueType::Char => "char".into(),
             ValueType::Bool => "bool".into(),
             ValueType::Nil => "nil".into(),
-            ValueType::Closure(args, upvals, ret) => {
+            ValueType::Closure(Closure { args, upvals, ret, generics: _ }) => {
                 let mut s = String::new();
                 s.push_str("fn[");
                 for (i, v) in upvals.iter().enumerate() {
@@ -360,7 +442,7 @@ impl ValueType {
                     s.push_str(&format!("{}: {}, ", k, v.value.to_string()));
                 }
                 s.push('}');
-                s.into()                
+                s.into()
             }
             ValueType::SelfStruct(s, v) => format!("self{:?} {}", v, s).into(),
             ValueType::GenericParam(n) => format!("<{n}>").into(),
@@ -369,7 +451,7 @@ impl ValueType {
         }
     }
 
-    pub fn has_size(&self) -> bool {
+    pub fn _has_size(&self) -> bool {
         match self {
             Self::Float
             | Self::Integer
@@ -380,11 +462,11 @@ impl ValueType {
             | Self::ExternalFn(_, _)
             | Self::LValue(_, _)
             | Self::Err
-            | Self::Closure(_, _, _) => true,
-            Self::Array(t, n) => t.as_ref().has_size() && n.is_some(),
+            | ValueType::Closure(Closure { args: _, upvals: _, ret: _, generics: _ }) => true,
+            Self::Array(t, n) => t._has_size() && n.is_some(),
             Self::Struct(h) => {
                 let bg = h.fields.borrow();
-                bg.iter().all(|(_, v)| v.value.as_ref().has_size())
+                bg.iter().all(|(_, v)| v.value._has_size())
             }
             Self::SelfStruct(_, _) => false,
             Self::GenericParam(_) => false,
@@ -433,7 +515,7 @@ impl ValueType {
                 true
             }
             (Self::Struct(l0), Self::Struct(r0)) => l0.name == r0.name,
-            (Self::Closure(l0v, u0, r0), Self::Closure(r0v, u1, r1)) => {
+            (ValueType::Closure(Closure { args: l0v, upvals: u0, ret: r0, generics: _ }), ValueType::Closure(Closure { args: r0v, upvals: u1, ret: r1, generics: _ })) => {
                 l0v.len() == r0v.len()
                     && l0v.iter().zip(r0v.iter()).all(|(l0, r0)| l0 == r0)
                     && u0.len() == u1.len()
@@ -451,17 +533,17 @@ impl ValueType {
         }
     }
 
-    pub fn llvm<'ctx>(&self, ctx: &'ctx Context) -> Result<inkwell::types::BasicTypeEnum<'ctx>> {
-        Ok(match self {
+    pub fn llvm<'ctx>(&self, ctx: &'ctx Context, generics: &HashMap<SharedString, UValueType>) -> Result<inkwell::types::BasicTypeEnum<'ctx>> {
+        Ok(match self.substitute(generics) {
             Self::Float => ctx.f64_type().as_basic_type_enum(),
             Self::Integer => ctx.i64_type().as_basic_type_enum(),
             Self::Char => ctx.i8_type().as_basic_type_enum(),
             Self::Bool => ctx.bool_type().as_basic_type_enum(),
             Self::Nil => ctx.i8_type().as_basic_type_enum(),
-            Self::Closure(_, upvals, _) => {
+            ValueType::Closure(Closure { args: _, upvals, ret: _, generics: _ }) => {
                 let mut types = Vec::new();
                 for v in upvals.iter() {
-                    types.push(v.llvm(ctx)?);
+                    types.push(v.llvm(ctx, generics)?);
                 }
                 types.push(ctx.ptr_type(AddressSpace::default()).as_basic_type_enum());
                 ctx.struct_type(&types, false).as_basic_type_enum()
@@ -470,36 +552,45 @@ impl ValueType {
             Self::Pointer(_t, _) => ctx.ptr_type(AddressSpace::default()).as_basic_type_enum(),
             Self::LValue(_t, _) => ctx.ptr_type(AddressSpace::default()).as_basic_type_enum(),
             Self::Array(t, n) => t
-                .llvm(ctx)?
+                .llvm(ctx, generics)?
                 .array_type(n.unwrap_or(0) as u32)
                 .as_basic_type_enum(),
             Self::Struct(h) => {
                 let mut types = Vec::new();
                 let bg = h.fields.borrow();
                 for (_, v) in bg.iter() {
-                    types.push(v.value.llvm(ctx)?);
+                    types.push(v.value.llvm(ctx, generics)?);
                 }
                 ctx.struct_type(&types, false).as_basic_type_enum()
             }
             Self::SelfStruct(_, _) => unreachable!("self struct should be replaced by struct"),
-            Self::GenericParam(_) => unreachable!("generic param should be replaced by type"),
+            Self::GenericParam(p) => {
+                if let Some(v) = generics.get(p) {
+                    v.llvm(ctx, generics)?
+                } else {
+                    return Err(anyhow::anyhow!("generic param <{p}> not resolved"));
+                }
+            }
             Self::Err => unreachable!("err type should be replaced by type"),
             ValueType::TypeVar(v) => return Err(anyhow::anyhow!("type var ${v} not resolved")),
         })
     }
 
-    pub fn instantiate_generic(&self, generics: &mut HashMap<SharedString, UValueType>) -> UValueType {
+    pub fn instantiate_generic(
+        &self,
+        generics: &mut HashMap<SharedString, UValueType>,
+    ) -> UValueType {
         match self {
             Self::GenericParam(s) => {
                 if let Some(v) = generics.get(s) {
-                    *v
+                    v
                 } else {
                     let tv = ValueType::new_type_var();
                     generics.insert(s.clone(), tv);
                     tv
                 }
             }
-            Self::Closure(args, upvals, ret) => {
+            ValueType::Closure(Closure { args, upvals, ret, generics: _ }) => {
                 let mut new_args = Vec::with_capacity(args.len());
                 for x in args.iter() {
                     new_args.push(x.instantiate_generic(generics));
@@ -509,8 +600,13 @@ impl ValueType {
                     new_upvals.push(x.instantiate_generic(generics));
                 }
                 let new_ret = ret.instantiate_generic(generics);
-                Self::Closure(new_args.into_boxed_slice(), new_upvals.into_boxed_slice(), new_ret)
-                    .intern()
+                Self::Closure(Closure::new(
+                    new_args.into_boxed_slice(),
+                    new_upvals.into_boxed_slice(),
+                    new_ret,
+                    generics.clone().into_iter().collect::<BTreeMap<_, _>>(),
+                ))
+                .intern()
             }
             Self::Pointer(t, b) => Self::Pointer(t.instantiate_generic(generics), *b).intern(),
             Self::LValue(t, b) => Self::LValue(t.instantiate_generic(generics), *b).intern(),
@@ -519,10 +615,13 @@ impl ValueType {
                 let bg = s.fields.borrow();
                 let mut new_fields = IndexMap::new();
                 for (k, v) in bg.iter() {
-                    new_fields.insert(k.clone(), StructEntry {
-                        value: v.value.instantiate_generic(generics),
-                        offset: v.offset,
-                    });
+                    new_fields.insert(
+                        k.clone(),
+                        StructEntry {
+                            value: v.value.instantiate_generic(generics),
+                            offset: v.offset,
+                        },
+                    );
                 }
 
                 Self::Struct(CustomStruct {
@@ -552,109 +651,46 @@ impl PartialEq for ValueType {
     }
 }
 
+static USED_TYPES_ARENA: Arena<10000000> = Arena::new();
+
 thread_local! {
-    static USED_TYPES: RefCell<PinVec<ValueType>> =
-        RefCell::new(PinVec::new(PowOf2::from_exp(8)));
-    static USED_TYPES_INDECES: RefCell<HashMap<SharedString, usize>> =
+    static USED_TYPES: RefCell<HashMap<SharedString, &'static ValueType>> =
         RefCell::new(HashMap::new());
 }
 
 impl ValueType {
     pub fn _decay(&self) -> UValueType {
         match self {
-            Self::Array(p, _) => Self::Pointer(*p, true).clone().intern(),
+            Self::Array(p, _) => Self::Pointer(p, true).clone().intern(),
             _ => self.clone().intern(),
         }
     }
 
-    // pub fn fill_generic(&self, param: SharedString, value: UValueType) -> UValueType {
-    //   match self {
-    //     Self::GenericParam(p) if p == &param => value,
-    //     Self::Closure(v, u) => {
-    //       let mut new_v = Vec::with_capacity(v.len());
-    //       for x in v.iter() {
-    //         new_v.push(x.fill_generic(param.clone(), value));
-    //       }
-    //       Self::Closure(new_v.into_boxed_slice(), *u).intern()
-    //     }
-    //     Self::Array(v, u) => Self::Array(v.fill_generic(param, value), *u).intern(),
-    //     Self::Pointer(v, b) => Self::Pointer(v.fill_generic(param, value), *b).intern(),
-    //     Self::Struct(s) => {
-    //       let mut new_fields = HashMap::new();
-    //       for (k, v) in s.fields.read().nretni().unwrap().iter() {
-    //         new_fields.insert(k.clone(), v.fill_generic(param.clone(), value));
-    //       }
-    //       Self::Struct(CustomStruct {
-    //         name: s.name.clone(),
-    //         fields: Arc::new(RwLock::new(new_fields)),
-    //         embed: s.embed.clone(),
-    //         methods: s.methods.clone(),
-    //       })
-    //       .intern()
-    //     }
-
-    //     _ => self.clone(),
-    //   }
-    // }
-
     pub fn intern(&self) -> UValueType {
         let sid = self.unique_string();
 
-        USED_TYPES.with_borrow_mut(|used_vec| {
-            USED_TYPES_INDECES.with_borrow_mut(|used_indeces| {
-                if let Some(idx) = used_indeces.get(&sid) {
-                    return UValueType(*idx);
-                }
+        USED_TYPES.with_borrow_mut(|types| {
+            if let Some(t) = types.get(&sid) {
+                return *t;
+            }
 
-                let value = self.clone();
-                let idx = used_vec.len();
-                used_indeces.insert(sid, idx);
-                used_vec.push(value);
-                UValueType(idx)
-            })
+            let value = USED_TYPES_ARENA.acquire(self.clone()).expect("arena full");
+            types.insert(sid, value);
+            value
         })
     }
 }
 
-impl<'a> UValueType {
-    fn nretni(&'a self) -> &'static ValueType {
-        USED_TYPES.with_borrow(|used_types| {
-            let value_type = &used_types.idx_ref(self.0);
-            // Lock is released here, it is safe to dereference value_type
-            unsafe { &*std::ptr::addr_of!(**value_type) }
-        })
-    }
-}
-
-impl AsRef<ValueType> for UValueType {
-    fn as_ref(&self) -> &ValueType {
-        self.nretni().substitute().nretni()
-    }
-}
-
-impl Deref for UValueType {
-    type Target = ValueType;
-
-    fn deref(&self) -> &Self::Target {
-        self.as_ref()
-    }
-}
-
-impl Debug for UValueType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.as_ref().fmt(f)
-    }
-}
-
-impl From<SharedString> for UValueType {
+impl From<SharedString> for ValueType {
     fn from(s: SharedString) -> Self {
-        match s.as_ref() {
-            "float" => ValueType::Float.intern(),
-            "int" => ValueType::Integer.intern(),
-            "bool" => ValueType::Bool.intern(),
-            "nil" => ValueType::Nil.intern(),
-            "char" => ValueType::Char.intern(),
-            _ => ValueType::Err.intern(),
+        match Into::<String>::into(s).as_str() {
+            "float" => Self::Float,
+            "int" => Self::Integer,
+            "char" => Self::Char,
+            "bool" => Self::Bool,
+            "nil" => Self::Nil,
+            "err" => Self::Err,
+            s => Self::GenericParam(s.into()),
         }
     }
 }

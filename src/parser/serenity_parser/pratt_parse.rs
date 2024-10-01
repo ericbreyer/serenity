@@ -1,11 +1,11 @@
 mod half_expression;
 mod parse_table;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::{rc::Rc, sync::atomic::{AtomicUsize, Ordering}};
 
 use half_expression::HalfExpression;
 pub use parse_table::ParseTable;
 
-use crate::{lexer::TokenType, prelude::*, value::Value};
+use crate::{lexer::TokenType, prelude::*, typing::UValueType, value::Value};
 
 use super::{Precedence, SerenityParser};
 
@@ -87,7 +87,7 @@ impl SerenityParser {
         let (node, cast_type) = if self.match_token(TokenType::LeftParen) {
             let node = self.expression();
             let cast_type = if self.match_token(TokenType::Comma) {
-                self.parse_complex_type(None, None)
+                self.parse_type(None, None)
             } else {
                 ValueType::new_type_var()
             };
@@ -110,7 +110,7 @@ impl SerenityParser {
         // (type*)(value)
         let line_no = self.previous.line;
 
-        let cast_type: UValueType = self.previous.lexeme.clone().into();
+        let cast_type: UValueType = ValueType::from(self.previous.lexeme.clone()).intern();
 
         self.consume(TokenType::LeftParen, "Expect '(' after 'cast'.");
         let node = self.expression();
@@ -133,12 +133,15 @@ impl SerenityParser {
                 ANON_ID.with(|ai| ai.fetch_add(1, Ordering::Relaxed))
             )
             .as_str(),
+            Vec::new(),
         );
         Expression::Function(func_expr)
     }
 
-    pub(super) fn function(&mut self, _func_name: &str) -> FunctionExpression {
+    pub(super) fn function(&mut self, _func_name: &str, type_params: Vec<SharedString>) -> FunctionExpression {
         let mut captures = Vec::new();
+        
+
         if self.match_token(TokenType::LeftBracket) {
             loop {
                 self.consume(TokenType::Identifier, "Expect capture name.");
@@ -165,7 +168,7 @@ impl SerenityParser {
                 }
                 let name = self.previous.lexeme.clone();
                 self.consume(TokenType::Colon, "Expect ':' after parameter name.");
-                let p_type = self.parse_complex_type(None, None);
+                let p_type = self.parse_type(None, Some(&type_params));
 
                 if let ValueType::Array(_, _) = *p_type {
                     self.warn("Passing arrays by value may be expensive");
@@ -183,7 +186,7 @@ impl SerenityParser {
         self.consume(TokenType::RightParen, "Expect ')' after parameters.");
         let mut return_type = ValueType::new_type_var();
         if self.match_token(TokenType::RightArrow) {
-            return_type = self.parse_complex_type(None, None);
+            return_type = self.parse_type(None, Some(&type_params));
         }
         param_types.push(return_type);
 
@@ -280,7 +283,7 @@ impl SerenityParser {
 
     fn sizeof(&mut self, _can_assign: bool) -> Expression {
         let line_no = self.previous.line;
-        let tipe = self.parse_complex_type(None, None);
+        let tipe = self.parse_type(None, None);
         Expression::Sizeof(SizeofExpression { tipe, line_no })
     }
 
@@ -399,25 +402,25 @@ impl SerenityParser {
             });
         }
         Expression::Variable(VariableExpression {
-            token: self.previous.clone(),
+            token: Rc::new(self.previous.clone().into()),
             line_no,
         })
     }
 
     fn type_expression(&mut self) -> Expression {
         let was_struct = self.current.token_type == TokenType::Struct;
-        let t = self.parse_complex_type(None, None);
+        let t = self.parse_type(None, None);
 
         if was_struct && self.current.token_type == TokenType::LeftBrace {
             self.struct_initializer(t)
         } else if self.current.token_type == TokenType::DoubleColon {
             self.advance();
-            let Expression::Variable(VariableExpression { mut token, line_no }) =
+            let Expression::Variable(VariableExpression { token, line_no }) =
                 self.parse_precedence(Precedence::Call)
             else {
                 return Expression::Empty;
             };
-            token.lexeme = format!("{}_{}", t.unique_string(), token.lexeme).into();
+            token.borrow_mut().lexeme = format!("{}_{}", t.unique_string(), token.borrow().lexeme).into();
             return Expression::Variable(VariableExpression { token, line_no });
         } else {
             return Expression::Empty;

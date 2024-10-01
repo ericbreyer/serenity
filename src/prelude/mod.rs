@@ -1,10 +1,12 @@
 mod ast;
 mod shared_strings;
+mod scoped_map;
 
 pub use crate::{
-    prelude::{ast::*, shared_strings::SharedString},
-    typing::{CustomStruct, StructEntry, UValueType, ValueType},
+    prelude::{ast::*, shared_strings::SharedString, scoped_map::*},
+    typing::{CustomStruct, StructEntry, ValueType},
     value::Value,
+    
 };
 use std::fmt::Debug;
 

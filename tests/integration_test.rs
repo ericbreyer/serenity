@@ -12,9 +12,10 @@ use test_case::{test_case, test_matrix};
 #[test_case("prime_conspiricy.ser" => matches Ok(7942686168))]
 #[test_case("highly_composites.ser" => matches Ok(355168))]
 #[test_case("generic.ser" => matches Ok(6))]
+#[test_case("generic_func.ser" => matches Ok(540))]
 pub fn test_file_run(file : &str) -> Result<usize> {
 
-    let file = format!("tests/{}", file);
+    let file = format!("test_files/{}", file);
 
     let mut out = Vec::new();
     let code = serenity::run_file(&file, &mut out)?;
@@ -23,11 +24,11 @@ pub fn test_file_run(file : &str) -> Result<usize> {
 }
 
 #[test_matrix(
-    ["trivial.ser", "prime_sieve.ser", "interfaces.ser", "babbage.ser", "linkedlist.ser", "prime_conspiricy.ser", "highly_composites.ser", "generic.ser"],
+    ["trivial.ser", "prime_sieve.ser", "interfaces.ser", "babbage.ser", "linkedlist.ser", "prime_conspiricy.ser", "highly_composites.ser", "generic.ser", "generic_func.ser"],
     ["scan", "parse", "compile"]
 )]
 fn test_file_artifacts(file : &str, mode: &str) -> Result<()> {
-    let file = format!("tests/{}", file);
+    let file = format!("test_files/{}", file);
     let result = match mode {
         "scan" => serenity::scan(&file)?.iter().fold(String::new(), |acc, x| acc + &format!("{}\n", x)),
         "parse" => serenity::parse(&file)?,

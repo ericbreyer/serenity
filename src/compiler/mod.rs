@@ -1,10 +1,11 @@
 use anyhow::Result;
+use indexmap::IndexMap;
 use inkwell::{context::Context, module::Module};
 use llvm_compiler::LLVMCompiler;
 use tracing::info;
 pub use typechecker::Typechecker;
 
-use crate::prelude::ParseResult;
+use crate::prelude::{ParseResult, Ast};
 
 mod llvm_compiler;
 pub mod typechecker;
@@ -43,16 +44,26 @@ mod ffi_funcs {
     }
 }
 
-pub fn compile(context: &Context, pr: ParseResult) -> Result<Module<'_>> {
+pub fn typecheck(pr: ParseResult) -> Result<Ast> {
     let ffi = ffi_funcs::ffi_funcs();
     let typechecker = Typechecker::new(pr.custom_structs.clone(), ffi.as_ref());
     for ast in &pr.ast.roots {
         typechecker.compile(ast)?;
     }
+    Ok(pr.ast)
+}
+
+pub fn compile(context: &Context, pr: ParseResult) -> Result<Module<'_>> {
+    let ffi = ffi_funcs::ffi_funcs();
+    let typechecker = Typechecker::new(pr.custom_structs.clone(), ffi.as_ref());
+    let mut monomorphic_funcs = IndexMap::new();
+    for ast in &pr.ast.roots {
+        monomorphic_funcs = typechecker.compile(ast)?;
+    }
     
     info!("Typechecking complete");
 
-    let compiler = LLVMCompiler::new(context, pr.custom_structs, ffi.as_ref());
+    let compiler = LLVMCompiler::new(context, pr.custom_structs, ffi.as_ref(), monomorphic_funcs);
     for ast in pr.ast.roots {
         compiler.compile(&ast)?;
     }
@@ -83,7 +94,6 @@ mod tests {
 
         let result = compile(&context, pr);
         if result.is_err() {
-            println!("{:?}", result);
             panic!("Failed to compile {:?}", result.err().unwrap());
         }
 

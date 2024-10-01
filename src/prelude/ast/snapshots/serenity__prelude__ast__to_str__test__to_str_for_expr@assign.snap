@@ -3,5 +3,5 @@ source: src/prelude/ast/to_str.rs
 expression: result
 ---
 [line    1] Assign:
-[line    1] ├─── Variable: <Identifier   "test"        [1]>
+[line    1] ├─── Variable: RefCell { value: <Identifier   "test"        [1]> }
 [line    1] ╰─── Literal: 1

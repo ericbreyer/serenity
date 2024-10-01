@@ -4,4 +4,4 @@ expression: ast
 ---
 [line    1] Expression: 
 [line    1] ╰─── Ref: 
-[line    1]      ╰─── Variable: <Identifier   "val"         [1]>
+[line    1]      ╰─── Variable: RefCell { value: <Identifier   "val"         [1]> }

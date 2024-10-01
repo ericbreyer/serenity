@@ -20,6 +20,7 @@ strum_macros = "0.26.3"
 anyhow = "1.0.86"
 inkwell = { version = "0.5.0", features = ["llvm18-0"] }
 indexmap = "1.6.1"
+arena-alloc = "^0.1.2"
 
 [dev-dependencies]
 insta = { version = "1.39.0", features = ["yaml", "filters"] }

@@ -3,4 +3,4 @@ source: src/parser/serenity_parser/test.rs
 expression: ast
 ---
 [line    1] Expression: 
-[line    1] ╰─── Variable: <Identifier   "ref"         [1]>
+[line    1] ╰─── Variable: RefCell { value: <Identifier   "ref"         [1]> }

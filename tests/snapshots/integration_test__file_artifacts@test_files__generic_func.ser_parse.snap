@@ -1,0 +1,51 @@
+---
+source: tests/integration_test.rs
+expression: result
+---
+[line    1] Function Declaration: test_generic<A>
+[line    1] ╰─── Function Expression:
+[line    1]      ├─── Name: test_generic
+[line    1]      ├─── Return Type: <A>
+[line    1]      ├─── Params:
+[line    1]      │    ╰─── ident: <A>
+[line    1]      ╰─── Body: 
+[line    1]           ╰─── Return:
+[line    2]                ╰─── Binary: Plus
+[line    2]                     ├─── Variable: RefCell { value: <Identifier   "ident"       [2]> }
+[line    2]                     ╰─── Variable: RefCell { value: <Identifier   "ident"       [2]> }
+[line    5] Function Declaration: main
+[line    5] ╰─── Function Expression:
+[line    5]      ├─── Name: main
+[line    5]      ├─── Return Type: int
+[line    5]      ╰─── Body: 
+[line    6]           ├─── Var Declaration: x
+[line    6]           │    ╰───  Initializer
+[line    6]           │         ╰─── Literal: 90
+[line    7]           ├─── Var Declaration: x
+[line    7]           │    ╰───  Initializer
+[line    7]           │         ╰─── Call:
+[line    7]           │              ├─── Variable: RefCell { value: <Identifier   "test_generic" [7]> }
+[line    7]           │              ╰─── Variable: RefCell { value: <Identifier   "x"           [7]> }
+[line    9]           ├─── Var Declaration: y
+[line    9]           │    ╰───  Initializer
+[line    9]           │         ╰─── Literal: 90
+[line   10]           ├─── Var Declaration: y
+[line   10]           │    ╰───  Initializer
+[line   10]           │         ╰─── Call:
+[line   10]           │              ├─── Variable: RefCell { value: <Identifier   "test_generic" [10]> }
+[line   10]           │              ╰─── Variable: RefCell { value: <Identifier   "y"           [10]> }
+[line   12]           ├─── Var Declaration: z
+[line   12]           │    ╰───  Initializer
+[line   12]           │         ╰─── Literal: 90
+[line   13]           ├─── Var Declaration: z
+[line   13]           │    ╰───  Initializer
+[line   13]           │         ╰─── Call:
+[line   13]           │              ├─── Variable: RefCell { value: <Identifier   "test_generic" [13]> }
+[line   13]           │              ╰─── Variable: RefCell { value: <Identifier   "z"           [13]> }
+[line   13]           ╰─── Return:
+[line   15]                ╰─── Binary: Plus
+[line   15]                     ├─── Binary: Plus
+[line   15]                     │    ├─── Variable: RefCell { value: <Identifier   "x"           [15]> }
+[line   15]                     │    ╰─── Cast: $9
+[line   15]                     │         ╰─── Variable: RefCell { value: <Identifier   "y"           [15]> }
+[line   15]                     ╰─── Variable: RefCell { value: <Identifier   "z"           [15]> }

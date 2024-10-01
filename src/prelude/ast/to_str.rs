@@ -591,6 +591,16 @@ impl<'a> DeclarationVisitor<String> for ToStrVisitor<'a> {
             "[line {:>4}] {}Function Declaration: {}",
             declaration.line_no, self.indent_member, &declaration.prototype.name
         ));
+        if !declaration.type_params.is_empty() {
+            s.push('<');
+            for (i, t) in declaration.type_params.iter().enumerate() {
+                s.push_str(t);
+                if i != declaration.type_params.len() - 1 {
+                    s.push_str(", ");
+                }
+            }
+            s.push('>');
+        }
         s.push_str(&declaration.prototype.stringify(
             self.depth_has_scope_open,
             self.depth + 1,
@@ -715,9 +725,12 @@ impl Prototype {
 #[cfg(test)]
 mod test {
 
+    use std::rc::Rc;
+
     use super::*;
     use crate::lexer::{Token, TokenType};
     use crate::prelude::*;
+    use indexmap::IndexMap;
     use insta::assert_snapshot;
 
     use test_case::test_case;
@@ -792,21 +805,21 @@ mod test {
     }), "ternary"; "test_ternary")]
     #[test_case(Expression::Variable(VariableExpression {
         line_no: 1,
-        token: Token {
+        token: Rc::new(Token {
             lexeme: "test".into(),
             token_type: TokenType::Identifier,
             line: 1,
-        },
+        }.into()),
     }), "variable"; "test_variable")]
     #[test_case(Expression::Assign(AssignExpression {
         line_no: 1,
         variable: Box::new(Expression::Variable(VariableExpression {
             line_no: 1,
-            token: Token {
+            token: Rc::new(Token {
                 lexeme: "test".into(),
                 token_type: TokenType::Identifier,
                 line: 1,
-            },
+            }.into()),
         })),
         value: Box::new(Expression::Literal(LiteralExpression {
             line_no: 1,
@@ -829,11 +842,11 @@ mod test {
         line_no: 1,
         callee: Box::new(Expression::Variable(VariableExpression {
             line_no: 1,
-            token: Token {
+            token: Rc::new(Token {
                 lexeme: "test".into(),
                 token_type: TokenType::Identifier,
                 line: 1,
-            },
+            }.into()),
         })),
         arguments: vec![
             Expression::Literal(LiteralExpression {
@@ -936,6 +949,7 @@ mod test {
             return_type: ValueType::Integer.intern(),
             captures: vec!["test".into()],
             params: vec![("test".into(), ValueType::Integer.intern(), false)],
+            
         },
         body: vec![Statement::Expression(ExpressionStatement {
             line_no: 1,
@@ -944,6 +958,8 @@ mod test {
                 value: Value::Integer(1),
             }).into(),
         }).as_node()].into(),    
+        type_params: vec![],
+        mapings: IndexMap::new(),
     }), "function"; "test_function")]
     fn test_to_str_for_decl(decl: Declaration, name: &str) {
         let depth_has_scope_open = [false; 100].into();

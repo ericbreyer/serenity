@@ -1,0 +1,91 @@
+---
+source: tests/integration_test.rs
+expression: result
+---
+; ModuleID = 'main'
+source_filename = "main"
+
+@test_generic_0 = global { ptr } { ptr @test_generic_0_fn }
+@test_generic_1 = global { ptr } { ptr @test_generic_1_fn }
+@test_generic_2 = global { ptr } { ptr @test_generic_2_fn }
+@main = global { ptr } { ptr @main_fn }
+
+declare i8 @printf(ptr, ...)
+
+declare ptr @malloc(i64)
+
+declare i8 @free(ptr)
+
+define i64 @test_generic_0_fn(i64 %0) {
+entry:
+  %ident = alloca i64, align 8
+  store i64 %0, ptr %ident, align 4
+  %rval = load i64, ptr %ident, align 4
+  %rval1 = load i64, ptr %ident, align 4
+  %addtmp = add i64 %rval, %rval1
+  ret i64 %addtmp
+}
+
+define double @test_generic_1_fn(double %0) {
+entry:
+  %ident = alloca double, align 8
+  store double %0, ptr %ident, align 8
+  %rval = load double, ptr %ident, align 8
+  %rval1 = load double, ptr %ident, align 8
+  %addtmp = fadd double %rval, %rval1
+  ret double %addtmp
+}
+
+define i64 @test_generic_2_fn(i64 %0) {
+entry:
+  %ident = alloca i64, align 8
+  store i64 %0, ptr %ident, align 4
+  %rval = load i64, ptr %ident, align 4
+  %rval1 = load i64, ptr %ident, align 4
+  %addtmp = add i64 %rval, %rval1
+  ret i64 %addtmp
+}
+
+define i64 @main_fn() {
+entry:
+  %z18 = alloca i64, align 8
+  %calltmp16 = alloca i64, align 8
+  %z = alloca i64, align 8
+  %y11 = alloca double, align 8
+  %calltmp9 = alloca double, align 8
+  %y = alloca double, align 8
+  %x4 = alloca i64, align 8
+  %calltmp2 = alloca i64, align 8
+  %x = alloca i64, align 8
+  store i64 90, ptr %x, align 4
+  %rval = load { ptr }, ptr @test_generic_0, align 8
+  %rval1 = load i64, ptr %x, align 4
+  %fnptr = extractvalue { ptr } %rval, 0
+  %calltmp = call i64 %fnptr(i64 %rval1)
+  store i64 %calltmp, ptr %calltmp2, align 4
+  %rval3 = load i64, ptr %calltmp2, align 4
+  store i64 %rval3, ptr %x4, align 4
+  store double 9.000000e+01, ptr %y, align 8
+  %rval5 = load { ptr }, ptr @test_generic_1, align 8
+  %rval6 = load double, ptr %y, align 8
+  %fnptr7 = extractvalue { ptr } %rval5, 0
+  %calltmp8 = call double %fnptr7(double %rval6)
+  store double %calltmp8, ptr %calltmp9, align 8
+  %rval10 = load double, ptr %calltmp9, align 8
+  store double %rval10, ptr %y11, align 8
+  store i64 90, ptr %z, align 4
+  %rval12 = load { ptr }, ptr @test_generic_2, align 8
+  %rval13 = load i64, ptr %z, align 4
+  %fnptr14 = extractvalue { ptr } %rval12, 0
+  %calltmp15 = call i64 %fnptr14(i64 %rval13)
+  store i64 %calltmp15, ptr %calltmp16, align 4
+  %rval17 = load i64, ptr %calltmp16, align 4
+  store i64 %rval17, ptr %z18, align 4
+  %rval19 = load i64, ptr %x4, align 4
+  %rval20 = load double, ptr %y11, align 8
+  %fptoint = fptosi double %rval20 to i64
+  %addtmp = add i64 %rval19, %fptoint
+  %rval21 = load i64, ptr %z18, align 4
+  %addtmp22 = add i64 %addtmp, %rval21
+  ret i64 %addtmp22
+}

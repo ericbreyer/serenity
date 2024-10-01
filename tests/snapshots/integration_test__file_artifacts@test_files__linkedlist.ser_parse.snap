@@ -17,27 +17,27 @@ expression: result
 [line    8]           ├─── Var Declaration: current
 [line    8]           │    ╰───  Initializer
 [line    8]           │         ╰─── Ref: 
-[line    8]           │              ╰─── Variable: <Identifier   "head"        [8]>
+[line    8]           │              ╰─── Variable: RefCell { value: <Identifier   "head"        [8]> }
 [line   10]           ├─── For: 
 [line   10]           │    ├─── Var Declaration: i
 [line   10]           │    │    ╰───  Initializer
 [line   10]           │    │         ╰─── Literal: 0
 [line   10]           │    ├─── Binary: Less
-[line   10]           │    │    ├─── Variable: <Identifier   "i"           [10]>
+[line   10]           │    │    ├─── Variable: RefCell { value: <Identifier   "i"           [10]> }
 [line   10]           │    │    ╰─── Literal: 10
 [line   10]           │    ├─── Assign:
-[line   10]           │    │    ├─── Variable: <Identifier   "i"           [10]>
+[line   10]           │    │    ├─── Variable: RefCell { value: <Identifier   "i"           [10]> }
 [line   10]           │    │    ╰─── Binary: Plus
-[line   10]           │    │         ├─── Variable: <Identifier   "i"           [10]>
+[line   10]           │    │         ├─── Variable: RefCell { value: <Identifier   "i"           [10]> }
 [line   10]           │    │         ╰─── Literal: 1
 [line   10]           │    ╰─── Block: 
 [line   11]           │         ├─── Expression: 
 [line   11]           │         │    ╰─── Assign:
 [line   11]           │         │         ├─── Get: "next"
 [line   11]           │         │         │    ╰─── Deref: 
-[line   11]           │         │         │         ╰─── Variable: <Identifier   "current"     [11]>
+[line   11]           │         │         │         ╰─── Variable: RefCell { value: <Identifier   "current"     [11]> }
 [line   11]           │         │         ╰─── Call:
-[line   11]           │         │              ├─── Variable: <Identifier   "malloc"      [11]>
+[line   11]           │         │              ├─── Variable: RefCell { value: <Identifier   "malloc"      [11]> }
 [line   11]           │         │              ╰─── Sizeof: struct linkedList { data: int, next: *self[int] linkedList, }
 [line   12]           │         ├─── Expression: 
 [line   12]           │         │    ╰─── Assign:
@@ -45,16 +45,16 @@ expression: result
 [line   12]           │         │         │    ╰─── Deref: 
 [line   12]           │         │         │         ╰─── Get: "next"
 [line   12]           │         │         │              ╰─── Deref: 
-[line   12]           │         │         │                   ╰─── Variable: <Identifier   "current"     [12]>
+[line   12]           │         │         │                   ╰─── Variable: RefCell { value: <Identifier   "current"     [12]> }
 [line   12]           │         │         ╰─── Binary: Minus
 [line   12]           │         │              ├─── Literal: 9
-[line   12]           │         │              ╰─── Variable: <Identifier   "i"           [12]>
+[line   12]           │         │              ╰─── Variable: RefCell { value: <Identifier   "i"           [12]> }
 [line   13]           │         ╰─── Expression: 
 [line   13]           │              ╰─── Assign:
-[line   13]           │                   ├─── Variable: <Identifier   "current"     [13]>
+[line   13]           │                   ├─── Variable: RefCell { value: <Identifier   "current"     [13]> }
 [line   13]           │                   ╰─── Get: "next"
 [line   13]           │                        ╰─── Deref: 
-[line   13]           │                             ╰─── Variable: <Identifier   "current"     [13]>
+[line   13]           │                             ╰─── Variable: RefCell { value: <Identifier   "current"     [13]> }
 [line   16]           ├─── Var Declaration: sum
 [line   16]           │    ╰───  Initializer
 [line   16]           │         ╰─── Literal: 0
@@ -62,25 +62,25 @@ expression: result
 [line   17]           │    ├─── Var Declaration: current
 [line   17]           │    │    ╰───  Initializer
 [line   17]           │    │         ╰─── Ref: 
-[line   17]           │    │              ╰─── Variable: <Identifier   "head"        [17]>
+[line   17]           │    │              ╰─── Variable: RefCell { value: <Identifier   "head"        [17]> }
 [line   17]           │    ├─── Binary: BangEqual
 [line   17]           │    │    ├─── Get: "data"
 [line   17]           │    │    │    ╰─── Deref: 
-[line   17]           │    │    │         ╰─── Variable: <Identifier   "current"     [17]>
+[line   17]           │    │    │         ╰─── Variable: RefCell { value: <Identifier   "current"     [17]> }
 [line   17]           │    │    ╰─── Literal: 0
 [line   17]           │    ├─── Assign:
-[line   17]           │    │    ├─── Variable: <Identifier   "current"     [17]>
+[line   17]           │    │    ├─── Variable: RefCell { value: <Identifier   "current"     [17]> }
 [line   17]           │    │    ╰─── Get: "next"
 [line   17]           │    │         ╰─── Deref: 
-[line   17]           │    │              ╰─── Variable: <Identifier   "current"     [17]>
+[line   17]           │    │              ╰─── Variable: RefCell { value: <Identifier   "current"     [17]> }
 [line   17]           │    ╰─── Block: 
 [line   18]           │         ╰─── Expression: 
 [line   18]           │              ╰─── Assign:
-[line   18]           │                   ├─── Variable: <Identifier   "sum"         [18]>
+[line   18]           │                   ├─── Variable: RefCell { value: <Identifier   "sum"         [18]> }
 [line   18]           │                   ╰─── Binary: Plus
-[line   18]           │                        ├─── Variable: <Identifier   "sum"         [18]>
+[line   18]           │                        ├─── Variable: RefCell { value: <Identifier   "sum"         [18]> }
 [line   18]           │                        ╰─── Get: "data"
 [line   18]           │                             ╰─── Deref: 
-[line   18]           │                                  ╰─── Variable: <Identifier   "current"     [18]>
+[line   18]           │                                  ╰─── Variable: RefCell { value: <Identifier   "current"     [18]> }
 [line   19]           ╰─── Return:
-[line   20]                ╰─── Variable: <Identifier   "sum"         [20]>
+[line   20]                ╰─── Variable: RefCell { value: <Identifier   "sum"         [20]> }

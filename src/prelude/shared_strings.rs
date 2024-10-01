@@ -7,6 +7,15 @@ use std::{
 #[derive(Clone, Eq, PartialOrd, Ord)]
 pub struct SharedString(Rc<str>);
 
+impl SharedString {
+    pub fn new(value: &str) -> Self {
+        Self(value.into())
+    }
+    pub fn starts_with(&self, s: &SharedString) -> bool {
+        self.0.starts_with(&*s.0)
+    }
+}
+
 impl From<String> for SharedString {
     fn from(value: String) -> Self {
         Self(value.into())
@@ -16,6 +25,12 @@ impl From<String> for SharedString {
 impl From<&str> for SharedString {
     fn from(value: &str) -> Self {
         Self(value.into())
+    }
+}
+
+impl From<SharedString> for String {
+    fn from(value: SharedString) -> Self {
+        value.0.to_string()
     }
 }
 
