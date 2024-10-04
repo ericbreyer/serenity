@@ -38,7 +38,7 @@ fn test_file_artifacts(file : &str, mode: &str) -> Result<()> {
 
     let mut settings = insta::Settings::clone_current();
     settings.set_snapshot_suffix(format!("{}_{}", file, mode));
-    let _guard = settings.bind_to_scope();
+    let _g = settings.bind_to_scope();
 
     match mode {
         "scan" => assert_snapshot!(result),

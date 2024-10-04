@@ -218,7 +218,7 @@ impl SerenityParser {
     fn parse_helper(
         source: SharedString,
         name: SharedString,
-        _top_level: bool,
+       _: bool,
         custom_types: HashMap<SharedString, CustomStruct>,
     ) -> Result<ParseResult> {
         tracing::info!("Starting parse of {name}");

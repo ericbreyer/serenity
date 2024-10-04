@@ -34,7 +34,7 @@ use parser::{Parser, SerenityParser};
 mod compiler;
 mod prelude;
 mod typing;
-mod value;
+mod value_literals;
 
 enum LevelOrFn {
     Level(LevelFilter),
@@ -58,7 +58,7 @@ pub fn set_log_verbosity(verbose: usize) -> Result<(DefaultGuard, WorkerGuard)> 
     let outfile =
         std::fs::File::create("output.ansi").context("While creating debug output file")?;
 
-    let (non_blocking, _guard) = tracing_appender::non_blocking(outfile);
+    let (non_blocking, g) = tracing_appender::non_blocking(outfile);
 
     let file_trace = tracing_subscriber::fmt::layer()
         .with_span_events(FmtSpan::ACTIVE)
@@ -83,7 +83,7 @@ pub fn set_log_verbosity(verbose: usize) -> Result<(DefaultGuard, WorkerGuard)> 
         .with(file_trace)
         .with(err_trace);
 
-    Ok((tracing::subscriber::set_default(subscriber), _guard))
+    Ok((tracing::subscriber::set_default(subscriber), g))
 }
 
 pub fn scan(path: &str) -> Result<Vec<String>> {

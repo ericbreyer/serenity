@@ -1,6 +1,6 @@
 use std::{
     cell::RefCell,
-    collections::{HashMap, HashSet},
+    collections::{HashMap, HashSet}, rc::Rc,
 };
 
 use indexmap::IndexMap;
@@ -160,7 +160,7 @@ impl SerenityParser {
     }
 
     fn for_statement(&mut self) -> Statement {
-        let _line = self.previous.line;
+        let _ = self.previous.line;
         self.consume(TokenType::LeftParen, "Expect '(' after 'for'.");
         let line_no = self.previous.line;
 
@@ -230,7 +230,7 @@ impl SerenityParser {
         name: SharedString,
         type_params: Vec<SharedString>,
     ) -> Vec<ASTNode> {
-        let _line = self.previous.line;
+        let _ = self.previous.line;
 
         if self.custom_types.contains_key(&name) {
             self.error("Struct with that name already exists.");
@@ -380,7 +380,7 @@ impl SerenityParser {
 
     fn interface_definition(&mut self, name: SharedString) -> Vec<ASTNode> {
         let vtable_name: SharedString = format!("{name}_vtable").into();
-        let _line = self.previous.line;
+        let _ = self.previous.line;
 
         debug!("before Interface: {}", vtable_name);
 
@@ -635,7 +635,7 @@ impl SerenityParser {
             self.consume(TokenType::Identifier, "Expect function name.");
             let name = self.previous.lexeme.clone();
 
-            let new_name: SharedString = format!("{}_{}", s.unique_string(), name).into();
+            let new_name: SharedString = format!("{}_{}", s.id_str(), name).into();
 
             cs.methods.borrow_mut().insert(new_name.clone());
 
@@ -664,15 +664,15 @@ impl SerenityParser {
                     captures: vec![],
                     line_no,
                 },
-                body: vec![ASTNode::Statement(Statement::Return(ReturnStatement {
+                body: Rc::new(vec![ASTNode::Statement(Statement::Return(ReturnStatement {
                     value: Some(Box::new(Expression::Function(node))),
                     line_no,
                 }))]
-                .into(),
+                .into()),
 
                 line_no,
                 type_params: vec![],
-                mapings: IndexMap::new(),
+                generic_instantiations: FunctionGenerics::Monomorphic(IndexMap::new()),
             }));
             return decl;
         }
@@ -693,12 +693,18 @@ impl SerenityParser {
         let name = self.previous.lexeme.clone();
         let node = self.function(&name, type_params.clone());
 
+        let mono = type_params.is_empty();
+
         ASTNode::Declaration(Declaration::Function(FunctionDeclaration {
             prototype: node.prototype,
-            body: node.body,
+            body: node.body.into(),
             line_no,
             type_params,
-            mapings: IndexMap::new(),
+            generic_instantiations: if mono {
+                FunctionGenerics::Monomorphic(IndexMap::new())
+            } else {
+                FunctionGenerics::Parametric(Rc::new(Vec::new().into()))
+            },
         }))
     }
 }

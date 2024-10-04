@@ -9,7 +9,7 @@ use super::{
 
 const PIPE_END_CHAR: &str = "╰";
 const PIPE_CHAR: &str = "│";
-const _MEMBER_CHAR: &str = "─";
+// const_: &str = "─";
 const T_CHAR: &str = "├";
 
 const INDENT: &str = "     ";
@@ -606,7 +606,7 @@ impl<'a> DeclarationVisitor<String> for ToStrVisitor<'a> {
             self.depth + 1,
             declaration.line_no,
             Some(self.depth),
-            declaration.body.clone(),
+            declaration.body.as_ref().clone(),
         ));
         s
     }
@@ -688,7 +688,7 @@ impl Prototype {
             s.push_str(&format!(
                 "\n[line {line:>4}] {indent}{T_CHAR}{INDENT_MEMBER}Params:"
             ));
-            for (i, (str, t, _mut)) in self.params.iter().enumerate() {
+            for (i, (str, t,_)) in self.params.iter().enumerate() {
                 s.push('\n');
                 s.push_str(&format!(
                     "[line {line:>4}] {indent}{INDENT_PIPE}{}{INDENT_MEMBER}{str}: {t:?}",
@@ -725,6 +725,7 @@ impl Prototype {
 #[cfg(test)]
 mod test {
 
+    
     use std::rc::Rc;
 
     use super::*;
@@ -897,7 +898,7 @@ mod test {
 
         let mut settings = insta::Settings::clone_current();
         settings.set_snapshot_suffix(name);
-        let _guard = settings.bind_to_scope();
+        let _g = settings.bind_to_scope();
         assert_snapshot!(result);
     }
 
@@ -927,7 +928,7 @@ mod test {
 
         let mut settings = insta::Settings::clone_current();
         settings.set_snapshot_suffix(name);
-        let _guard = settings.bind_to_scope();
+        let _g = settings.bind_to_scope();
         assert_snapshot!(result);
     }
 
@@ -951,15 +952,15 @@ mod test {
             params: vec![("test".into(), ValueType::Integer.intern(), false)],
             
         },
-        body: vec![Statement::Expression(ExpressionStatement {
+        body: Rc::new(vec![Statement::Expression(ExpressionStatement {
             line_no: 1,
             expr: Expression::Literal(LiteralExpression {
                 line_no: 1,
                 value: Value::Integer(1),
             }).into(),
-        }).as_node()].into(),    
+        }).as_node()].into()),    
         type_params: vec![],
-        mapings: IndexMap::new(),
+        generic_instantiations: FunctionGenerics::Monomorphic(IndexMap::new()),
     }), "function"; "test_function")]
     fn test_to_str_for_decl(decl: Declaration, name: &str) {
         let depth_has_scope_open = [false; 100].into();
@@ -969,7 +970,7 @@ mod test {
 
         let mut settings = insta::Settings::clone_current();
         settings.set_snapshot_suffix(name);
-        let _guard = settings.bind_to_scope();
+        let _g = settings.bind_to_scope();
         assert_snapshot!(result);
     }
 }

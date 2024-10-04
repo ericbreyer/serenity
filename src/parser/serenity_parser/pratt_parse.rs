@@ -5,7 +5,7 @@ use std::{rc::Rc, sync::atomic::{AtomicUsize, Ordering}};
 use half_expression::HalfExpression;
 pub use parse_table::ParseTable;
 
-use crate::{lexer::TokenType, prelude::*, typing::UValueType, value::Value};
+use crate::{lexer::TokenType, prelude::*, typing::UValueType, value_literals::Value};
 
 use super::{Precedence, SerenityParser};
 
@@ -40,7 +40,7 @@ impl SerenityParser {
         let mut node = prefix_rule.unwrap()(self, can_assign);
 
         while precedence <= self.parse_table[self.current.token_type as usize].precedence {
-            let _prev = self.previous.lexeme.clone();
+            let _ = self.previous.lexeme.clone();
             self.advance();
             let infix_rule = &self.parse_table[self.previous.token_type as usize].infix;
 
@@ -57,31 +57,31 @@ impl SerenityParser {
         node
     }
 
-    fn dot(&mut self, _can_assign: bool) -> HalfExpression {
+    fn dot(&mut self,_: bool) -> HalfExpression {
         self.consume(TokenType::Identifier, "Expect property name after '.'.");
         let name = self.previous.clone();
 
         HalfExpression::Dot(name)
     }
 
-    fn deref_dot(&mut self, _can_assign: bool) -> HalfExpression {
+    fn deref_dot(&mut self,_: bool) -> HalfExpression {
         self.consume(TokenType::Identifier, "Expect property name after '->'.");
         let name = self.previous.clone();
 
         HalfExpression::DerefDot(name)
     }
 
-    fn and_(&mut self, _can_assign: bool) -> HalfExpression {
+    fn and_(&mut self,_: bool) -> HalfExpression {
         let node = self.parse_precedence(Precedence::And);
         HalfExpression::And(node.into())
     }
 
-    fn or_(&mut self, _can_assign: bool) -> HalfExpression {
+    fn or_(&mut self,_: bool) -> HalfExpression {
         let node = self.parse_precedence(Precedence::Or);
         HalfExpression::Or(node.into())
     }
 
-    fn cast(&mut self, _can_assign: bool) -> Expression {
+    fn cast(&mut self,_: bool) -> Expression {
         let line_no = self.previous.line;
 
         let (node, cast_type) = if self.match_token(TokenType::LeftParen) {
@@ -105,7 +105,7 @@ impl SerenityParser {
         })
     }
 
-    fn cast_prefix(&mut self, _can_assign: bool) -> Expression {
+    fn cast_prefix(&mut self,_: bool) -> Expression {
         // type(value)
         // (type*)(value)
         let line_no = self.previous.line;
@@ -123,7 +123,7 @@ impl SerenityParser {
         })
     }
 
-    fn lambda(&mut self, _can_assign: bool) -> Expression {
+    fn lambda(&mut self,_: bool) -> Expression {
         thread_local! {
         static ANON_ID: AtomicUsize = const { AtomicUsize::new(0) };
         }
@@ -138,7 +138,7 @@ impl SerenityParser {
         Expression::Function(func_expr)
     }
 
-    pub(super) fn function(&mut self, _func_name: &str, type_params: Vec<SharedString>) -> FunctionExpression {
+    pub(super) fn function(&mut self, name: &str, type_params: Vec<SharedString>) -> FunctionExpression {
         let mut captures = Vec::new();
         
 
@@ -197,16 +197,16 @@ impl SerenityParser {
             self.consume(TokenType::Semicolon, "Need semicolon after weak decl");
         }
 
-        FunctionExpression::new(captures, params, nodes, return_type, _func_name.into())
+        FunctionExpression::new(captures, params, nodes, return_type, name.into())
     }
 
-    fn assign(&mut self, _can_assign: bool) -> HalfExpression {
+    fn assign(&mut self,_: bool) -> HalfExpression {
         let node = self.parse_precedence(Precedence::Assignment);
 
         HalfExpression::Assign(node.into())
     }
 
-    fn number(&mut self, _can_assign: bool) -> Expression {
+    fn number(&mut self,_: bool) -> Expression {
         let line_no = self.previous.line;
         if let Ok(n) = self.previous.lexeme.parse::<i64>() {
             Expression::Literal(LiteralExpression {
@@ -235,7 +235,7 @@ impl SerenityParser {
         }
     }
 
-    fn char(&mut self, _can_assign: bool) -> Expression {
+    fn char(&mut self,_: bool) -> Expression {
         let line = self.previous.line;
         let mut value = self.previous.lexeme.clone().to_string();
         value = value.trim_matches('\'').to_string();
@@ -255,20 +255,20 @@ impl SerenityParser {
         })
     }
 
-    fn grouping(&mut self, _can_assign: bool) -> Expression {
+    fn grouping(&mut self,_: bool) -> Expression {
         let expr = self.expression();
         self.consume(TokenType::RightParen, "Expect ')' after expression.");
         expr
     }
 
-    fn ternary(&mut self, _can_assign: bool) -> HalfExpression {
+    fn ternary(&mut self,_: bool) -> HalfExpression {
         let expr = self.parse_precedence(Precedence::Ternary.next());
         self.consume(TokenType::Colon, "Expect ':' after expression.");
         let else_expr = self.parse_precedence(Precedence::Ternary);
         HalfExpression::Ternary(Box::new(expr), Box::new(else_expr))
     }
 
-    fn unary(&mut self, _can_assign: bool) -> Expression {
+    fn unary(&mut self,_: bool) -> Expression {
         let line_no = self.previous.line;
         let operator = self.previous.token_type;
         // Compile the operand.
@@ -281,13 +281,13 @@ impl SerenityParser {
         })
     }
 
-    fn sizeof(&mut self, _can_assign: bool) -> Expression {
+    fn sizeof(&mut self,_: bool) -> Expression {
         let line_no = self.previous.line;
         let tipe = self.parse_type(None, None);
         Expression::Sizeof(SizeofExpression { tipe, line_no })
     }
 
-    fn deref(&mut self, _can_assign: bool) -> Expression {
+    fn deref(&mut self,_: bool) -> Expression {
         let line = self.previous.line;
         // Compile the operand.
         let expr = self.parse_precedence(Precedence::Unary);
@@ -302,14 +302,14 @@ impl SerenityParser {
         self.expression()
     }
 
-    fn index(&mut self, _can_assign: bool) -> HalfExpression {
+    fn index(&mut self,_: bool) -> HalfExpression {
         let expridx = self.parse_expression_index();
         self.consume(TokenType::RightBracket, "Expect ']' after index.");
 
         HalfExpression::Index(Box::new(expridx))
     }
 
-    fn addr_of(&mut self, _can_assign: bool) -> Expression {
+    fn addr_of(&mut self,_: bool) -> Expression {
         let line_no = self.previous.line;
         // parse the operand.
         let expr = self.parse_precedence(Precedence::Unary);
@@ -320,7 +320,7 @@ impl SerenityParser {
         })
     }
 
-    fn binary(&mut self, _can_assign: bool) -> HalfExpression {
+    fn binary(&mut self,_: bool) -> HalfExpression {
         let operator_type = self.previous.token_type;
 
         // Compile the right operand.
@@ -331,7 +331,7 @@ impl SerenityParser {
         HalfExpression::Binary(operator_type, Box::new(expr))
     }
 
-    fn call(&mut self, _can_assign: bool) -> HalfExpression {
+    fn call(&mut self,_: bool) -> HalfExpression {
         let nodes = self.argument_list();
         HalfExpression::Call(nodes)
     }
@@ -360,7 +360,7 @@ impl SerenityParser {
         nodes
     }
 
-    fn literal(&mut self, _can_assign: bool) -> Expression {
+    fn literal(&mut self,_: bool) -> Expression {
         let line = self.previous.line;
         match self.previous.token_type {
             TokenType::False => Expression::Literal(LiteralExpression {
@@ -375,7 +375,7 @@ impl SerenityParser {
         }
     }
 
-    fn string(&mut self, _can_assign: bool) -> Expression {
+    fn string(&mut self,_: bool) -> Expression {
         let line_no = self.previous.line;
         let mut value = self.previous.lexeme.clone().to_string();
         value = value.trim_matches('"').to_string();
@@ -393,7 +393,7 @@ impl SerenityParser {
         })
     }
 
-    fn variable(&mut self, _can_assign: bool) -> Expression {
+    fn variable(&mut self,_: bool) -> Expression {
         let line_no = self.previous.line;
         if self.constants.contains_key(&self.previous.lexeme) {
             return Expression::Literal(LiteralExpression {
@@ -420,7 +420,7 @@ impl SerenityParser {
             else {
                 return Expression::Empty;
             };
-            token.borrow_mut().lexeme = format!("{}_{}", t.unique_string(), token.borrow().lexeme).into();
+            token.borrow_mut().lexeme = format!("{}_{}", t.id_str(), token.borrow().lexeme).into();
             return Expression::Variable(VariableExpression { token, line_no });
         } else {
             return Expression::Empty;

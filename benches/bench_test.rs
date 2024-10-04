@@ -2,19 +2,6 @@
 extern crate test;
 use test::Bencher;
 
-use anyhow::{bail, Ok, Result};
-use insta::assert_snapshot;
-use test_case::{test_case, test_matrix};
-
-// #[test_case("trivial.ser" => matches Ok(1))]
-// #[test_case("prime_sieve.ser" => matches Ok(8181807856294299570))]
-// #[test_case("interfaces.ser" => matches Ok(12))]
-// #[test_case("babbage.ser" => matches Ok(25264))]
-// #[test_case("linkedlist.ser" => matches Ok(55))]
-// #[test_case("prime_conspiricy.ser" => matches Ok(7942686168))]
-// #[test_case("highly_composites.ser" => matches Ok(355168))]
-// #[test_case("generic.ser" => matches Ok(6))]
-// #[test_case("generic_func.ser" => matches Ok(540))]
 #[bench]
 pub fn test_file_run(b: &mut Bencher) {
     b.iter(|| {
@@ -42,7 +29,7 @@ pub fn test_file_run(b: &mut Bencher) {
 
 //     let mut settings = insta::Settings::clone_current();
 //     settings.set_snapshot_suffix(format!("{}_{}", file, mode));
-//     let _guard = settings.bind_to_scope();
+//     let g = settings.bind_to_scope();
 
 //     match mode {
 //         "scan" => assert_snapshot!(result),

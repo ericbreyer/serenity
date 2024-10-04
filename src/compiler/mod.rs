@@ -1,5 +1,5 @@
 use anyhow::Result;
-use indexmap::IndexMap;
+
 use inkwell::{context::Context, module::Module};
 use llvm_compiler::LLVMCompiler;
 use tracing::info;
@@ -56,14 +56,13 @@ pub fn typecheck(pr: ParseResult) -> Result<Ast> {
 pub fn compile(context: &Context, pr: ParseResult) -> Result<Module<'_>> {
     let ffi = ffi_funcs::ffi_funcs();
     let typechecker = Typechecker::new(pr.custom_structs.clone(), ffi.as_ref());
-    let mut monomorphic_funcs = IndexMap::new();
     for ast in &pr.ast.roots {
-        monomorphic_funcs = typechecker.compile(ast)?;
+        typechecker.compile(ast)?;
     }
     
     info!("Typechecking complete");
 
-    let compiler = LLVMCompiler::new(context, pr.custom_structs, ffi.as_ref(), monomorphic_funcs);
+    let compiler = LLVMCompiler::new(context, pr.custom_structs, ffi.as_ref());
     for ast in pr.ast.roots {
         compiler.compile(&ast)?;
     }

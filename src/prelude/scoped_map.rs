@@ -75,3 +75,13 @@ where
         self.as_hashmap.borrow().clone()
     }
 }
+
+impl<K, V> Into<HashMap<K, V>> for ScopedMap<K, V>
+where
+    K: Eq + Hash + Debug + Clone,
+    V: Clone,
+{
+    fn into(self) -> HashMap<K, V> {
+        self.as_hashmap()
+    }
+}

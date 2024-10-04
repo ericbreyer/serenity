@@ -15,7 +15,7 @@ impl<'a, 'ctx> LLVMFunctionCompiler<'a, 'ctx> {
             prototype
                 .params
                 .iter()
-                .map(|(_s, t, _m)| (t.decay().instantiate_generic(&mut self.generics_in_scope.as_hashmap())))
+                .map(|(_s, t,_)| (t.decay().instantiate_generic(&mut self.generics_in_scope.as_hashmap())))
                 .collect::<Vec<_>>()
                 .into_boxed_slice(),
             prototype
@@ -93,7 +93,7 @@ impl<'a, 'ctx> LLVMFunctionCompiler<'a, 'ctx> {
                     .map(|capture| self.get_variable(capture).unwrap().1)
                     .map(|t| t.llvm(self.context, &self.generics_in_scope.as_hashmap()))
                     .map(|t| Ok(BasicMetadataTypeEnum::from(t?)))
-                    .chain(prototype.params.iter().map(|(_s, t, _m)| {
+                    .chain(prototype.params.iter().map(|(_s, t,_)| {
                         Ok(BasicMetadataTypeEnum::from(
                             t.substitute(None).decay().llvm(self.context, &self.generics_in_scope.as_hashmap())?,
                         ))

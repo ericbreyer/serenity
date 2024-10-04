@@ -46,7 +46,7 @@ fn test_parser(snippet: &str, should_fail: bool) {
 
     let mut settings = insta::Settings::clone_current();
     settings.set_snapshot_suffix(snippet.to_string());
-    let _guard = settings.bind_to_scope();
+    let _g = settings.bind_to_scope();
 
 
     if should_fail {

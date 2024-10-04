@@ -51,7 +51,7 @@ fn main() -> Result<()> {
 
     let verbose = matches.opt_get_default("v", 0).unwrap_or(0);
 
-    let _guard = set_log_verbosity(verbose).map_err(|e| e.downcast::<io::Error>().unwrap())?;
+    let _ = set_log_verbosity(verbose).map_err(|e| e.downcast::<io::Error>().unwrap())?;
 
     let file_name = if matches.free.len() == 1 {
         matches.free[0].clone()

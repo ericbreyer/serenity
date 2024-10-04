@@ -151,7 +151,7 @@ impl SerenityParser {
                 // if the struct has no type parameters, return an empty hashmap as the type parameters
                 HashMap::new()
             };
-            return ValueType::Struct(s.clone()).instantiate_generic(&mut tps);
+            return ValueType::Struct(s.clone()).intern().instantiate_generic(&mut tps);
         }
         self.error("Unknown struct type.");
         ValueType::Err.intern()

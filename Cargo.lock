@@ -324,21 +324,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bda66fc9667c18cb2758a2ac84d1167245054bcf85d5d1aaa6923f45801bdd02"
 
 [[package]]
-name = "pinvec"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "840ab949b9845c83495aba5cdfb23ab17aaa67b99ac36b17211bd02a5f9e6b36"
-dependencies = [
- "pow_of_2",
-]
-
-[[package]]
-name = "pow_of_2"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4240ec1e46f35cb33cba66075d04778f53a5eba59ba4aecf2b1f8f6c4204d383"
-
-[[package]]
 name = "powerfmt"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -469,8 +454,6 @@ dependencies = [
  "inkwell",
  "insta",
  "num_enum",
- "pinvec",
- "pow_of_2",
  "strum",
  "strum_macros",
  "test-case",

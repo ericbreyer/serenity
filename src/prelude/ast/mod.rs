@@ -9,7 +9,7 @@ use crate::{
     lexer::{Token, TokenType},
     prelude::shared_strings::SharedString,
     typing::{CustomStruct, UValueType, ValueType},
-    value::Value,
+    value_literals::Value,
 };
 
 pub trait NodeVisitor<T> {
@@ -823,12 +823,24 @@ pub struct ArrayDeclaration {
 }
 
 #[derive(Clone, Debug)]
+pub struct InstantiateAs {
+    pub name: SharedString,
+    pub types: Vec<UValueType>,
+}
+
+#[derive(Clone, Debug)]
+pub enum FunctionGenerics {
+    Parametric(Rc<RefCell<Vec<InstantiateAs>>>),
+    Monomorphic(IndexMap<SharedString, UValueType>)
+}
+
+#[derive(Clone, Debug)]
 pub struct FunctionDeclaration {
     pub prototype: Prototype,
     pub line_no: usize,
-    pub body: Option<Vec<ASTNode>>,
+    pub body: Rc<Option<Vec<ASTNode>>>,
     pub type_params: Vec<SharedString>,
-    pub mapings: IndexMap<SharedString, UValueType>,
+    pub generic_instantiations: FunctionGenerics,
 }
 
 // Declaration
