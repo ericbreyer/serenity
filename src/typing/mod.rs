@@ -3,7 +3,6 @@ use std::{
     collections::{BTreeMap, HashMap, HashSet},
     fmt::{Debug, Display},
     hash::{Hash, Hasher},
-    usize,
 };
 
 use anyhow::{Context as _, Result};
@@ -135,7 +134,7 @@ impl ValueType {
     pub fn llvm<'ctx>(
         &'static self,
         ctx: &'ctx Context,
-        generics: &HashMap<SharedString, UValueType>,
+        generics: &ScopedMap<SharedString, UValueType>,
     ) -> Result<inkwell::types::BasicTypeEnum<'ctx>> {
         Ok(match self.substitute(generics) {
             Self::Float => ctx.f64_type().as_basic_type_enum(),
@@ -173,7 +172,7 @@ impl ValueType {
             }
             Self::SelfStruct(_, _) => unreachable!("self struct should be replaced by struct"),
             Self::GenericParam(p) => {
-                if let Some(v) = generics.get(p) {
+                if let Ok(v) = generics.get(p) {
                     v.llvm(ctx, generics)?
                 } else {
                     return Err(anyhow::anyhow!("generic param <{p}> not resolved"));

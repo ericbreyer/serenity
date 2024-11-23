@@ -30,7 +30,7 @@ impl Debug for CustomStruct {
         write!(f, " {{")?;
         let bg = self.fields.borrow();
         for (k, v) in bg.iter() {
-            write!(f, "{}: {}, ", k, v.value.to_string())?;
+            write!(f, "{}: {}, ", k, v.value)?;
         }
         write!(f, "}}")
     }
@@ -40,7 +40,7 @@ impl<'ctx> CustomStruct {
     pub fn llvm(
         &self,
         ctx: &'ctx Context,
-        generics: &HashMap<SharedString, UValueType>,
+        generics: &ScopedMap<SharedString, UValueType>,
     ) -> Result<inkwell::types::StructType<'ctx>> {
         let mut types = Vec::new();
         let bg = self.fields.borrow();

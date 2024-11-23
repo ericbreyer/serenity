@@ -40,13 +40,13 @@ impl Display for ValueType {
                 s.push_str(&ret.to_string());
                 s
             }
-            ValueType::Pointer(t, _) => format!("*{}", t.to_string()),
-            ValueType::LValue(t, _) => format!("&{}", t.to_string()),
+            ValueType::Pointer(t, _) => format!("*{}", t),
+            ValueType::LValue(t, _) => format!("&{}", t),
             ValueType::Array(t, s) => {
                 if let Some(s) = s {
-                    format!("[{}; {}]", t.to_string(), s)
+                    format!("[{}; {}]", t, s)
                 } else {
-                    format!("[{}]", t.to_string())
+                    format!("[{}]", t)
                 }
             }
             ValueType::Struct(st) => {
@@ -56,7 +56,7 @@ impl Display for ValueType {
                 s.push_str(" { ");
                 let bg = st.fields.borrow();
                 for (k, v) in bg.iter() {
-                    s.push_str(&format!("{}: {}, ", k, v.value.to_string()));
+                    s.push_str(&format!("{}: {}, ", k, v.value));
                 }
                 s.push('}');
                 s

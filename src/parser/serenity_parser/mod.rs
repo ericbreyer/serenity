@@ -235,7 +235,7 @@ impl SerenityParser {
             parser.consume(TokenType::Eof, "Expect end of file.");
             ret.ast.roots = nodes;
             errors = parser.had_error.into_inner();
-            ret.custom_structs = parser.custom_types.clone();
+            ret.custom_structs = parser.custom_types;
         }
 
         if errors.is_some() {

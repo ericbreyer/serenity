@@ -316,7 +316,7 @@ impl SerenityParser {
             .fields
             .borrow_mut()
             .clone_from(&fields);
-        self.custom_types.get_mut(&name).unwrap().embed = embed.clone();
+        self.custom_types.get_mut(&name).unwrap().embed.clone_from(&embed);
         debug!("after Struct: {:?}", self.custom_types.get(&name).unwrap());
 
         let mut impl_nodes = vec![];
@@ -341,9 +341,9 @@ impl SerenityParser {
                         continue;
                     };
                     for (i, t) in atypes.iter().enumerate() {
-                        s = format!("{s} a{i} : {}, ", t.to_string());
+                        s = format!("{s} a{i} : {}, ", t);
                     }
-                    s = format!("{s}) -> {};", ret.to_string());
+                    s = format!("{s}) -> {};", ret);
                 }
                 s = format!("{s}let {name}_{interface}_vtable : struct {interfacev};");
 
@@ -449,9 +449,9 @@ impl SerenityParser {
                 s = format!("{s} (self: *struct {name}_impl)");
                 s = format!("{s} {}(", field_name.lexeme.clone());
                 for (i, t) in args.iter().enumerate() {
-                    s = format!("{s} a{i} : {}, ", t.to_string());
+                    s = format!("{s} a{i} : {}, ", t);
                 }
-                s = format!("{s}) -> {}{{\n", ret.to_string());
+                s = format!("{s}) -> {}{{\n", ret);
                 s = format!(
                     "{s} return (self->vtable->{})(self->self)(",
                     field_name.lexeme.clone()
@@ -616,11 +616,24 @@ impl SerenityParser {
     fn fun_declaration(&mut self) -> ASTNode {
         let line_no = self.previous.line;
 
+        let mut type_params = Vec::new();
+        if self.match_token(TokenType::Less) {
+            loop {
+                self.consume(TokenType::Identifier, "Expect type param name.");
+                type_params.push(self.previous.lexeme.clone());
+                if !self.match_token(TokenType::Comma) {
+                    break;
+                }
+            }
+            self.consume(TokenType::Greater, "Expect '>' after generic params.");
+        }
+
+
         if self.match_token(TokenType::LeftParen) {
             self.consume(TokenType::Identifier, "Expect receiver name.");
             let receiver = self.previous.lexeme.clone();
             self.consume(TokenType::Colon, "Expect ':' after receiver  name.");
-            let receiver_type = self.parse_type(None, None);
+            let receiver_type = self.parse_type(None, Some(&type_params));
             self.consume(TokenType::RightParen, "Expect ')' after receiver.");
             let ValueType::Pointer(s, _) = receiver_type else {
                 self.error("Receiver must be a struct pointer.");
@@ -640,7 +653,8 @@ impl SerenityParser {
             cs.methods.borrow_mut().insert(new_name.clone());
 
             let inner_name = format!("{}_inner", new_name);
-            let mut node = self.function(&inner_name, vec![]);
+            let mut node = self.function(&inner_name, type_params.clone());
+            let monomorphic = type_params.is_empty();
 
             node.prototype.captures.push(receiver.clone());
 
@@ -671,24 +685,16 @@ impl SerenityParser {
                 .into()),
 
                 line_no,
-                type_params: vec![],
-                generic_instantiations: FunctionGenerics::Monomorphic(IndexMap::new()),
+                type_params,
+                generic_instantiations: if monomorphic {
+                    FunctionGenerics::Monomorphic(IndexMap::new())
+                } else {
+                    FunctionGenerics::Parametric(Rc::new(Vec::new().into()))
+                },
             }));
             return decl;
         }
-
-        let mut type_params = Vec::new();
-        if self.match_token(TokenType::Less) {
-            loop {
-                self.consume(TokenType::Identifier, "Expect capture name.");
-                type_params.push(self.previous.lexeme.clone());
-                if !self.match_token(TokenType::Comma) {
-                    break;
-                }
-            }
-            self.consume(TokenType::Greater, "Expect '>' after captures.");
-        }
-
+        
         self.consume(TokenType::Identifier, "Expect function name.");
         let name = self.previous.lexeme.clone();
         let node = self.function(&name, type_params.clone());

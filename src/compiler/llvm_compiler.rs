@@ -1,13 +1,13 @@
-use crate::prelude::{Generics, ScopedMap};
-use crate::{
-    compiler::ffi_funcs::FfiFunc,
-    lexer::{Token, TokenType},
-    prelude::*,
-    typing::{Closure, UValueType},
+use std::{
+    cell::RefCell,
+    collections::{HashMap, VecDeque},
+    path::Path,
+    rc::Rc,
+    hint::unreachable_unchecked,
+    str
 };
+
 use anyhow::{Context as _, Result};
-use core::str;
-use std::hint::unreachable_unchecked;
 
 use inkwell::{
     basic_block::BasicBlock,
@@ -21,12 +21,15 @@ use inkwell::{
     },
     AddressSpace,
 };
-use std::{
-    cell::RefCell,
-    collections::{HashMap, VecDeque},
-    path::Path,
-    rc::Rc,
+
+use crate::{
+    prelude::{Generics, ScopedMap},
+    compiler::ffi_funcs::FfiFunc,
+    lexer::{Token, TokenType},
+    prelude::*,
+    typing::{Closure, UValueType},
 };
+
 type Variables<'ctx> = ScopedMap<String, (PointerValue<'ctx>, UValueType)>;
 
 mod prototypes;
@@ -69,12 +72,12 @@ impl<'ctx> LLVMCompiler<'ctx> {
         } = ffi;
         let fnvalue = self.module.add_function(
             name,
-            ret.llvm(self.context, &self.generics_in_scope.as_hashmap())?
+            ret.llvm(self.context, &self.generics_in_scope)?
                 .fn_type(
                     args.iter()
                         .map(|t| {
                             anyhow::Ok(
-                                t.llvm(self.context, &self.generics_in_scope.as_hashmap())?
+                                t.llvm(self.context, &self.generics_in_scope)?
                                     .as_basic_type_enum(),
                             )
                         })
@@ -180,7 +183,7 @@ impl<'a, 'ctx> LLVMFunctionCompiler<'a, 'ctx> {
 
     fn get_variable(&self, name: &str) -> Result<(PointerValue<'ctx>, UValueType)> {
         self.variables.get(name.to_string()).map(|(ptr, t)| {
-            let t = t.substitute(&self.generics_in_scope.as_hashmap());
+            let t = t.substitute(self.generics_in_scope);
             (ptr, t)
         })
     }
@@ -190,7 +193,7 @@ impl<'a, 'ctx> LLVMFunctionCompiler<'a, 'ctx> {
     }
 
     fn make_alloca(&self, serenity_type: UValueType, name: &str) -> Result<PointerValue<'ctx>> {
-        let serenity_type = serenity_type.substitute(&self.generics_in_scope.as_hashmap());
+        let serenity_type = serenity_type.substitute(self.generics_in_scope);
         // if !serenity_type.has_size() {
         //     if matches!(
         //         serenity_type,
@@ -215,7 +218,7 @@ impl<'a, 'ctx> LLVMFunctionCompiler<'a, 'ctx> {
             self.builder.position_at_end(first_block);
         }
 
-        let llvm_type = serenity_type.llvm(self.context, &self.generics_in_scope.as_hashmap())?;
+        let llvm_type = serenity_type.llvm(self.context, self.generics_in_scope)?;
         let var = self
             .builder
             .build_alloca(llvm_type, name)
@@ -269,12 +272,12 @@ impl<'ctx> ExprResultInner<'ctx> {
                     let v = compiler
                         .builder
                         .build_load(
-                            t.llvm(compiler.context, &compiler.generics_in_scope.as_hashmap())?,
+                            t.llvm(compiler.context, compiler.generics_in_scope)?,
                             ptr,
                             "rval",
                         )
                         .context("Rvalue")?;
-                    ExprResultInner::new(v, t.substitute(&compiler.generics_in_scope.as_hashmap()))
+                    ExprResultInner::new(v, t.substitute(compiler.generics_in_scope))
                 }
             },
             _ => self,
@@ -331,7 +334,7 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
         let expr = match expression.operator {
             TokenType::Minus => match operand
                 .serenity_type
-                .substitute(&self.generics_in_scope.as_hashmap())
+                .substitute(self.generics_in_scope)
             {
                 ValueType::Integer => ExprResultInner::new(
                     self.builder
@@ -357,7 +360,7 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
             },
             TokenType::Bang => match operand
                 .serenity_type
-                .substitute(&self.generics_in_scope.as_hashmap())
+                .substitute(self.generics_in_scope)
             {
                 ValueType::Bool => ExprResultInner::new(
                     self.builder
@@ -394,7 +397,7 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
             .context("Rvalue")?;
         let t = expr
             .serenity_type
-            .substitute(&self.generics_in_scope.as_hashmap());
+            .substitute(self.generics_in_scope);
         let ValueType::Pointer(t, _) = t else {
             return Err(anyhow::anyhow!("Invalid deref expression"));
         };
@@ -411,7 +414,7 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
             .context("Ref expression operand")?;
         let t = expr
             .serenity_type
-            .substitute(&self.generics_in_scope.as_hashmap());
+            .substitute(self.generics_in_scope);
         let ValueType::LValue(t, _) = t else {
             return Err(anyhow::anyhow!("Invalid ref expression"));
         };
@@ -437,7 +440,7 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
 
         let a = array
             .serenity_type
-            .substitute(&self.generics_in_scope.as_hashmap());
+            .substitute(self.generics_in_scope);
 
         let t = match a {
             ValueType::Pointer(t,_) => t,
@@ -451,7 +454,7 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
 
         let ptr = unsafe {
             self.builder.build_gep(
-                t.llvm(self.context, &self.generics_in_scope.as_hashmap())?,
+                t.llvm(self.context, self.generics_in_scope)?,
                 array.value.into_pointer_value(),
                 &[
                     // self.context.i32_type().const_zero(), // For the pointer base
@@ -507,7 +510,7 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
             (TokenType::Plus, ValueType::Pointer(t1, _), ValueType::Integer) => {
                 let ptr = unsafe {
                     self.builder.build_gep(
-                        t1.llvm(self.context, &self.generics_in_scope.as_hashmap())?
+                        t1.llvm(self.context, self.generics_in_scope)?
                             .array_type(0),
                         lhs.value.into_pointer_value(),
                         &[rhs.value.into_int_value()],
@@ -519,7 +522,7 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
             (TokenType::Plus, ValueType::Array(t1, s), ValueType::Integer) if s.is_some() => {
                 let ptr = unsafe {
                     self.builder.build_gep(
-                        t1.llvm(self.context, &self.generics_in_scope.as_hashmap())?
+                        t1.llvm(self.context, self.generics_in_scope)?
                             .array_type(s.unwrap() as u32),
                         lhs_ptr.value.into_pointer_value(),
                         &[
@@ -864,7 +867,7 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
             .context("Assign expression lhs")?;
         let t = lhs
             .serenity_type
-            .substitute(&self.generics_in_scope.as_hashmap());
+            .substitute(self.generics_in_scope);
         let ValueType::LValue(t, _) = t else {
             return Err(anyhow::anyhow!("Invalid assign expression lhs"));
         };
@@ -948,7 +951,7 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
 
         let fn_type = callee
             .serenity_type
-            .substitute(&self.generics_in_scope.as_hashmap());
+            .substitute(self.generics_in_scope);
 
         if let ValueType::ExternalFn(r, name) = fn_type {
             let arg_value_meta = arg_values
@@ -1030,7 +1033,7 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
             .map(|t| {
                 Ok(BasicMetadataTypeEnum::from(t.llvm(
                     self.context,
-                    &self.generics_in_scope.as_hashmap(),
+                    self.generics_in_scope,
                 )?))
             })
             .collect::<Result<Vec<_>>>()?;
@@ -1044,7 +1047,7 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
         }
 
         let call = self.builder.build_indirect_call(
-            r.llvm(self.context, &self.generics_in_scope.as_hashmap())?
+            r.llvm(self.context, self.generics_in_scope)?
                 .fn_type(arg_type_meta.as_slice(), false),
             fnptr.into_pointer_value(),
             arg_value_meta.as_slice(),
@@ -1071,9 +1074,9 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
             return Err(anyhow::anyhow!("Invalid dot expression lhs"));
         };
         let d = st
-            .substitute(&self.generics_in_scope.as_hashmap())
+            .substitute(self.generics_in_scope)
             .fill_self_struct(self.types.clone())
-            .substitute(&self.generics_in_scope.as_hashmap());
+            .substitute(self.generics_in_scope);
         let ValueType::Struct(t) = d else {
             return Err(anyhow::anyhow!(
                 "Invalid dot expression lhs got {:?} on {:?}",
@@ -1081,7 +1084,7 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
                 expression.line_no
             ));
         };
-        let struct_type = t.llvm(self.context, &self.generics_in_scope.as_hashmap())?;
+        let struct_type = t.llvm(self.context, self.generics_in_scope)?;
         let ofield = t
             .fields
             .borrow()
@@ -1153,12 +1156,12 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
             .context("Rvalue")?;
         match (
             expr.serenity_type
-                .substitute(&self.generics_in_scope.as_hashmap()),
+                .substitute(self.generics_in_scope),
             expression
                 .target_type
-                .substitute(&self.generics_in_scope.as_hashmap()),
+                .substitute(self.generics_in_scope),
         ) {
-            (ValueType::Float, ValueType::Float) => todo!(),
+            (ValueType::Float, ValueType::Float) => Ok(expr),
             (ValueType::Float, ValueType::Integer) => {
                 let v = self.builder.build_float_to_signed_int(
                     expr.value.into_float_value(),
@@ -1201,7 +1204,7 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
         let struct_value: StructValue<'ctx> = if self.function.is_none() {
             expression
                 .struct_type
-                .llvm(self.context, &self.generics_in_scope.as_hashmap())?
+                .llvm(self.context, self.generics_in_scope)?
                 .const_named_struct(
                     expression
                         .fields
@@ -1222,7 +1225,7 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
                     expression
                         .struct_type
                         .to_value_type()
-                        .substitute(&self.generics_in_scope.as_hashmap()),
+                        .substitute(self.generics_in_scope),
                     "struct_init",
                 )
                 .context("Struct initializer alloca")?;
@@ -1230,7 +1233,7 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
                 let field_ptr = self.builder.build_struct_gep(
                     expression
                         .struct_type
-                        .llvm(self.context, &self.generics_in_scope.as_hashmap())?,
+                        .llvm(self.context, self.generics_in_scope)?,
                     struct_value_ptr,
                     i as u32,
                     "field",
@@ -1246,7 +1249,7 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
             let struct_value = self.builder.build_load(
                 expression
                     .struct_type
-                    .llvm(self.context, &self.generics_in_scope.as_hashmap())?,
+                    .llvm(self.context, self.generics_in_scope)?,
                 struct_value_ptr,
                 "struct_init",
             )?;
@@ -1262,7 +1265,7 @@ impl<'a, 'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'a, 
     fn visit_sizeof_expression(&self, expression: &SizeofExpression) -> ExprResult<'ctx> {
         let literal = expression
             .tipe
-            .llvm(self.context, &self.generics_in_scope.as_hashmap())?
+            .llvm(self.context, self.generics_in_scope)?
             .size_of()
             .context("Sizeof expression")?;
 
@@ -1304,7 +1307,7 @@ impl<'a, 'ctx> LLVMFunctionCompiler<'a, 'ctx> {
                         self.get_variable(capture)
                             .unwrap()
                             .1
-                            .llvm(self.context, &self.generics_in_scope.as_hashmap())?,
+                            .llvm(self.context, self.generics_in_scope)?,
                         self.get_variable(capture).unwrap().0,
                         capture,
                     )
@@ -1403,7 +1406,7 @@ impl<'a, 'ctx> DeclarationVisitor<Result<()>> for LLVMFunctionCompiler<'a, 'ctx>
 
             let var = self.module.add_global(
                 var_type
-                    .llvm(self.context, &self.generics_in_scope.as_hashmap())
+                    .llvm(self.context, self.generics_in_scope)
                     .context("Var decl type")?,
                 Some(AddressSpace::default()),
                 &declaration.name,
@@ -1414,7 +1417,7 @@ impl<'a, 'ctx> DeclarationVisitor<Result<()>> for LLVMFunctionCompiler<'a, 'ctx>
             } else {
                 var.set_initializer(
                     &var_type
-                        .llvm(self.context, &self.generics_in_scope.as_hashmap())
+                        .llvm(self.context, self.generics_in_scope)
                         .context("Var decl initializer")?
                         .const_zero(),
                 );
@@ -1430,7 +1433,7 @@ impl<'a, 'ctx> DeclarationVisitor<Result<()>> for LLVMFunctionCompiler<'a, 'ctx>
 
             let var_type = declaration
                 .tipe
-                .substitute(&self.generics_in_scope.as_hashmap());
+                .substitute(self.generics_in_scope);
 
             let current_block = self.builder.get_insert_block().unwrap();
             if self

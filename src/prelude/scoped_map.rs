@@ -1,12 +1,14 @@
-use std::cell::{Cell, RefCell};
-use std::collections::{HashMap, VecDeque};
-use std::fmt::Debug;
-use std::hash::Hash;
-
-use crate::prelude::*;
-use crate::typing::UValueType;
+use std::{
+    borrow::Borrow,
+    cell::{Cell, RefCell},
+    collections::{HashMap, VecDeque},
+    fmt::Debug,
+    hash::Hash,
+};
 
 use anyhow::Result;
+
+use crate::{prelude::*, typing::UValueType};
 
 pub type Generics = ScopedMap<SharedString, UValueType>;
 
@@ -18,6 +20,16 @@ where
     variables: RefCell<VecDeque<HashMap<K, V>>>,
     as_hashmap: RefCell<HashMap<K, V>>,
     dirty: Cell<bool>,
+}
+
+impl<K, V> Default for ScopedMap<K, V>
+where
+    K: Eq + Hash + Debug + Clone,
+    V: Clone,
+ {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl<K, V> ScopedMap<K, V>
@@ -43,9 +55,10 @@ where
         self.dirty.set(true);
     }
 
-    pub fn get(&self, name: K) -> Result<V> {
+    pub fn get(&self, name: impl Borrow<K>) -> Result<V> {
+        let name = name.borrow();
         for scope in self.variables.borrow().iter() {
-            if let Some(v) = scope.get(&name) {
+            if let Some(v) = scope.get(name) {
                 return Ok(v.clone());
             }
         }
@@ -76,12 +89,24 @@ where
     }
 }
 
-impl<K, V> Into<HashMap<K, V>> for ScopedMap<K, V>
+impl<K, V> From<ScopedMap<K, V>> for HashMap<K, V>
 where
     K: Eq + Hash + Debug + Clone,
     V: Clone,
 {
-    fn into(self) -> HashMap<K, V> {
-        self.as_hashmap()
+    fn from(val: ScopedMap<K, V>) -> Self {
+        val.as_hashmap()
+    }
+}
+
+impl<K, V> Iterator for ScopedMap<K, V>
+where
+    K: Eq + Hash + Debug + Clone,
+    V: Clone,
+{
+    type Item = (K, V);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.as_hashmap().into_iter().next()
     }
 }

@@ -71,7 +71,7 @@ impl Typechecker {
 
 impl Typechecker {
     fn get_variable(&self, name: &str) -> Result<UValueType> {
-        self.variables.get(name.to_string().into())
+        self.variables.get(Into::<SharedString>::into(name.to_string()))
     }
 
     fn set_variable(&self, name: &str, value: UValueType) {
@@ -199,7 +199,7 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
             .context("Index expression index")?
             .rvalue()
             .context("Rvalue")?;
-        ValueType::unify(ValueType::Integer.intern(), index.0, &self.generics_in_scope.as_hashmap())?;
+        ValueType::unify(ValueType::Integer.intern(), index.0, &self.generics_in_scope)?;
 
         let t = match pointer.0 {
             ValueType::Pointer(a, _) => a,
@@ -228,9 +228,9 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
             .context("Rvalue")?;
 
         if matches!(*lhs, ValueType::Array(_, _) | ValueType::Pointer(_, _)) {
-            ValueType::unify(ValueType::Integer.intern(), rhs.0, &self.generics_in_scope.as_hashmap())?;
+            ValueType::unify(ValueType::Integer.intern(), rhs.0, &self.generics_in_scope)?;
         } else {
-            ValueType::unify(lhs.0, rhs.0, &self.generics_in_scope.as_hashmap())?;
+            ValueType::unify(lhs.0, rhs.0, &self.generics_in_scope)?;
         }
 
         let expr = match (expression.operator, lhs.deref(), rhs.deref()) {
@@ -295,7 +295,7 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
             .context("Ternary expression condition")?
             .rvalue()
             .context("Rvalue")?;
-        ValueType::unify(ValueType::Bool.intern(), cond.0, &self.generics_in_scope.as_hashmap()).context(format!(
+        ValueType::unify(ValueType::Bool.intern(), cond.0, &self.generics_in_scope).context(format!(
             "Ternary expression unification {:?} = {:?}",
             ValueType::Bool.intern(),
             cond.0
@@ -314,7 +314,7 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
             .rvalue()
             .context("Rvalue")?;
 
-        ValueType::unify(lhs.0, rhs.0, &self.generics_in_scope.as_hashmap()).context(format!(
+        ValueType::unify(lhs.0, rhs.0, &self.generics_in_scope).context(format!(
             "Ternary expression unification {:?} = {:?}",
             lhs.0, rhs.0
         ))?;
@@ -395,7 +395,7 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
         let ValueType::LValue(t, _) = *lhs else {
             return Err(anyhow::anyhow!("Invalid assign expression lhs"));
         };
-        ValueType::unify(t.decay(), rhs.0, &self.generics_in_scope.as_hashmap()).context(format!(
+        ValueType::unify(t.decay(), rhs.0, &self.generics_in_scope).context(format!(
             "Assign expression unification \n{:?}\n{:?}\nepxr: {:?}",
             t.decay(),
             rhs,
@@ -413,7 +413,7 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
             .rvalue()
             .context("Rvalue")?;
 
-        ValueType::unify(ValueType::Bool.intern(), lhs.0, &self.generics_in_scope.as_hashmap()).context(format!(
+        ValueType::unify(ValueType::Bool.intern(), lhs.0, &self.generics_in_scope).context(format!(
             "Logical expression unification {:?} = {:?}",
             ValueType::Bool.intern(),
             lhs.0
@@ -426,7 +426,7 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
             .rvalue()
             .context("Rvalue")?;
 
-        ValueType::unify(ValueType::Bool.intern(), rhs.0, &self.generics_in_scope.as_hashmap()).context(format!(
+        ValueType::unify(ValueType::Bool.intern(), rhs.0, &self.generics_in_scope).context(format!(
             "Logical expression unification {:?} = {:?}",
             ValueType::Bool.intern(),
             rhs.0
@@ -469,7 +469,7 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
         };
 
         for arg in args.iter().zip(arg_types.iter()) {
-            ValueType::unify(arg.0.decay(), arg.1.decay(), &self.generics_in_scope.as_hashmap()).context(format!(
+            ValueType::unify(arg.0.decay(), arg.1.decay(), &self.generics_in_scope).context(format!(
                 "Call expression unification {:?} = {:?}",
                 arg.0.decay(),
                 arg.1.decay()
@@ -541,7 +541,7 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
         let fn_type = self.function_type_serenity(&expression.prototype);
         let r_type = self.function_body(expression.prototype.clone(), &expression.body)?;
 
-        ValueType::unify(expression.prototype.return_type, r_type, &self.generics_in_scope.as_hashmap()).context(format!(
+        ValueType::unify(expression.prototype.return_type, r_type, &self.generics_in_scope).context(format!(
             "Function expression unification {:?} = {:?}",
             expression.prototype.return_type, r_type
         ))?;
@@ -575,7 +575,7 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
                 .map(|f| f.value)
                 .ok_or_else(|| anyhow::anyhow!("Field {} not found in struct", name))?;
             let expr_t = expr.accept(self)?.rvalue()?;
-            ValueType::unify(t.decay(), expr_t.0, &self.generics_in_scope.as_hashmap()).context(format!(
+            ValueType::unify(t.decay(), expr_t.0, &self.generics_in_scope).context(format!(
                 "Struct initializer expression unification {:?} = {:?}",
                 t, expr_t.0
             ))?;
@@ -640,7 +640,7 @@ impl Typechecker {
                 .get()
                 .unwrap_or_else(|| ValueType::Nil.intern());
 
-            ValueType::unify(prototype.return_type, ret, &self.generics_in_scope.as_hashmap()).context(format!(
+            ValueType::unify(prototype.return_type, ret, &self.generics_in_scope).context(format!(
                 "Function return unification \n{:?}\n{:?}",
                 prototype.return_type, ret
             ))?;
@@ -662,7 +662,7 @@ impl DeclarationVisitor<Result<()>> for Typechecker {
         let var_type = declaration.tipe;
         if let Some(init) = &declaration.initializer {
             let init_type = init.accept(self)?.rvalue()?;
-            ValueType::unify(var_type, init_type.0, &self.generics_in_scope.as_hashmap()).context(format!(
+            ValueType::unify(var_type, init_type.0, &self.generics_in_scope).context(format!(
                 "Var declaration unification {:?} = {:?}",
                 var_type, init_type.0
             ))?;
@@ -719,7 +719,7 @@ impl StatementVisitor<Result<()>> for Typechecker {
 
     fn visit_if_statement(&self, statement: &IfStatement) -> Result<()> {
         let cond = statement.condition.accept(self)?.rvalue()?;
-        ValueType::unify(ValueType::Bool.intern(), cond.0, &self.generics_in_scope.as_hashmap()).context(format!(
+        ValueType::unify(ValueType::Bool.intern(), cond.0, &self.generics_in_scope).context(format!(
             "If statement unification {:?} = {:?}",
             ValueType::Bool.intern(),
             cond.0
@@ -737,7 +737,7 @@ impl StatementVisitor<Result<()>> for Typechecker {
     fn visit_while_statement(&self, statement: &WhileStatement) -> Result<()> {
         let cond = statement.condition.accept(self)?.rvalue()?;
 
-        ValueType::unify(ValueType::Bool.intern(), cond.0, &self.generics_in_scope.as_hashmap())?;
+        ValueType::unify(ValueType::Bool.intern(), cond.0, &self.generics_in_scope)?;
 
         statement.body.accept(self)?;
 
@@ -752,7 +752,7 @@ impl StatementVisitor<Result<()>> for Typechecker {
 
         if let Some(cond) = &statement.condition {
             let cond = cond.accept(self)?.rvalue()?;
-            ValueType::unify(ValueType::Bool.intern(), cond.0, &self.generics_in_scope.as_hashmap())?;
+            ValueType::unify(ValueType::Bool.intern(), cond.0, &self.generics_in_scope)?;
         }
 
         if let Some(inc) = &statement.increment {

@@ -52,7 +52,7 @@ impl<'a, 'ctx> LLVMFunctionCompiler<'a, 'ctx> {
                         self.get_variable(capture)
                             .unwrap()
                             .1
-                            .llvm(self.context, &self.generics_in_scope.as_hashmap())
+                            .llvm(self.context, self.generics_in_scope)
                     })
                     .collect::<Result<Vec<_>>>()?
                     .as_slice(),
@@ -84,18 +84,18 @@ impl<'a, 'ctx> LLVMFunctionCompiler<'a, 'ctx> {
         Ok(prototype
             .return_type
             .substitute(None)
-            .llvm(self.context, &self.generics_in_scope.as_hashmap())
+            .llvm(self.context, self.generics_in_scope)
             .context("Function return type")?
             .fn_type(
                 prototype
                     .captures
                     .iter()
                     .map(|capture| self.get_variable(capture).unwrap().1)
-                    .map(|t| t.llvm(self.context, &self.generics_in_scope.as_hashmap()))
+                    .map(|t| t.llvm(self.context, self.generics_in_scope))
                     .map(|t| Ok(BasicMetadataTypeEnum::from(t?)))
                     .chain(prototype.params.iter().map(|(_s, t,_)| {
                         Ok(BasicMetadataTypeEnum::from(
-                            t.substitute(None).decay().llvm(self.context, &self.generics_in_scope.as_hashmap())?,
+                            t.substitute(None).decay().llvm(self.context, self.generics_in_scope)?,
                         ))
                     }))
                     .collect::<Result<Vec<_>>>()?

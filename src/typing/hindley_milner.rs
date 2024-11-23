@@ -36,7 +36,7 @@ impl ValueType {
     pub fn unify(
         t1: UValueType,
         t2: UValueType,
-        generics: &HashMap<SharedString, UValueType>,
+        generics: &ScopedMap<SharedString, UValueType>,
     ) -> Result<()> {
         match (t1.substitute(generics), t2.substitute(generics)) {
             // Chill stuff, fo sho
@@ -46,7 +46,7 @@ impl ValueType {
 
             // Generic params should be resolved
             (ValueType::GenericParam(s0), _) | (_, ValueType::GenericParam(s0)) => {
-                if let Some(v) = generics.get(s0) {
+                if let Ok(v) = generics.get(s0) {
                     ValueType::unify(v, t2, generics)?;
                 } else {
                     return Err(anyhow::anyhow!("generic param <{s0}> not resolved"));
@@ -176,9 +176,9 @@ impl ValueType {
     /// it is left as is.
     pub fn substitute<'a>(
         &'static self,
-        generics: impl Into<Option<&'a HashMap<SharedString, UValueType>>>,
+        generics: impl Into<Option<&'a ScopedMap<SharedString, UValueType>>>,
     ) -> UValueType {
-        let empty = HashMap::new();
+        let empty = ScopedMap::new();
         let generics = generics.into().unwrap_or(&empty);
         let new = match self {
             ValueType::Float
@@ -249,7 +249,7 @@ impl ValueType {
             )
             .intern(),
             ValueType::GenericParam(s) => {
-                if let Some(v) = generics.get(s) {
+                if let Ok(v) = generics.get(s) {
                     v
                 } else {
                     self
@@ -304,7 +304,7 @@ impl ValueType {
                     new_args.into_boxed_slice(),
                     new_upvals.into_boxed_slice(),
                     new_ret,
-                    generics.clone().into_iter().collect::<BTreeMap<_, _>>(),
+                    generics.iter().map(|(k, v)| (k.clone(), *v)).collect::<BTreeMap<_, _>>(),
                 ))
                 .intern()
             }

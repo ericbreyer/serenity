@@ -1,23 +1,9 @@
-fn<A> test_generic(ident: A) -> A {
-    return ident + ident;
-}
-
 fn main() -> int {
-    let x = 90;
-    let y = test_generic(x);
-    printf("%d\n", y);
+    let array : [int; 5] = {0, 0, 0, 0, 0};
+    array[0] = 1;
+    printf("%d\n", array[0]);
 
-    let y = 90.0;
-    let z = test_generic(y);
-    printf("%f\n", z);
-
-    let x = 90;
-    let y = test_generic(x);
-    printf("%d\n", y);
-
-    // let s = "hello";
-    // let t = test_generic(s);
-    // printf("%s\n", t);
+    
 
     return 0;
 }
