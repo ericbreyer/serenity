@@ -12,13 +12,13 @@ use inkwell::{context::Context, types::BasicType as _, AddressSpace};
 
 use crate::prelude::*;
 
-pub use custom_struct::*;
 pub use closure::*;
+pub use custom_struct::*;
 
 mod closure;
 mod custom_struct;
-mod internment;
 mod hindley_milner;
+mod internment;
 mod print;
 
 pub type UValueType = &'static ValueType;
@@ -37,13 +37,12 @@ pub enum ValueType {
     Pointer(UValueType, bool),
     LValue(UValueType, bool),
     Array(UValueType, Option<usize>),
-    Struct(CustomStruct),
+    Struct(Box<CustomStruct>),
     SelfStruct(SharedString, Vec<UValueType>),
     GenericParam(SharedString),
     TypeVar(usize),
     Err,
 }
-
 
 impl ValueType {
     /// # Decay
@@ -74,7 +73,7 @@ impl ValueType {
                     for (n, t) in s.type_vars.borrow().iter().zip(v.iter()) {
                         tvs.insert(n.clone(), *t);
                     }
-                    Self::Struct(s.clone())
+                    Self::Struct(Box::new(s.clone()))
                         .intern()
                         .instantiate_generic(&mut tvs)
                 } else {
@@ -94,11 +93,7 @@ impl ValueType {
     fn soft_compare(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::Pointer(_, _), Self::Pointer(&Self::Nil, _))
-            | (Self::Pointer(&Self::Nil, _), Self::Pointer(_, _))
-                =>
-            {
-                true
-            }
+            | (Self::Pointer(&Self::Nil, _), Self::Pointer(_, _)) => true,
             (Self::Struct(l0), Self::Struct(r0)) => l0.name == r0.name,
             (
                 ValueType::Closure(Closure {
@@ -122,9 +117,9 @@ impl ValueType {
             }
             (Self::Array(l0, l0c), Self::Array(r0, r0c)) => l0 == r0 && (l0c == r0c),
             (Self::Pointer(l0, _), Self::Pointer(r0, _)) => l0 == r0,
-            (Self::SelfStruct(l0,_), Self::SelfStruct(r0,_)) => l0 == r0,
-            (Self::SelfStruct(l0,_), Self::Struct(r0)) => l0 == &r0.name,
-            (Self::Struct(l0), Self::SelfStruct(r0,_)) => &l0.name == r0,
+            (Self::SelfStruct(l0, _), Self::SelfStruct(r0, _)) => l0 == r0,
+            (Self::SelfStruct(l0, _), Self::Struct(r0)) => l0 == &r0.name,
+            (Self::Struct(l0), Self::SelfStruct(r0, _)) => &l0.name == r0,
             (Self::GenericParam(l0), Self::GenericParam(r0)) => l0 == r0,
             (Self::TypeVar(l0), Self::TypeVar(r0)) => l0 == r0,
             _ => core::mem::discriminant(self) == core::mem::discriminant(other),
@@ -190,7 +185,6 @@ impl PartialEq for ValueType {
     }
 }
 
-
 impl From<SharedString> for ValueType {
     fn from(s: SharedString) -> Self {
         match Into::<String>::into(s).as_str() {
@@ -200,6 +194,7 @@ impl From<SharedString> for ValueType {
             "bool" => Self::Bool,
             "nil" => Self::Nil,
             "err" => Self::Err,
+            s if s.chars().nth(0).unwrap() == '$' => Self::TypeVar(s[1..].parse().unwrap()),
             s => Self::GenericParam(s.into()),
         }
     }

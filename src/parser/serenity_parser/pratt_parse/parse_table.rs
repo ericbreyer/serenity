@@ -154,7 +154,6 @@ impl SerenityParser {
 
                 precedence: Precedence::Or,
             }, // Or
-            no_pratt!(), // Print
             no_pratt!(), // Return
             no_pratt!(), // Super
             no_pratt!(), // This
@@ -175,7 +174,7 @@ impl SerenityParser {
             no_pratt!(), // Colon
             ParseRule {
                 prefix: None,
-                infix: None,
+                infix: Some(SerenityParser::double_colon),
                 precedence: Precedence::Call,
             }, // Double Colon
             no_pratt!(), // Const
@@ -249,6 +248,7 @@ impl SerenityParser {
 
                 precedence: Precedence::None,
             }, // sizeof
+            no_pratt!(), // mut
             no_pratt!(), // EOF
             no_pratt!(), // Error
         ])

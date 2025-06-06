@@ -7,13 +7,13 @@ expression: ast
 [line    1] │    ╰───  Initializer
 [line    1] │         ╰─── Literal: 0
 [line    1] ├─── Binary: Less
-[line    1] │    ├─── Variable: RefCell { value: <Identifier   "i"           [1]> }
+[line    1] │    ├─── Variable: i
 [line    1] │    ╰─── Literal: 10
 [line    1] ├─── Assign:
-[line    1] │    ├─── Variable: RefCell { value: <Identifier   "i"           [1]> }
+[line    1] │    ├─── Variable: i
 [line    1] │    ╰─── Binary: Plus
-[line    1] │         ├─── Variable: RefCell { value: <Identifier   "i"           [1]> }
+[line    1] │         ├─── Variable: i
 [line    1] │         ╰─── Literal: 1
 [line    1] ╰─── Block: 
 [line    1]      ╰─── Return:
-[line    1]           ╰─── Variable: RefCell { value: <Identifier   "i"           [1]> }
+[line    1]           ╰─── Variable: i

@@ -1,0 +1,123 @@
+---
+source: tests/integration_test.rs
+expression: result
+---
+; ModuleID = 'main'
+source_filename = "main"
+
+@"4519506643385471697_add" = global { ptr } { ptr @"4519506643385471697_add_ptr->ptrptr" }
+@"17414384798775082851_add" = global { ptr } { ptr @"17414384798775082851_add_ptr->ptrptr" }
+@main = global { ptr } { ptr @main_i64 }
+
+declare i8 @printf(ptr, ...)
+
+declare ptr @malloc(i64)
+
+declare i8 @free(ptr)
+
+declare i8 @usleep(i64)
+
+define { ptr, ptr } @"4519506643385471697_add_ptr->ptrptr"(ptr %0) {
+entry:
+  %closure = alloca { ptr, ptr }, align 8
+  %t = alloca ptr, align 8
+  store ptr %0, ptr %t, align 8
+  %t1 = load ptr, ptr %t, align 8
+  %upval = getelementptr inbounds nuw { ptr, ptr }, ptr %closure, i32 0, i32 0
+  store ptr %t1, ptr %upval, align 8
+  %upval2 = getelementptr inbounds nuw { ptr, ptr }, ptr %closure, i32 0, i32 1
+  store ptr @"test_add_inner_i64ptr->i64", ptr %upval2, align 8
+  %closure3 = load { ptr, ptr }, ptr %closure, align 8
+  ret { ptr, ptr } %closure3
+}
+
+define i64 @"test_add_inner_i64ptr->i64"(ptr %0, i64 %1) {
+entry:
+  %c = alloca i64, align 8
+  %t = alloca ptr, align 8
+  store ptr %0, ptr %t, align 8
+  store i64 %1, ptr %c, align 4
+  %rval = load ptr, ptr %t, align 8
+  %field = getelementptr inbounds nuw { i64, i64 }, ptr %rval, i32 0, i32 0
+  %rval1 = load i64, ptr %field, align 4
+  %rval2 = load ptr, ptr %t, align 8
+  %field3 = getelementptr inbounds nuw { i64, i64 }, ptr %rval2, i32 0, i32 1
+  %rval4 = load i64, ptr %field3, align 4
+  %addtmp = add i64 %rval1, %rval4
+  %rval5 = load i64, ptr %c, align 4
+  %addtmp6 = add i64 %addtmp, %rval5
+  ret i64 %addtmp6
+}
+
+define { ptr, ptr } @"17414384798775082851_add_ptr->ptrptr"(ptr %0) {
+entry:
+  %closure = alloca { ptr, ptr }, align 8
+  %t = alloca ptr, align 8
+  store ptr %0, ptr %t, align 8
+  %t1 = load ptr, ptr %t, align 8
+  %upval = getelementptr inbounds nuw { ptr, ptr }, ptr %closure, i32 0, i32 0
+  store ptr %t1, ptr %upval, align 8
+  %upval2 = getelementptr inbounds nuw { ptr, ptr }, ptr %closure, i32 0, i32 1
+  store ptr @"test_add_inner_doubleptr->double", ptr %upval2, align 8
+  %closure3 = load { ptr, ptr }, ptr %closure, align 8
+  ret { ptr, ptr } %closure3
+}
+
+define double @"test_add_inner_doubleptr->double"(ptr %0, double %1) {
+entry:
+  %c = alloca double, align 8
+  %t = alloca ptr, align 8
+  store ptr %0, ptr %t, align 8
+  store double %1, ptr %c, align 8
+  %rval = load ptr, ptr %t, align 8
+  %field = getelementptr inbounds nuw { double, double }, ptr %rval, i32 0, i32 0
+  %rval1 = load double, ptr %field, align 8
+  %rval2 = load ptr, ptr %t, align 8
+  %field3 = getelementptr inbounds nuw { double, double }, ptr %rval2, i32 0, i32 1
+  %rval4 = load double, ptr %field3, align 8
+  %addtmp = fadd double %rval1, %rval4
+  %rval5 = load double, ptr %c, align 8
+  %addtmp6 = fadd double %addtmp, %rval5
+  ret double %addtmp6
+}
+
+define i64 @main_i64() {
+entry:
+  %calltmp18 = alloca double, align 8
+  %calltmp13 = alloca { ptr, ptr }, align 8
+  %calltmp8 = alloca i64, align 8
+  %calltmp4 = alloca { ptr, ptr }, align 8
+  %f = alloca { double, double }, align 8
+  %d = alloca { i64, i64 }, align 8
+  %field = getelementptr inbounds nuw { i64, i64 }, ptr %d, i32 0, i32 0
+  store i64 1, ptr %field, align 4
+  %field1 = getelementptr inbounds nuw { i64, i64 }, ptr %d, i32 0, i32 1
+  store i64 2, ptr %field1, align 4
+  %field2 = getelementptr inbounds nuw { double, double }, ptr %f, i32 0, i32 0
+  store double 1.000000e+00, ptr %field2, align 8
+  %field3 = getelementptr inbounds nuw { double, double }, ptr %f, i32 0, i32 1
+  store double 2.000000e+00, ptr %field3, align 8
+  %rval = load { ptr }, ptr @"4519506643385471697_add", align 8
+  %fnptr = extractvalue { ptr } %rval, 0
+  %calltmp = call { ptr, ptr } %fnptr(ptr %d)
+  store { ptr, ptr } %calltmp, ptr %calltmp4, align 8
+  %rval5 = load { ptr, ptr }, ptr %calltmp4, align 8
+  %fnptr6 = extractvalue { ptr, ptr } %rval5, 1
+  %upval = extractvalue { ptr, ptr } %rval5, 0
+  %calltmp7 = call i64 %fnptr6(ptr %upval, i64 3)
+  store i64 %calltmp7, ptr %calltmp8, align 4
+  %rval9 = load i64, ptr %calltmp8, align 4
+  %rval10 = load { ptr }, ptr @"17414384798775082851_add", align 8
+  %fnptr11 = extractvalue { ptr } %rval10, 0
+  %calltmp12 = call { ptr, ptr } %fnptr11(ptr %f)
+  store { ptr, ptr } %calltmp12, ptr %calltmp13, align 8
+  %rval14 = load { ptr, ptr }, ptr %calltmp13, align 8
+  %fnptr15 = extractvalue { ptr, ptr } %rval14, 1
+  %upval16 = extractvalue { ptr, ptr } %rval14, 0
+  %calltmp17 = call double %fnptr15(ptr %upval16, double 3.000000e+00)
+  store double %calltmp17, ptr %calltmp18, align 8
+  %rval19 = load double, ptr %calltmp18, align 8
+  %fptoint = fptosi double %rval19 to i64
+  %addtmp = add i64 %rval9, %fptoint
+  ret i64 %addtmp
+}

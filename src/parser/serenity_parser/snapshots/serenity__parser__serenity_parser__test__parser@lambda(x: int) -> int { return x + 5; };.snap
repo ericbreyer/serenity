@@ -12,5 +12,5 @@ expression: ast
 [line    0]           ╰─── Body: 
 [line    1]                ╰─── Return:
 [line    1]                     ╰─── Binary: Plus
-[line    1]                          ├─── Variable: RefCell { value: <Identifier   "x"           [1]> }
+[line    1]                          ├─── Variable: x
 [line    1]                          ╰─── Literal: 5

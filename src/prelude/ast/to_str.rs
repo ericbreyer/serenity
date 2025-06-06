@@ -83,7 +83,9 @@ impl<'a> ToStrVisitor<'a> {
                 ""
             }
             + if depth > 0 { INDENT_MEMBER } else { "" };
-        if let Some(c) = close_scope { self.depth_has_scope_open.borrow_mut()[c] = false; }
+        if let Some(c) = close_scope {
+            self.depth_has_scope_open.borrow_mut()[c] = false;
+        }
         self.depth_has_scope_open.borrow_mut()[depth] = true;
 
         s.push_str(
@@ -93,7 +95,7 @@ impl<'a> ToStrVisitor<'a> {
         s
     }
 }
-impl<'a> NodeVisitor<String> for ToStrVisitor<'a> {
+impl NodeVisitor<String> for ToStrVisitor<'_> {
     fn visit_statement(&self, statement: &Statement) -> String {
         self.visit(statement)
     }
@@ -107,11 +109,18 @@ impl<'a> NodeVisitor<String> for ToStrVisitor<'a> {
     }
 }
 
-impl<'a> ExpressionVisitor<String> for ToStrVisitor<'a> {
+impl ExpressionVisitor<String> for ToStrVisitor<'_> {
     fn visit_literal_expression(&self, expression: &super::LiteralExpression) -> String {
         format!(
             "[line {:>4}] {}Literal: {:?}",
             expression.line_no, self.indent_member, expression.value
+        )
+    }
+
+    fn visit_double_colon_expression(&self, expression: &super::DoubleColonExpression) -> String {
+        format!(
+            "[line {:>4}] {}DoubleColon: {:?}::{:?}",
+            expression.line_no, self.indent_member, expression.typ, expression.acessor
         )
     }
 
@@ -230,8 +239,10 @@ impl<'a> ExpressionVisitor<String> for ToStrVisitor<'a> {
     fn visit_variable_expression(&self, expression: &super::VariableExpression) -> String {
         self.depth_has_scope_open.borrow_mut()[self.depth] = false;
         format!(
-            "[line {:>4}] {}Variable: {:?}",
-            expression.line_no, self.indent_member, expression.token
+            "[line {:>4}] {}Variable: {}",
+            expression.line_no,
+            self.indent_member,
+            expression.token.borrow().lexeme
         )
     }
 
@@ -336,9 +347,7 @@ impl<'a> ExpressionVisitor<String> for ToStrVisitor<'a> {
         let mut s = String::new();
         s.push_str(&format!(
             "[line {:>4}] {}Cast: {:?}",
-            expression.line_no,
-            self.indent_member,
-            expression.target_type
+            expression.line_no, self.indent_member, expression.target_type
         ));
         s.push_str(&expression.expression.as_node().accept(&ToStrVisitor::new(
             self.depth_has_scope_open,
@@ -394,7 +403,7 @@ impl<'a> ExpressionVisitor<String> for ToStrVisitor<'a> {
         }
         s
     }
-    
+
     fn visit_sizeof_expression(&self, expression: &super::SizeofExpression) -> String {
         format!(
             "[line {:>4}] {}Sizeof: {:?}",
@@ -403,7 +412,7 @@ impl<'a> ExpressionVisitor<String> for ToStrVisitor<'a> {
     }
 }
 
-impl<'a> StatementVisitor<String> for ToStrVisitor<'a> {
+impl StatementVisitor<String> for ToStrVisitor<'_> {
     fn visit_block_statement(&self, statement: &super::BlockStatement) -> String {
         let mut s = String::new();
         s.push_str(&format!(
@@ -554,7 +563,7 @@ impl<'a> StatementVisitor<String> for ToStrVisitor<'a> {
     }
 }
 
-impl<'a> DeclarationVisitor<String> for ToStrVisitor<'a> {
+impl DeclarationVisitor<String> for ToStrVisitor<'_> {
     fn visit_var_declaration(&self, declaration: &super::VarDeclaration) -> String {
         let mindent = self.indent.strip_suffix(INDENT_PIPE_END);
         let indent = if let Some(indent) = mindent {
@@ -653,7 +662,9 @@ impl Prototype {
             .trim_end_matches(PIPE_END_CHAR)
             .to_owned()
             + INDENT;
-        if let Some(c) = close_scope { depth_has_scope_open.borrow_mut()[c] = false; }
+        if let Some(c) = close_scope {
+            depth_has_scope_open.borrow_mut()[c] = false;
+        }
 
         s.push_str(&format!(
             "[line {line:>4}] {indent_member}Function Expression:"
@@ -688,7 +699,7 @@ impl Prototype {
             s.push_str(&format!(
                 "\n[line {line:>4}] {indent}{T_CHAR}{INDENT_MEMBER}Params:"
             ));
-            for (i, (str, t,_)) in self.params.iter().enumerate() {
+            for (i, (str, t, _)) in self.params.iter().enumerate() {
                 s.push('\n');
                 s.push_str(&format!(
                     "[line {line:>4}] {indent}{INDENT_PIPE}{}{INDENT_MEMBER}{str}: {t:?}",
@@ -725,7 +736,6 @@ impl Prototype {
 #[cfg(test)]
 mod test {
 
-    
     use std::rc::Rc;
 
     use super::*;
@@ -902,7 +912,6 @@ mod test {
         assert_snapshot!(result);
     }
 
-    
     #[test_case(Statement::Break(BreakStatement {
         line_no: 1,
     }), "break"; "test_break")]
@@ -945,12 +954,10 @@ mod test {
     #[test_case(Declaration::Function(FunctionDeclaration {
         line_no: 1,
         prototype: Prototype {
-            line_no: 1,
             name: "test".into(),
             return_type: ValueType::Integer.intern(),
             captures: vec!["test".into()],
             params: vec![("test".into(), ValueType::Integer.intern(), false)],
-            
         },
         body: Rc::new(vec![Statement::Expression(ExpressionStatement {
             line_no: 1,
@@ -958,7 +965,7 @@ mod test {
                 line_no: 1,
                 value: Value::Integer(1),
             }).into(),
-        }).as_node()].into()),    
+        }).as_node()].into()),
         type_params: vec![],
         generic_instantiations: FunctionGenerics::Monomorphic(IndexMap::new()),
     }), "function"; "test_function")]

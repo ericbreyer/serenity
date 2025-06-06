@@ -22,11 +22,21 @@ where
     dirty: Cell<bool>,
 }
 
+impl<K, V> Debug for ScopedMap<K, V>
+where
+    K: Eq + Hash + Debug + Clone,
+    V: Clone + Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "SM{:?}", self.as_hashmap())
+    }
+}
+
 impl<K, V> Default for ScopedMap<K, V>
 where
     K: Eq + Hash + Debug + Clone,
     V: Clone,
- {
+{
     fn default() -> Self {
         Self::new()
     }
@@ -38,7 +48,7 @@ where
     V: Clone,
 {
     pub fn new() -> Self {
-        let v = Self {
+        let mut v = Self {
             variables: VecDeque::new().into(),
             as_hashmap: HashMap::new().into(),
             dirty: true.into(),
@@ -47,10 +57,10 @@ where
         v
     }
 
-    pub fn begin_scope(&self) {
+    pub fn begin_scope(&mut self) {
         self.variables.borrow_mut().push_front(HashMap::new());
     }
-    pub fn end_scope(&self) {
+    pub fn end_scope(&mut self) {
         self.variables.borrow_mut().pop_front();
         self.dirty.set(true);
     }
@@ -62,10 +72,14 @@ where
                 return Ok(v.clone());
             }
         }
-        Err(anyhow::anyhow!("Variable {:?} not found", name))
+        Err(anyhow::anyhow!(
+            "Variable {:?} not found in {:?}",
+            name,
+            self.as_hashmap().keys()
+        ))
     }
 
-    pub fn set(&self, name: K, value: V) {
+    pub fn set(&mut self, name: K, value: V) {
         self.variables
             .borrow_mut()
             .front_mut()

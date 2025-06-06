@@ -1,12 +1,11 @@
 mod ast;
-mod shared_strings;
 mod scoped_map;
+mod shared_strings;
 
 pub use crate::{
-    prelude::{ast::*, shared_strings::SharedString, scoped_map::*},
+    prelude::{ast::*, scoped_map::*, shared_strings::SharedString},
     typing::{CustomStruct, StructEntry, ValueType},
     value_literals::Value,
-    
 };
 use std::fmt::Debug;
 
@@ -19,7 +18,9 @@ pub struct ParseResult {
 impl Default for ParseResult {
     fn default() -> Self {
         ParseResult {
-            ast: Ast{roots:vec![ast::ASTNode::Empty]},
+            ast: Ast {
+                roots: vec![ast::ASTNode::Empty],
+            },
             custom_structs: std::collections::HashMap::new(),
         }
     }

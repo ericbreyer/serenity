@@ -1,0 +1,20 @@
+type<T> test struct {
+    a : T,
+    b : T,
+};
+
+fn<T> (t : *struct test<T>) add(c: T) -> T {
+    return t->a + t->b + c;
+}
+
+fn main() -> int {
+    var d : struct test<int>;
+    d.a = 1;
+    d.b = 2;
+    
+    var f : struct test<float>;
+    f.a = 1.0;
+    f.b = 2.0;
+    
+    return d.add(3) + int(f.add(3.0));
+}

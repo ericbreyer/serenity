@@ -48,6 +48,7 @@ pub trait ExpressionVisitor<T> {
     fn visit_cast_expression(&self, expression: &CastExpression) -> T;
     fn visit_struct_initializer_expression(&self, expression: &StructInitializerExpression) -> T;
     fn visit_sizeof_expression(&self, expression: &SizeofExpression) -> T;
+    fn visit_double_colon_expression(&self, expression: &DoubleColonExpression) -> T;
 }
 
 pub trait DeclarationVisitor<T> {
@@ -311,6 +312,7 @@ pub enum Expression {
     Cast(CastExpression),
     StructInitializer(StructInitializerExpression),
     Sizeof(SizeofExpression),
+    DoubleColon(DoubleColonExpression),
     Empty,
 }
 
@@ -432,6 +434,13 @@ impl Expression {
 }
 
 #[derive(Clone)]
+pub struct DoubleColonExpression {
+    pub typ: UValueType,
+    pub acessor: SharedString,
+    pub line_no: usize,
+}
+
+#[derive(Clone)]
 pub struct LiteralExpression {
     pub value: Value,
     pub line_no: usize,
@@ -529,7 +538,7 @@ pub struct CastExpression {
 
 #[derive(Clone)]
 pub struct StructInitializerExpression {
-    pub struct_type: CustomStruct,
+    pub struct_type: Box<CustomStruct>,
     pub fields: IndexMap<SharedString, Expression>,
     pub line_no: usize,
 }
@@ -546,7 +555,6 @@ pub struct Prototype {
     pub captures: Vec<SharedString>,
     pub params: Vec<(SharedString, UValueType, bool)>,
     pub return_type: UValueType,
-    pub line_no: usize,
 }
 
 #[derive(Clone)]
@@ -570,7 +578,6 @@ impl FunctionExpression {
                 captures,
                 params,
                 return_type,
-                line_no: 0,
             },
             body,
             line_no: 0,
@@ -586,7 +593,6 @@ impl Default for FunctionExpression {
                 captures: Vec::new(),
                 params: Vec::new(),
                 return_type: ValueType::Nil.intern(),
-                line_no: 0,
             },
             body: None,
             line_no: 0,
@@ -618,6 +624,7 @@ where
             Expression::Cast(e) => visitor.visit_cast_expression(e),
             Expression::StructInitializer(e) => visitor.visit_struct_initializer_expression(e),
             Expression::Sizeof(e) => visitor.visit_sizeof_expression(e),
+            Expression::DoubleColon(e) => visitor.visit_double_colon_expression(e),
             Expression::Empty => panic!("Empty expression should not be visited"),
         }
     }
@@ -831,7 +838,7 @@ pub struct InstantiateAs {
 #[derive(Clone, Debug)]
 pub enum FunctionGenerics {
     Parametric(Rc<RefCell<Vec<InstantiateAs>>>),
-    Monomorphic(IndexMap<SharedString, UValueType>)
+    Monomorphic(IndexMap<SharedString, UValueType>),
 }
 
 #[derive(Clone, Debug)]

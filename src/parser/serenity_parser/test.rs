@@ -1,8 +1,8 @@
 #![cfg(test)]
 use super::*;
 
-use test_case::test_case;
 use insta::{self, assert_debug_snapshot};
+use test_case::test_case;
 
 #[test_case( "var a: int;", false;"var_decl_simple_type")]
 #[test_case( "var a: int", true;"var_decl_simple_type_missing_semicolon")]
@@ -16,7 +16,6 @@ use insta::{self, assert_debug_snapshot};
 #[test_case( "if (x > 8) { return 5; }", false;"if_statement")]
 #[test_case("while (x > 8) { return 5; }", false;"while_statement")]
 #[test_case("for (var i = 0; i < 10; i = i + 1) { return i; }", false;"for_statement")]
-
 #[test_case("for (var i = 0; i < 10; i = i + 1) { continue; }", false;"continue_statement")]
 #[test_case("for (var i = 0; i < 10; i = i + 1) { break; }", false;"break_statement")]
 #[test_case("return 5;", false;"return_statement")]
@@ -47,7 +46,6 @@ fn test_parser(snippet: &str, should_fail: bool) {
     let mut settings = insta::Settings::clone_current();
     settings.set_snapshot_suffix(snippet.to_string());
     let _g = settings.bind_to_scope();
-
 
     if should_fail {
         assert!(res.is_err());

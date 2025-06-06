@@ -1,6 +1,7 @@
 use std::{
     cell::RefCell,
-    collections::{HashMap, HashSet}, rc::Rc,
+    collections::{HashMap, HashSet},
+    rc::Rc,
 };
 
 use indexmap::IndexMap;
@@ -218,7 +219,7 @@ impl SerenityParser {
         if self.match_token(TokenType::Struct) {
             self.struct_declaration(name, type_params)
         } else if self.match_token(TokenType::Interface) {
-            self.interface_definition(name)
+            self.interface_definition(name, type_params)
         } else {
             self.error("Expect struct or interface in type definition");
             vec![ASTNode::Empty]
@@ -246,6 +247,7 @@ impl SerenityParser {
                 fields: fields.clone().into(),
                 embed: None,
                 methods: HashSet::new().into(),
+                parametric_methods: HashSet::new().into(),
                 type_vars: type_params.clone().into(),
             },
         );
@@ -284,7 +286,7 @@ impl SerenityParser {
 
             let field_name = self.previous.clone();
             self.consume(TokenType::Colon, "Expect ':' after field name.");
-            let field_type = self.parse_type(Some(&name), Some(&type_params));
+            let field_type = self.parse_type(Some(&name), Some(&type_params), false);
 
             // if the field is this struct throw an error
             if let ValueType::Struct(s) = field_type {
@@ -316,7 +318,11 @@ impl SerenityParser {
             .fields
             .borrow_mut()
             .clone_from(&fields);
-        self.custom_types.get_mut(&name).unwrap().embed.clone_from(&embed);
+        self.custom_types
+            .get_mut(&name)
+            .unwrap()
+            .embed
+            .clone_from(&embed);
         debug!("after Struct: {:?}", self.custom_types.get(&name).unwrap());
 
         let mut impl_nodes = vec![];
@@ -330,13 +336,25 @@ impl SerenityParser {
                 };
                 let mut s = String::new();
                 for f in interface_vtab.fields.borrow().iter().map(|f| f.0) {
-                    s = format!("fn (self: *struct {name}) {f}(");
+                    s = format!("{s}fn (self: *struct {name}) {f}(");
                     let iv = interface_vtab.fields.borrow();
-                    let ValueType::Closure(Closure{ args: _, upvals: _, ret, generics: _ }) = iv.get(f).unwrap().value else {
+                    let ValueType::Closure(Closure {
+                        args: _,
+                        upvals: _,
+                        ret,
+                        generics: _,
+                    }) = iv.get(f).unwrap().value
+                    else {
                         self.error("interfaces may only contain methods");
                         continue;
                     };
-                    let ValueType::Closure(Closure{ args: atypes, upvals: _, ret, generics: _ }) = ret else {
+                    let ValueType::Closure(Closure {
+                        args: atypes,
+                        upvals: _,
+                        ret,
+                        generics: _,
+                    }) = ret
+                    else {
                         self.error("interfaces may only contain methods");
                         continue;
                     };
@@ -345,7 +363,7 @@ impl SerenityParser {
                     }
                     s = format!("{s}) -> {};", ret);
                 }
-                s = format!("{s}let {name}_{interface}_vtable : struct {interfacev};");
+                s = format!("{s}let mut {name}_{interface}_vtable : struct {interfacev};");
 
                 s = format!(
                     "{s}\n\n\
@@ -355,10 +373,11 @@ impl SerenityParser {
                     s = format!("{s} {name}_{interface}_vtable.{f} = struct {name}::{f};\n");
                 }
                 s = format!("{s} \n\
-                        \treturn struct {interface}_impl{{vtable: &{name}_{interface}_vtable, self: self}}; \n\
+                        \treturn struct {interface}_impl{{vtable: {name}_{interface}_vtable, self: self}}; \n\
                     }}
                     "
                 );
+
                 impl_nodes.extend(
                     Self::parse_helper(
                         s.into(),
@@ -378,7 +397,11 @@ impl SerenityParser {
         impl_nodes
     }
 
-    fn interface_definition(&mut self, name: SharedString) -> Vec<ASTNode> {
+    fn interface_definition(
+        &mut self,
+        name: SharedString,
+        type_params: Vec<SharedString>,
+    ) -> Vec<ASTNode> {
         let vtable_name: SharedString = format!("{name}_vtable").into();
         let _ = self.previous.line;
 
@@ -398,7 +421,8 @@ impl SerenityParser {
                 fields: fields.clone().into(),
                 embed: None,
                 methods: HashSet::new().into(),
-                type_vars: vec![].into(),
+                parametric_methods: HashSet::new().into(),
+                type_vars: type_params.clone().into(),
             },
         );
         let mut methods: Vec<(SharedString, SharedString)> = vec![];
@@ -411,10 +435,17 @@ impl SerenityParser {
 
             let field_name = self.previous.clone();
             self.consume(TokenType::Colon, "Expect ':' after field name.");
-            let field_type = self.parse_type(Some(&vtable_name), None);
+            let field_type =
+                self.parse_type(Some(&format!("{name}_impl").into()), Some(&type_params), false);
 
             // if the field is this struct throw an error
-            let ValueType::Closure(Closure{args, upvals, ret, generics: _}) = &field_type else {
+            let ValueType::Closure(Closure {
+                args,
+                upvals,
+                ret,
+                generics: _,
+            }) = &field_type
+            else {
                 self.error("interfaces may only contain functions");
                 continue;
             };
@@ -453,7 +484,7 @@ impl SerenityParser {
                 }
                 s = format!("{s}) -> {}{{\n", ret);
                 s = format!(
-                    "{s} return (self->vtable->{})(self->self)(",
+                    "{s} return (self->vtable.{})(self->self)(",
                     field_name.lexeme.clone()
                 );
                 for (i, _) in args.iter().enumerate() {
@@ -469,13 +500,12 @@ impl SerenityParser {
                 break;
             }
         }
+
         self.consume(
             TokenType::RightBrace,
             "Expect '}' after struct declaration.",
         );
         self.consume(TokenType::Semicolon, "Expect ';' after struct declaration.");
-        // debug!("Struct: {:?}", self.custom_types.get(&name.lexeme));
-        // debug!("New fields: {:?}", fields);
         self.custom_types
             .get(&vtable_name)
             .unwrap()
@@ -501,10 +531,8 @@ impl SerenityParser {
                 (
                     "vtable".into(),
                     StructEntry {
-                        value: ValueType::Pointer(
-                            ValueType::Struct(self.custom_types.get(&vtable_name).unwrap().clone())
-                                .intern(),
-                            false,
+                        value: ValueType::Struct(
+                            Box::new(self.custom_types.get(&vtable_name).unwrap().clone()),
                         )
                         .intern(),
                         offset: 1,
@@ -514,10 +542,36 @@ impl SerenityParser {
             .into(),
             embed: None,
             methods: RefCell::new(methods.iter().map(|(name, _)| name.clone()).collect()),
+            parametric_methods: RefCell::new(HashSet::new()),
             type_vars: vec![].into(),
         };
 
         self.custom_types.insert(impler_name, impler);
+
+        let mut s = String::new();
+        s = format!(
+            "{s}\n\n\
+                fn<T> impl_{name}(self: *T) -> impl {name} {{ \n"
+        );
+        s = format!("{s}\tlet mut vtab : struct {vtable_name};\n");
+        for f in self
+            .custom_types
+            .get(&vtable_name)
+            .unwrap()
+            .fields
+            .borrow()
+            .iter()
+            .map(|f| f.0)
+        {
+            s = format!("{s}\tvtab.{f} = T::{f};\n");
+        }
+        s = format!(
+            "{s} \n\
+                    \treturn struct {name}_impl{{vtable: vtab, self: self}}; \n\
+                }}
+                "
+        );
+        methods.push((format!("impl_{name}").into(), s.into()));
 
         methods
             .iter()
@@ -538,12 +592,14 @@ impl SerenityParser {
     fn var_declaration(&mut self, is_const: bool) -> ASTNode {
         let line_no = self.previous.line;
 
+        let mutable = self.match_token(TokenType::Mut);
+
         self.consume(TokenType::Identifier, "Expect variable name.");
         let name = self.previous.lexeme.clone();
 
         let mut var_type = None;
         if self.match_token(TokenType::Colon) {
-            var_type = self.parse_type(None, None).into();
+            var_type = self.parse_type(None, None, mutable).into();
         }
         let mut initializer = None;
         if self.match_token(TokenType::Equal) {
@@ -579,7 +635,7 @@ impl SerenityParser {
             name,
             tipe: var_type.unwrap_or(ValueType::new_type_var()),
             initializer: initializer.map(Box::new),
-            mutable: true,
+            mutable: mutable && !is_const,
             line_no,
         }))
     }
@@ -628,73 +684,10 @@ impl SerenityParser {
             self.consume(TokenType::Greater, "Expect '>' after generic params.");
         }
 
-
         if self.match_token(TokenType::LeftParen) {
-            self.consume(TokenType::Identifier, "Expect receiver name.");
-            let receiver = self.previous.lexeme.clone();
-            self.consume(TokenType::Colon, "Expect ':' after receiver  name.");
-            let receiver_type = self.parse_type(None, Some(&type_params));
-            self.consume(TokenType::RightParen, "Expect ')' after receiver.");
-            let ValueType::Pointer(s, _) = receiver_type else {
-                self.error("Receiver must be a struct pointer.");
-                return ASTNode::Empty;
-            };
-
-            let ValueType::Struct(cs) = s else {
-                self.error("Receiver must be a struct pointer.");
-                return ASTNode::Empty;
-            };
-
-            self.consume(TokenType::Identifier, "Expect function name.");
-            let name = self.previous.lexeme.clone();
-
-            let new_name: SharedString = format!("{}_{}", s.id_str(), name).into();
-
-            cs.methods.borrow_mut().insert(new_name.clone());
-
-            let inner_name = format!("{}_inner", new_name);
-            let mut node = self.function(&inner_name, type_params.clone());
-            let monomorphic = type_params.is_empty();
-
-            node.prototype.captures.push(receiver.clone());
-
-            let mut node_type = vec![];
-            for (_name, t, _) in node.prototype.params.iter() {
-                node_type.push(*t);
-            }
-            let node_return = node.prototype.return_type;
-
-            let decl = ASTNode::Declaration(Declaration::Function(FunctionDeclaration {
-                prototype: Prototype {
-                    params: vec![(receiver, receiver_type, false)],
-                    return_type: ValueType::Closure(Closure::new(
-                        node_type.into_boxed_slice(),
-                        vec![receiver_type].into_boxed_slice(),
-                        node_return,
-                        None,
-                    ))
-                    .intern(),
-                    name: new_name,
-                    captures: vec![],
-                    line_no,
-                },
-                body: Rc::new(vec![ASTNode::Statement(Statement::Return(ReturnStatement {
-                    value: Some(Box::new(Expression::Function(node))),
-                    line_no,
-                }))]
-                .into()),
-
-                line_no,
-                type_params,
-                generic_instantiations: if monomorphic {
-                    FunctionGenerics::Monomorphic(IndexMap::new())
-                } else {
-                    FunctionGenerics::Parametric(Rc::new(Vec::new().into()))
-                },
-            }));
-            return decl;
+            return self.method_declaration(type_params);
         }
-        
+
         self.consume(TokenType::Identifier, "Expect function name.");
         let name = self.previous.lexeme.clone();
         let node = self.function(&name, type_params.clone());
@@ -707,6 +700,80 @@ impl SerenityParser {
             line_no,
             type_params,
             generic_instantiations: if mono {
+                FunctionGenerics::Monomorphic(IndexMap::new())
+            } else {
+                FunctionGenerics::Parametric(Rc::new(Vec::new().into()))
+            },
+        }))
+    }
+
+    fn method_declaration(&mut self, type_params: Vec<SharedString>) -> ASTNode {
+        let line_no = self.previous.line;
+        let mutable = self.match_token(TokenType::Mut);
+        self.consume(TokenType::Identifier, "Expect receiver name.");
+        let receiver = self.previous.lexeme.clone();
+        self.consume(TokenType::Colon, "Expect ':' after receiver  name.");
+        let receiver_type = self.parse_type(None, Some(&type_params), mutable);
+        self.consume(TokenType::RightParen, "Expect ')' after receiver.");
+        let ValueType::Pointer(s, _) = receiver_type else {
+            self.error("Receiver must be a struct pointer.");
+            return ASTNode::Empty;
+        };
+        let ValueType::Struct(cs) = s else {
+            self.error("Receiver must be a struct pointer.");
+            return ASTNode::Empty;
+        };
+        self.consume(TokenType::Identifier, "Expect function name.");
+        let monomorphic = type_params.is_empty();
+
+        let name = self.previous.lexeme.clone();
+
+        let new_name: SharedString = if monomorphic {
+            format!("{}_{}", s.id_str(), name).into()
+        } else {
+            format!("{}_{}", cs.name, name).into()
+        };
+
+        let inner_name = format!("{}_inner", new_name);
+        let mut node = self.function(&inner_name, type_params.clone());
+
+        if monomorphic {
+            cs.methods.borrow_mut().insert(new_name.clone());
+        } else {
+            cs.parametric_methods.borrow_mut().insert(new_name.clone());
+        }
+
+        node.prototype.captures.push(receiver.clone());
+        let mut node_type = vec![];
+        for (_name, t, _) in node.prototype.params.iter() {
+            node_type.push(*t);
+        }
+        let node_return = node.prototype.return_type;
+
+        ASTNode::Declaration(Declaration::Function(FunctionDeclaration {
+            prototype: Prototype {
+                params: vec![(receiver, receiver_type, false)],
+                return_type: ValueType::Closure(Closure::new(
+                    node_type.into_boxed_slice(),
+                    vec![receiver_type].into_boxed_slice(),
+                    node_return,
+                    None,
+                ))
+                .intern(),
+                name: new_name,
+                captures: vec![],
+            },
+            body: Rc::new(
+                vec![ASTNode::Statement(Statement::Return(ReturnStatement {
+                    value: Some(Box::new(Expression::Function(node))),
+                    line_no,
+                }))]
+                .into(),
+            ),
+
+            line_no,
+            type_params,
+            generic_instantiations: if monomorphic {
                 FunctionGenerics::Monomorphic(IndexMap::new())
             } else {
                 FunctionGenerics::Parametric(Rc::new(Vec::new().into()))

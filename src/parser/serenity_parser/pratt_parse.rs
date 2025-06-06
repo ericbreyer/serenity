@@ -1,6 +1,9 @@
 mod half_expression;
 mod parse_table;
-use std::{rc::Rc, sync::atomic::{AtomicUsize, Ordering}};
+use std::{
+    rc::Rc,
+    sync::atomic::{AtomicUsize, Ordering},
+};
 
 use half_expression::HalfExpression;
 pub use parse_table::ParseTable;
@@ -57,37 +60,37 @@ impl SerenityParser {
         node
     }
 
-    fn dot(&mut self,_: bool) -> HalfExpression {
+    fn dot(&mut self, _: bool) -> HalfExpression {
         self.consume(TokenType::Identifier, "Expect property name after '.'.");
         let name = self.previous.clone();
 
         HalfExpression::Dot(name)
     }
 
-    fn deref_dot(&mut self,_: bool) -> HalfExpression {
+    fn deref_dot(&mut self, _: bool) -> HalfExpression {
         self.consume(TokenType::Identifier, "Expect property name after '->'.");
         let name = self.previous.clone();
 
         HalfExpression::DerefDot(name)
     }
 
-    fn and_(&mut self,_: bool) -> HalfExpression {
+    fn and_(&mut self, _: bool) -> HalfExpression {
         let node = self.parse_precedence(Precedence::And);
         HalfExpression::And(node.into())
     }
 
-    fn or_(&mut self,_: bool) -> HalfExpression {
+    fn or_(&mut self, _: bool) -> HalfExpression {
         let node = self.parse_precedence(Precedence::Or);
         HalfExpression::Or(node.into())
     }
 
-    fn cast(&mut self,_: bool) -> Expression {
+    fn cast(&mut self, _: bool) -> Expression {
         let line_no = self.previous.line;
 
         let (node, cast_type) = if self.match_token(TokenType::LeftParen) {
             let node = self.expression();
             let cast_type = if self.match_token(TokenType::Comma) {
-                self.parse_type(None, None)
+                self.parse_type(None, None, false)
             } else {
                 ValueType::new_type_var()
             };
@@ -105,7 +108,7 @@ impl SerenityParser {
         })
     }
 
-    fn cast_prefix(&mut self,_: bool) -> Expression {
+    fn cast_prefix(&mut self, _: bool) -> Expression {
         // type(value)
         // (type*)(value)
         let line_no = self.previous.line;
@@ -123,7 +126,7 @@ impl SerenityParser {
         })
     }
 
-    fn lambda(&mut self,_: bool) -> Expression {
+    fn lambda(&mut self, _: bool) -> Expression {
         thread_local! {
         static ANON_ID: AtomicUsize = const { AtomicUsize::new(0) };
         }
@@ -138,9 +141,12 @@ impl SerenityParser {
         Expression::Function(func_expr)
     }
 
-    pub(super) fn function(&mut self, name: &str, type_params: Vec<SharedString>) -> FunctionExpression {
+    pub(super) fn function(
+        &mut self,
+        name: &str,
+        type_params: Vec<SharedString>,
+    ) -> FunctionExpression {
         let mut captures = Vec::new();
-        
 
         if self.match_token(TokenType::LeftBracket) {
             loop {
@@ -158,17 +164,14 @@ impl SerenityParser {
         let mut param_types: Vec<UValueType> = Vec::new();
         if self.current.token_type != TokenType::RightParen {
             loop {
-                let mut mutable = true;
-                if self.match_token(TokenType::Const) {
-                    mutable = false;
-                }
+                let mutable = self.match_token(TokenType::Mut);
 
                 if !self.match_token(TokenType::Identifier) {
                     break;
                 }
                 let name = self.previous.lexeme.clone();
                 self.consume(TokenType::Colon, "Expect ':' after parameter name.");
-                let p_type = self.parse_type(None, Some(&type_params));
+                let p_type = self.parse_type(None, Some(&type_params), mutable);
 
                 if let ValueType::Array(_, _) = *p_type {
                     self.warn("Passing arrays by value may be expensive");
@@ -186,7 +189,7 @@ impl SerenityParser {
         self.consume(TokenType::RightParen, "Expect ')' after parameters.");
         let mut return_type = ValueType::new_type_var();
         if self.match_token(TokenType::RightArrow) {
-            return_type = self.parse_type(None, Some(&type_params));
+            return_type = self.parse_type(None, Some(&type_params), false);
         }
         param_types.push(return_type);
 
@@ -200,13 +203,13 @@ impl SerenityParser {
         FunctionExpression::new(captures, params, nodes, return_type, name.into())
     }
 
-    fn assign(&mut self,_: bool) -> HalfExpression {
+    fn assign(&mut self, _: bool) -> HalfExpression {
         let node = self.parse_precedence(Precedence::Assignment);
 
         HalfExpression::Assign(node.into())
     }
 
-    fn number(&mut self,_: bool) -> Expression {
+    fn number(&mut self, _: bool) -> Expression {
         let line_no = self.previous.line;
         if let Ok(n) = self.previous.lexeme.parse::<i64>() {
             Expression::Literal(LiteralExpression {
@@ -235,7 +238,7 @@ impl SerenityParser {
         }
     }
 
-    fn char(&mut self,_: bool) -> Expression {
+    fn char(&mut self, _: bool) -> Expression {
         let line = self.previous.line;
         let mut value = self.previous.lexeme.clone().to_string();
         value = value.trim_matches('\'').to_string();
@@ -255,20 +258,25 @@ impl SerenityParser {
         })
     }
 
-    fn grouping(&mut self,_: bool) -> Expression {
+    fn grouping(&mut self, _: bool) -> Expression {
         let expr = self.expression();
         self.consume(TokenType::RightParen, "Expect ')' after expression.");
         expr
     }
 
-    fn ternary(&mut self,_: bool) -> HalfExpression {
+    fn ternary(&mut self, _: bool) -> HalfExpression {
         let expr = self.parse_precedence(Precedence::Ternary.next());
         self.consume(TokenType::Colon, "Expect ':' after expression.");
         let else_expr = self.parse_precedence(Precedence::Ternary);
         HalfExpression::Ternary(Box::new(expr), Box::new(else_expr))
     }
 
-    fn unary(&mut self,_: bool) -> Expression {
+    fn double_colon(&mut self, _: bool) -> HalfExpression {
+        let expr = self.parse_precedence(Precedence::Call);
+        HalfExpression::DoubleColon(Box::new(expr))
+    }
+
+    fn unary(&mut self, _: bool) -> Expression {
         let line_no = self.previous.line;
         let operator = self.previous.token_type;
         // Compile the operand.
@@ -281,13 +289,13 @@ impl SerenityParser {
         })
     }
 
-    fn sizeof(&mut self,_: bool) -> Expression {
+    fn sizeof(&mut self, _: bool) -> Expression {
         let line_no = self.previous.line;
-        let tipe = self.parse_type(None, None);
+        let tipe = self.parse_type(None, None, false);
         Expression::Sizeof(SizeofExpression { tipe, line_no })
     }
 
-    fn deref(&mut self,_: bool) -> Expression {
+    fn deref(&mut self, _: bool) -> Expression {
         let line = self.previous.line;
         // Compile the operand.
         let expr = self.parse_precedence(Precedence::Unary);
@@ -302,14 +310,14 @@ impl SerenityParser {
         self.expression()
     }
 
-    fn index(&mut self,_: bool) -> HalfExpression {
+    fn index(&mut self, _: bool) -> HalfExpression {
         let expridx = self.parse_expression_index();
         self.consume(TokenType::RightBracket, "Expect ']' after index.");
 
         HalfExpression::Index(Box::new(expridx))
     }
 
-    fn addr_of(&mut self,_: bool) -> Expression {
+    fn addr_of(&mut self, _: bool) -> Expression {
         let line_no = self.previous.line;
         // parse the operand.
         let expr = self.parse_precedence(Precedence::Unary);
@@ -320,7 +328,7 @@ impl SerenityParser {
         })
     }
 
-    fn binary(&mut self,_: bool) -> HalfExpression {
+    fn binary(&mut self, _: bool) -> HalfExpression {
         let operator_type = self.previous.token_type;
 
         // Compile the right operand.
@@ -331,7 +339,7 @@ impl SerenityParser {
         HalfExpression::Binary(operator_type, Box::new(expr))
     }
 
-    fn call(&mut self,_: bool) -> HalfExpression {
+    fn call(&mut self, _: bool) -> HalfExpression {
         let nodes = self.argument_list();
         HalfExpression::Call(nodes)
     }
@@ -360,7 +368,7 @@ impl SerenityParser {
         nodes
     }
 
-    fn literal(&mut self,_: bool) -> Expression {
+    fn literal(&mut self, _: bool) -> Expression {
         let line = self.previous.line;
         match self.previous.token_type {
             TokenType::False => Expression::Literal(LiteralExpression {
@@ -375,7 +383,7 @@ impl SerenityParser {
         }
     }
 
-    fn string(&mut self,_: bool) -> Expression {
+    fn string(&mut self, _: bool) -> Expression {
         let line_no = self.previous.line;
         let mut value = self.previous.lexeme.clone().to_string();
         value = value.trim_matches('"').to_string();
@@ -393,7 +401,7 @@ impl SerenityParser {
         })
     }
 
-    fn variable(&mut self,_: bool) -> Expression {
+    fn variable(&mut self, _: bool) -> Expression {
         let line_no = self.previous.line;
         if self.constants.contains_key(&self.previous.lexeme) {
             return Expression::Literal(LiteralExpression {
@@ -409,7 +417,7 @@ impl SerenityParser {
 
     fn type_expression(&mut self) -> Expression {
         let was_struct = self.current.token_type == TokenType::Struct;
-        let t = self.parse_type(None, None);
+        let t = self.parse_type(None, None, false);
 
         if was_struct && self.current.token_type == TokenType::LeftBrace {
             self.struct_initializer(t)

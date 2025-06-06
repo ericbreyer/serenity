@@ -1,7 +1,6 @@
 use super::*;
 
-
-impl<'a, 'ctx> LLVMFunctionCompiler<'a, 'ctx> {
+impl<'ctx> LLVMFunctionCompiler<'_, 'ctx> {
     /// Construct the serenity type of a function from a prototype
     ///
     /// # Arguments
@@ -10,22 +9,32 @@ impl<'a, 'ctx> LLVMFunctionCompiler<'a, 'ctx> {
     ///
     /// # Returns
     /// The serenity type of the function
-    pub (super) fn function_type_serenity(&self, prototype: &Prototype) -> UValueType {
+    pub(super) fn function_type_serenity(&self, prototype: &Prototype) -> UValueType {
         ValueType::Closure(Closure::new(
             prototype
                 .params
                 .iter()
-                .map(|(_s, t,_)| (t.decay().instantiate_generic(&mut self.generics_in_scope.as_hashmap())))
+                .map(|(_s, t, _)| {
+                    t.decay()
+                        .instantiate_generic(&mut self.generics_in_scope.borrow().as_hashmap())
+                })
                 .collect::<Vec<_>>()
                 .into_boxed_slice(),
             prototype
                 .captures
                 .iter()
-                .map(|capture| self.get_variable(capture).unwrap().1.instantiate_generic(&mut self.generics_in_scope.as_hashmap()))
+                .map(|capture| {
+                    self.get_variable(capture)
+                        .unwrap()
+                        .1
+                        .instantiate_generic(&mut self.generics_in_scope.borrow().as_hashmap())
+                })
                 .collect::<Vec<_>>()
                 .into_boxed_slice(),
-            prototype.return_type.instantiate_generic(&mut self.generics_in_scope.as_hashmap()),
-            None
+            prototype
+                .return_type
+                .instantiate_generic(&mut self.generics_in_scope.borrow().as_hashmap()),
+            None,
         ))
         .intern()
     }
@@ -42,7 +51,7 @@ impl<'a, 'ctx> LLVMFunctionCompiler<'a, 'ctx> {
     ///
     /// # Errors
     /// If the LLVM type of a capture cannot be constructed
-    pub (super) fn closure_type_llvm(&self, prototype: &Prototype) -> Result<StructType<'ctx>> {
+    pub(super) fn closure_type_llvm(&self, prototype: &Prototype) -> Result<StructType<'ctx>> {
         Ok(self.context.struct_type(
             [
                 prototype
@@ -52,7 +61,7 @@ impl<'a, 'ctx> LLVMFunctionCompiler<'a, 'ctx> {
                         self.get_variable(capture)
                             .unwrap()
                             .1
-                            .llvm(self.context, self.generics_in_scope)
+                            .llvm(self.context, &*self.generics_in_scope.borrow())
                     })
                     .collect::<Result<Vec<_>>>()?
                     .as_slice(),
@@ -80,22 +89,27 @@ impl<'a, 'ctx> LLVMFunctionCompiler<'a, 'ctx> {
     ///
     /// # Errors
     /// If an LLVM type cannot be constructed
-    pub (super) fn function_prototype_llvm(&self, prototype: &Prototype) -> Result<FunctionType<'ctx>> {
+    pub(super) fn function_prototype_llvm(
+        &self,
+        prototype: &Prototype,
+    ) -> Result<FunctionType<'ctx>> {
         Ok(prototype
             .return_type
-            .substitute(None)
-            .llvm(self.context, self.generics_in_scope)
+            .substitute(&*self.generics_in_scope.borrow())
+            .llvm(self.context, &*self.generics_in_scope.borrow())
             .context("Function return type")?
             .fn_type(
                 prototype
                     .captures
                     .iter()
                     .map(|capture| self.get_variable(capture).unwrap().1)
-                    .map(|t| t.llvm(self.context, self.generics_in_scope))
+                    .map(|t| t.llvm(self.context, &*self.generics_in_scope.borrow()))
                     .map(|t| Ok(BasicMetadataTypeEnum::from(t?)))
-                    .chain(prototype.params.iter().map(|(_s, t,_)| {
+                    .chain(prototype.params.iter().map(|(_s, t, _)| {
                         Ok(BasicMetadataTypeEnum::from(
-                            t.substitute(None).decay().llvm(self.context, self.generics_in_scope)?,
+                            t.substitute(&*self.generics_in_scope.borrow())
+                                .decay()
+                                .llvm(self.context, &*self.generics_in_scope.borrow())?,
                         ))
                     }))
                     .collect::<Result<Vec<_>>>()?

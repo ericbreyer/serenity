@@ -1,0 +1,109 @@
+type stream interface {
+    car: fn() -> int,
+    cdr: fn() -> impl stream,
+};
+
+fn next(s: *impl stream) -> int {
+    let n = s->car();
+    *s = s->cdr();
+    return n;
+}
+
+type const_stream struct {
+    n: int,
+} implements stream;
+
+fun (self : * struct const_stream) car() -> int {
+    return self->n;
+}
+
+fun (self : * struct const_stream) cdr() -> impl stream {
+    return const_stream_impl_stream(self);
+}
+
+type nat_stream struct {
+    i: int,
+} implements stream;
+
+fun (self : * struct nat_stream) car() -> int {
+    return self->i;
+}
+
+fun (self : * struct nat_stream) cdr() -> impl stream {
+    let i = self->i;
+    let s: *struct nat_stream = malloc(sizeof(struct nat_stream));
+    *s = struct nat_stream { i: i + 1 };
+    return nat_stream_impl_stream(s);
+}
+
+type stream_cons struct {
+    car: int,
+    cdr: impl stream,
+} implements stream;
+
+fun (self : * struct stream_cons) car() -> int {
+    return self->car;
+}
+
+fun (self : * struct stream_cons) cdr() -> impl stream {
+    return self->cdr;
+}
+
+type stream_add struct {
+    s1: impl stream,
+    s2: impl stream,
+    next: *struct stream_add,
+} implements stream;
+
+fn (self : * struct stream_add) destroy() {
+    if (self->next != cast(0)) {
+        self->next->destroy();
+        free(self->next);
+    }
+}
+
+fun (self : * struct stream_add) car() -> int {
+    return self->s1.car() + self->s2.car();
+}
+
+fun (self : * struct stream_add) cdr() -> impl stream {
+    let s1 = self->s1.cdr();
+    let s2 = self->s2.cdr();
+
+    let add: *struct stream_add = malloc(sizeof(struct stream_add));
+    *add = struct stream_add { s1: s1, s2: s2, next: 0 };
+    self->next = add;
+
+    return stream_add_impl_stream(add);
+}
+
+fn cons(n: int, s: impl stream) -> struct stream_cons {
+    return struct stream_cons { car: n, cdr: s };
+}
+
+fn add(s1: impl stream, s2: impl stream, next: *struct stream_add) -> struct stream_add {
+    return struct stream_add { s1: s1, s2: s2, next: next };
+}
+
+fn main() -> int {
+    // (define fibs (stream-cons 0 (stream-cons 1 (stream-add fibs (stream-cdr fibs)))))
+    let fibs;
+    let fibs_cdr;
+    
+    let add = add(impl_stream(&fibs), impl_stream(&fibs_cdr), 0);
+    fibs_cdr = cons(1, impl_stream(&add));
+    fibs = cons(0, impl_stream(&fibs_cdr));
+
+    let s = impl_stream(&fibs);
+
+    let ret = 0;
+
+    for (var i = 0; i < 30; i = i + 1) {
+        let n = next(&s);
+        ret = ret + n;
+    }
+    
+    add.destroy();
+
+    return ret;
+}

@@ -1,0 +1,222 @@
+---
+source: tests/integration_test.rs
+expression: result
+---
+[line    8] Function Declaration: matMult
+[line    8] ╰─── Function Expression:
+[line    8]      ├─── Name: matMult
+[line    8]      ├─── Return Type: struct twoxtwomatrix { a: int, b: int, c: int, d: int, }
+[line    8]      ├─── Params:
+[line    8]      │    ├─── ma: *struct twoxtwomatrix { a: int, b: int, c: int, d: int, }
+[line    8]      │    ╰─── mb: *struct twoxtwomatrix { a: int, b: int, c: int, d: int, }
+[line    8]      ╰─── Body: 
+[line    8]           ╰─── Return:
+[line    9]                ╰─── StructInitializer: struct twoxtwomatrix {a: int, b: int, c: int, d: int, }
+[line    9]                     ├───  a: 
+[line   10]                     │    ╰─── Binary: Plus
+[line   10]                     │         ├─── Binary: Star
+[line   10]                     │         │    ├─── Get: "a"
+[line   10]                     │         │    │    ╰─── Deref: 
+[line   10]                     │         │    │         ╰─── Variable: ma
+[line   10]                     │         │    ╰─── Get: "a"
+[line   10]                     │         │         ╰─── Deref: 
+[line   10]                     │         │              ╰─── Variable: mb
+[line   10]                     │         ╰─── Binary: Star
+[line   10]                     │              ├─── Get: "b"
+[line   10]                     │              │    ╰─── Deref: 
+[line   10]                     │              │         ╰─── Variable: ma
+[line   10]                     │              ╰─── Get: "c"
+[line   10]                     │                   ╰─── Deref: 
+[line   10]                     │                        ╰─── Variable: mb
+[line    9]                     ├───  b: 
+[line   11]                     │    ╰─── Binary: Plus
+[line   11]                     │         ├─── Binary: Star
+[line   11]                     │         │    ├─── Get: "a"
+[line   11]                     │         │    │    ╰─── Deref: 
+[line   11]                     │         │    │         ╰─── Variable: ma
+[line   11]                     │         │    ╰─── Get: "b"
+[line   11]                     │         │         ╰─── Deref: 
+[line   11]                     │         │              ╰─── Variable: mb
+[line   11]                     │         ╰─── Binary: Star
+[line   11]                     │              ├─── Get: "b"
+[line   11]                     │              │    ╰─── Deref: 
+[line   11]                     │              │         ╰─── Variable: ma
+[line   11]                     │              ╰─── Get: "d"
+[line   11]                     │                   ╰─── Deref: 
+[line   11]                     │                        ╰─── Variable: mb
+[line    9]                     ├───  c: 
+[line   12]                     │    ╰─── Binary: Plus
+[line   12]                     │         ├─── Binary: Star
+[line   12]                     │         │    ├─── Get: "c"
+[line   12]                     │         │    │    ╰─── Deref: 
+[line   12]                     │         │    │         ╰─── Variable: ma
+[line   12]                     │         │    ╰─── Get: "a"
+[line   12]                     │         │         ╰─── Deref: 
+[line   12]                     │         │              ╰─── Variable: mb
+[line   12]                     │         ╰─── Binary: Star
+[line   12]                     │              ├─── Get: "d"
+[line   12]                     │              │    ╰─── Deref: 
+[line   12]                     │              │         ╰─── Variable: ma
+[line   12]                     │              ╰─── Get: "c"
+[line   12]                     │                   ╰─── Deref: 
+[line   12]                     │                        ╰─── Variable: mb
+[line    9]                     ╰───  d: 
+[line   13]                          ╰─── Binary: Plus
+[line   13]                               ├─── Binary: Star
+[line   13]                               │    ├─── Get: "c"
+[line   13]                               │    │    ╰─── Deref: 
+[line   13]                               │    │         ╰─── Variable: ma
+[line   13]                               │    ╰─── Get: "b"
+[line   13]                               │         ╰─── Deref: 
+[line   13]                               │              ╰─── Variable: mb
+[line   13]                               ╰─── Binary: Star
+[line   13]                                    ├─── Get: "d"
+[line   13]                                    │    ╰─── Deref: 
+[line   13]                                    │         ╰─── Variable: ma
+[line   13]                                    ╰─── Get: "d"
+[line   13]                                         ╰─── Deref: 
+[line   13]                                              ╰─── Variable: mb
+[line   17] Function Declaration: printmat
+[line   17] ╰─── Function Expression:
+[line   17]      ├─── Name: printmat
+[line   17]      ├─── Return Type: $2
+[line   17]      ├─── Params:
+[line   17]      │    ╰─── m: *struct twoxtwomatrix { a: int, b: int, c: int, d: int, }
+[line   17]      ╰─── Body: 
+[line   18]           ╰─── Expression: 
+[line   18]                ╰─── Call:
+[line   18]                     ├─── Variable: printf
+[line   18]                     ├─── StringLiteral: "%d %d\n%d %d\n"
+[line   18]                     ├─── Get: "a"
+[line   18]                     │    ╰─── Deref: 
+[line   18]                     │         ╰─── Variable: m
+[line   18]                     ├─── Get: "b"
+[line   18]                     │    ╰─── Deref: 
+[line   18]                     │         ╰─── Variable: m
+[line   18]                     ├─── Get: "c"
+[line   18]                     │    ╰─── Deref: 
+[line   18]                     │         ╰─── Variable: m
+[line   18]                     ╰─── Get: "d"
+[line   18]                          ╰─── Deref: 
+[line   18]                               ╰─── Variable: m
+[line   21] Function Declaration: fib_mat
+[line   21] ╰─── Function Expression:
+[line   21]      ├─── Name: fib_mat
+[line   21]      ├─── Return Type: struct twoxtwomatrix { a: int, b: int, c: int, d: int, }
+[line   21]      ├─── Params:
+[line   21]      │    ╰─── n: int
+[line   21]      ╰─── Body: 
+[line   22]           ├─── Var Declaration: baseMat
+[line   22]           │    ╰───  Initializer
+[line   22]           │         ╰─── StructInitializer: struct twoxtwomatrix {a: int, b: int, c: int, d: int, }
+[line   22]           │              ├───  a: 
+[line   22]           │              │    ╰─── Literal: 1
+[line   22]           │              ├───  b: 
+[line   22]           │              │    ╰─── Literal: 1
+[line   22]           │              ├───  c: 
+[line   22]           │              │    ╰─── Literal: 1
+[line   22]           │              ╰───  d: 
+[line   22]           │                   ╰─── Literal: 0
+[line   23]           ├─── Var Declaration: identity
+[line   23]           │    ╰───  Initializer
+[line   23]           │         ╰─── StructInitializer: struct twoxtwomatrix {a: int, b: int, c: int, d: int, }
+[line   23]           │              ├───  a: 
+[line   23]           │              │    ╰─── Literal: 1
+[line   23]           │              ├───  b: 
+[line   23]           │              │    ╰─── Literal: 0
+[line   23]           │              ├───  c: 
+[line   23]           │              │    ╰─── Literal: 0
+[line   23]           │              ╰───  d: 
+[line   23]           │                   ╰─── Literal: 1
+[line   24]           ├─── If: 
+[line   24]           │    ├─── Binary: EqualEqual
+[line   24]           │    │    ├─── Variable: n
+[line   24]           │    │    ╰─── Literal: 0
+[line   24]           │    ╰─── Block: 
+[line   24]           │         ╰─── Return:
+[line   25]           │              ╰─── Variable: identity
+[line   27]           ├─── If: 
+[line   27]           │    ├─── Binary: LessEqual
+[line   27]           │    │    ├─── Variable: n
+[line   27]           │    │    ╰─── Literal: 1
+[line   27]           │    ╰─── Block: 
+[line   27]           │         ╰─── Return:
+[line   28]           │              ╰─── Variable: baseMat
+[line   31]           ├─── Var Declaration: half
+[line   31]           │    ╰───  Initializer
+[line   31]           │         ╰─── Call:
+[line   31]           │              ├─── Variable: fib_mat
+[line   31]           │              ╰─── Binary: Slash
+[line   31]           │                   ├─── Variable: n
+[line   31]           │                   ╰─── Literal: 2
+[line   32]           ├─── Var Declaration: extra
+[line   32]           │    ╰───  Initializer
+[line   32]           │         ╰─── Ternary:
+[line   32]           │              ├─── Binary: EqualEqual
+[line   32]           │              │    ├─── Binary: Percent
+[line   32]           │              │    │    ├─── Variable: n
+[line   32]           │              │    │    ╰─── Literal: 2
+[line   32]           │              │    ╰─── Literal: 0
+[line   32]           │              ├─── Variable: identity
+[line   32]           │              ╰─── Variable: baseMat
+[line   34]           ├─── Var Declaration: halfSquared
+[line   34]           │    ╰───  Initializer
+[line   34]           │         ╰─── Call:
+[line   34]           │              ├─── Variable: matMult
+[line   34]           │              ├─── Ref: 
+[line   34]           │              │    ╰─── Variable: half
+[line   34]           │              ╰─── Ref: 
+[line   34]           │                   ╰─── Variable: half
+[line   34]           ╰─── Return:
+[line   35]                ╰─── Call:
+[line   35]                     ├─── Variable: matMult
+[line   35]                     ├─── Ref: 
+[line   35]                     │    ╰─── Variable: extra
+[line   35]                     ╰─── Ref: 
+[line   35]                          ╰─── Variable: halfSquared
+[line   38] Function Declaration: fib
+[line   38] ╰─── Function Expression:
+[line   38]      ├─── Name: fib
+[line   38]      ├─── Return Type: int
+[line   38]      ├─── Params:
+[line   38]      │    ╰─── n: int
+[line   38]      ╰─── Body: 
+[line   38]           ╰─── Return:
+[line   39]                ╰─── Get: "b"
+[line   39]                     ╰─── Call:
+[line   39]                          ├─── Variable: fib_mat
+[line   39]                          ╰─── Variable: n
+[line   42] Function Declaration: main
+[line   42] ╰─── Function Expression:
+[line   42]      ├─── Name: main
+[line   42]      ├─── Return Type: int
+[line   42]      ╰─── Body: 
+[line   43]           ├─── Var Declaration: ret
+[line   43]           │    ╰───  Initializer
+[line   43]           │         ╰─── Literal: 0
+[line   44]           ├─── For: 
+[line   44]           │    ├─── Var Declaration: i
+[line   44]           │    │    ╰───  Initializer
+[line   44]           │    │         ╰─── Literal: 0
+[line   44]           │    ├─── Binary: Less
+[line   44]           │    │    ├─── Variable: i
+[line   44]           │    │    ╰─── Literal: 30
+[line   44]           │    ├─── Assign:
+[line   44]           │    │    ├─── Variable: i
+[line   44]           │    │    ╰─── Binary: Plus
+[line   44]           │    │         ├─── Variable: i
+[line   44]           │    │         ╰─── Literal: 1
+[line   44]           │    ╰─── Block: 
+[line   45]           │         ├─── Var Declaration: f
+[line   45]           │         │    ╰───  Initializer
+[line   45]           │         │         ╰─── Call:
+[line   45]           │         │              ├─── Variable: fib
+[line   45]           │         │              ╰─── Variable: i
+[line   46]           │         ╰─── Expression: 
+[line   46]           │              ╰─── Assign:
+[line   46]           │                   ├─── Variable: ret
+[line   46]           │                   ╰─── Binary: Plus
+[line   46]           │                        ├─── Variable: ret
+[line   46]           │                        ╰─── Variable: f
+[line   47]           ╰─── Return:
+[line   48]                ╰─── Variable: ret

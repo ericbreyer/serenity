@@ -61,7 +61,7 @@ impl Display for ValueType {
                 s.push('}');
                 s
             }
-            ValueType::SelfStruct(s, v) => format!("self{:?} {}", v, s),
+            ValueType::SelfStruct(s, _) => format!("struct {}", s),
             ValueType::GenericParam(n) => format!("<{n}>"),
             ValueType::Err => "err".to_owned(),
             ValueType::TypeVar(i) => format!("${i}"),

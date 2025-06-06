@@ -1,0 +1,952 @@
+---
+source: tests/integration_test.rs
+expression: result
+---
+; ModuleID = 'main'
+source_filename = "main"
+
+@"7319417400581242251_car" = global { ptr } { ptr @"7319417400581242251_car_ptr->ptrptr" }
+@"7319417400581242251_cdr" = global { ptr } { ptr @"7319417400581242251_cdr_ptr->ptrptr" }
+@next = global { ptr } { ptr @next_i64ptr }
+@"9429440375181068048_car" = global { ptr } { ptr @"9429440375181068048_car_ptr->ptrptr" }
+@"9429440375181068048_cdr" = global { ptr } { ptr @"9429440375181068048_cdr_ptr->ptrptr" }
+@const_stream_stream_vtable = global { { ptr }, { ptr } } zeroinitializer
+@const_stream_impl_stream = global { ptr } { ptr @"const_stream_impl_stream_ptr->ptr->ptrptr" }
+@"5461205560665788201_car" = global { ptr } { ptr @"5461205560665788201_car_ptr->ptrptr" }
+@"5461205560665788201_cdr" = global { ptr } { ptr @"5461205560665788201_cdr_ptr->ptrptr" }
+@nat_stream_stream_vtable = global { { ptr }, { ptr } } zeroinitializer
+@nat_stream_impl_stream = global { ptr } { ptr @"nat_stream_impl_stream_ptr->ptr->ptrptr" }
+@"4605303866116654876_car" = global { ptr } { ptr @"4605303866116654876_car_ptr->ptrptr" }
+@"4605303866116654876_cdr" = global { ptr } { ptr @"4605303866116654876_cdr_ptr->ptrptr" }
+@stream_cons_stream_vtable = global { { ptr }, { ptr } } zeroinitializer
+@stream_cons_impl_stream = global { ptr } { ptr @"stream_cons_impl_stream_ptr->ptr->ptrptr" }
+@"8896250655973739750_car" = global { ptr } { ptr @"8896250655973739750_car_ptr->ptrptr" }
+@"8896250655973739750_cdr" = global { ptr } { ptr @"8896250655973739750_cdr_ptr->ptrptr" }
+@stream_add_stream_vtable = global { { ptr }, { ptr } } zeroinitializer
+@stream_add_impl_stream = global { ptr } { ptr @"stream_add_impl_stream_ptr->ptr->ptrptr" }
+@"8896250655973739750_destroy" = global { ptr } { ptr @"8896250655973739750_destroy_ptr->ptrptr" }
+@cons = global { ptr } { ptr @"cons_i64->ptr->ptr->ptri64->ptr->ptr->ptr" }
+@add = global { ptr } { ptr @"add_ptr->ptr->ptr->ptr->ptr->ptr->ptrptr->ptr->ptr->ptr->ptr->ptr->ptr" }
+@impl_stream_6 = global { ptr } { ptr @"impl_stream_6_ptr->ptr->ptrptr" }
+@impl_stream_7 = global { ptr } { ptr @"impl_stream_7_ptr->ptr->ptrptr" }
+@impl_stream_8 = global { ptr } { ptr @"impl_stream_8_ptr->ptr->ptrptr" }
+@impl_stream_9 = global { ptr } { ptr @"impl_stream_9_ptr->ptr->ptrptr" }
+@impl_stream_10 = global { ptr } { ptr @"impl_stream_10_ptr->ptr->ptrptr" }
+@main = global { ptr } { ptr @main_i64 }
+
+declare i8 @printf(ptr, ...)
+
+declare ptr @malloc(i64)
+
+declare i8 @free(ptr)
+
+declare i8 @usleep(i64)
+
+define { ptr, ptr } @"7319417400581242251_car_ptr->ptrptr"(ptr %0) {
+entry:
+  %closure = alloca { ptr, ptr }, align 8
+  %self = alloca ptr, align 8
+  store ptr %0, ptr %self, align 8
+  %self1 = load ptr, ptr %self, align 8
+  %upval = getelementptr inbounds nuw { ptr, ptr }, ptr %closure, i32 0, i32 0
+  store ptr %self1, ptr %upval, align 8
+  %upval2 = getelementptr inbounds nuw { ptr, ptr }, ptr %closure, i32 0, i32 1
+  store ptr @"7319417400581242251_car_inner_i64ptr", ptr %upval2, align 8
+  %closure3 = load { ptr, ptr }, ptr %closure, align 8
+  ret { ptr, ptr } %closure3
+}
+
+define i64 @"7319417400581242251_car_inner_i64ptr"(ptr %0) {
+entry:
+  %calltmp10 = alloca i64, align 8
+  %calltmp6 = alloca { ptr, ptr }, align 8
+  %self = alloca ptr, align 8
+  store ptr %0, ptr %self, align 8
+  %rval = load ptr, ptr %self, align 8
+  %field = getelementptr inbounds nuw { ptr, { { ptr }, { ptr } } }, ptr %rval, i32 0, i32 1
+  %field1 = getelementptr inbounds nuw { { ptr }, { ptr } }, ptr %field, i32 0, i32 0
+  %rval2 = load { ptr }, ptr %field1, align 8
+  %rval3 = load ptr, ptr %self, align 8
+  %field4 = getelementptr inbounds nuw { ptr, { { ptr }, { ptr } } }, ptr %rval3, i32 0, i32 0
+  %rval5 = load ptr, ptr %field4, align 8
+  %fnptr = extractvalue { ptr } %rval2, 0
+  %calltmp = call { ptr, ptr } %fnptr(ptr %rval5)
+  store { ptr, ptr } %calltmp, ptr %calltmp6, align 8
+  %rval7 = load { ptr, ptr }, ptr %calltmp6, align 8
+  %fnptr8 = extractvalue { ptr, ptr } %rval7, 1
+  %upval = extractvalue { ptr, ptr } %rval7, 0
+  %calltmp9 = call i64 %fnptr8(ptr %upval)
+  store i64 %calltmp9, ptr %calltmp10, align 4
+  %rval11 = load i64, ptr %calltmp10, align 4
+  ret i64 %rval11
+}
+
+define { ptr, ptr } @"7319417400581242251_cdr_ptr->ptrptr"(ptr %0) {
+entry:
+  %closure = alloca { ptr, ptr }, align 8
+  %self = alloca ptr, align 8
+  store ptr %0, ptr %self, align 8
+  %self1 = load ptr, ptr %self, align 8
+  %upval = getelementptr inbounds nuw { ptr, ptr }, ptr %closure, i32 0, i32 0
+  store ptr %self1, ptr %upval, align 8
+  %upval2 = getelementptr inbounds nuw { ptr, ptr }, ptr %closure, i32 0, i32 1
+  store ptr @"7319417400581242251_cdr_inner_ptr->ptr->ptrptr", ptr %upval2, align 8
+  %closure3 = load { ptr, ptr }, ptr %closure, align 8
+  ret { ptr, ptr } %closure3
+}
+
+define { ptr, { { ptr }, { ptr } } } @"7319417400581242251_cdr_inner_ptr->ptr->ptrptr"(ptr %0) {
+entry:
+  %calltmp10 = alloca { ptr, { { ptr }, { ptr } } }, align 8
+  %calltmp6 = alloca { ptr, ptr }, align 8
+  %self = alloca ptr, align 8
+  store ptr %0, ptr %self, align 8
+  %rval = load ptr, ptr %self, align 8
+  %field = getelementptr inbounds nuw { ptr, { { ptr }, { ptr } } }, ptr %rval, i32 0, i32 1
+  %field1 = getelementptr inbounds nuw { { ptr }, { ptr } }, ptr %field, i32 0, i32 1
+  %rval2 = load { ptr }, ptr %field1, align 8
+  %rval3 = load ptr, ptr %self, align 8
+  %field4 = getelementptr inbounds nuw { ptr, { { ptr }, { ptr } } }, ptr %rval3, i32 0, i32 0
+  %rval5 = load ptr, ptr %field4, align 8
+  %fnptr = extractvalue { ptr } %rval2, 0
+  %calltmp = call { ptr, ptr } %fnptr(ptr %rval5)
+  store { ptr, ptr } %calltmp, ptr %calltmp6, align 8
+  %rval7 = load { ptr, ptr }, ptr %calltmp6, align 8
+  %fnptr8 = extractvalue { ptr, ptr } %rval7, 1
+  %upval = extractvalue { ptr, ptr } %rval7, 0
+  %calltmp9 = call { ptr, { { ptr }, { ptr } } } %fnptr8(ptr %upval)
+  store { ptr, { { ptr }, { ptr } } } %calltmp9, ptr %calltmp10, align 8
+  %rval11 = load { ptr, { { ptr }, { ptr } } }, ptr %calltmp10, align 8
+  ret { ptr, { { ptr }, { ptr } } } %rval11
+}
+
+define i64 @next_i64ptr(ptr %0) {
+entry:
+  %calltmp19 = alloca { ptr, { { ptr }, { ptr } } }, align 8
+  %calltmp14 = alloca { ptr, ptr }, align 8
+  %calltmp7 = alloca i64, align 8
+  %calltmp3 = alloca { ptr, ptr }, align 8
+  %n = alloca i64, align 8
+  %s = alloca ptr, align 8
+  store ptr %0, ptr %s, align 8
+  %rval = load ptr, ptr %s, align 8
+  %rval1 = load { ptr }, ptr @"7319417400581242251_car", align 8
+  %rval2 = load ptr, ptr %s, align 8
+  %fnptr = extractvalue { ptr } %rval1, 0
+  %calltmp = call { ptr, ptr } %fnptr(ptr %rval2)
+  store { ptr, ptr } %calltmp, ptr %calltmp3, align 8
+  %rval4 = load { ptr, ptr }, ptr %calltmp3, align 8
+  %fnptr5 = extractvalue { ptr, ptr } %rval4, 1
+  %upval = extractvalue { ptr, ptr } %rval4, 0
+  %calltmp6 = call i64 %fnptr5(ptr %upval)
+  store i64 %calltmp6, ptr %calltmp7, align 4
+  %rval8 = load i64, ptr %calltmp7, align 4
+  store i64 %rval8, ptr %n, align 4
+  %rval9 = load ptr, ptr %s, align 8
+  %rval10 = load { ptr }, ptr @"7319417400581242251_cdr", align 8
+  %rval11 = load ptr, ptr %s, align 8
+  %fnptr12 = extractvalue { ptr } %rval10, 0
+  %calltmp13 = call { ptr, ptr } %fnptr12(ptr %rval11)
+  store { ptr, ptr } %calltmp13, ptr %calltmp14, align 8
+  %rval15 = load { ptr, ptr }, ptr %calltmp14, align 8
+  %fnptr16 = extractvalue { ptr, ptr } %rval15, 1
+  %upval17 = extractvalue { ptr, ptr } %rval15, 0
+  %calltmp18 = call { ptr, { { ptr }, { ptr } } } %fnptr16(ptr %upval17)
+  store { ptr, { { ptr }, { ptr } } } %calltmp18, ptr %calltmp19, align 8
+  %rval20 = load { ptr, { { ptr }, { ptr } } }, ptr %calltmp19, align 8
+  %rval21 = load ptr, ptr %s, align 8
+  store { ptr, { { ptr }, { ptr } } } %rval20, ptr %rval21, align 8
+  %rval22 = load i64, ptr %n, align 4
+  ret i64 %rval22
+}
+
+define { ptr, ptr } @"9429440375181068048_car_ptr->ptrptr"(ptr %0) {
+entry:
+  %closure7 = alloca { ptr, ptr }, align 8
+  %self5 = alloca ptr, align 8
+  %closure = alloca { ptr, ptr }, align 8
+  %self = alloca ptr, align 8
+  store ptr %0, ptr %self, align 8
+  %self1 = load ptr, ptr %self, align 8
+  %upval = getelementptr inbounds nuw { ptr, ptr }, ptr %closure, i32 0, i32 0
+  store ptr %self1, ptr %upval, align 8
+  %upval2 = getelementptr inbounds nuw { ptr, ptr }, ptr %closure, i32 0, i32 1
+  store ptr @"9429440375181068048_car_inner_i64ptr", ptr %upval2, align 8
+  %closure3 = load { ptr, ptr }, ptr %closure, align 8
+  ret { ptr, ptr } %closure3
+
+entry4:                                           ; No predecessors!
+  store ptr %0, ptr %self5, align 8
+  %self6 = load ptr, ptr %self5, align 8
+  %upval8 = getelementptr inbounds nuw { ptr, ptr }, ptr %closure7, i32 0, i32 0
+  store ptr %self6, ptr %upval8, align 8
+  %upval9 = getelementptr inbounds nuw { ptr, ptr }, ptr %closure7, i32 0, i32 1
+  store ptr @"9429440375181068048_car_inner_i64ptr", ptr %upval9, align 8
+  %closure10 = load { ptr, ptr }, ptr %closure7, align 8
+  ret { ptr, ptr } %closure10
+}
+
+define i64 @"9429440375181068048_car_inner_i64ptr"(ptr %0) {
+entry:
+  %self = alloca ptr, align 8
+  store ptr %0, ptr %self, align 8
+  %rval = load ptr, ptr %self, align 8
+  %field = getelementptr inbounds nuw { i64 }, ptr %rval, i32 0, i32 0
+  %rval1 = load i64, ptr %field, align 4
+  ret i64 %rval1
+}
+
+define { ptr, ptr } @"9429440375181068048_cdr_ptr->ptrptr"(ptr %0) {
+entry:
+  %closure7 = alloca { ptr, ptr }, align 8
+  %self5 = alloca ptr, align 8
+  %closure = alloca { ptr, ptr }, align 8
+  %self = alloca ptr, align 8
+  store ptr %0, ptr %self, align 8
+  %self1 = load ptr, ptr %self, align 8
+  %upval = getelementptr inbounds nuw { ptr, ptr }, ptr %closure, i32 0, i32 0
+  store ptr %self1, ptr %upval, align 8
+  %upval2 = getelementptr inbounds nuw { ptr, ptr }, ptr %closure, i32 0, i32 1
+  store ptr @"9429440375181068048_cdr_inner_ptr->ptr->ptrptr", ptr %upval2, align 8
+  %closure3 = load { ptr, ptr }, ptr %closure, align 8
+  ret { ptr, ptr } %closure3
+
+entry4:                                           ; No predecessors!
+  store ptr %0, ptr %self5, align 8
+  %self6 = load ptr, ptr %self5, align 8
+  %upval8 = getelementptr inbounds nuw { ptr, ptr }, ptr %closure7, i32 0, i32 0
+  store ptr %self6, ptr %upval8, align 8
+  %upval9 = getelementptr inbounds nuw { ptr, ptr }, ptr %closure7, i32 0, i32 1
+  store ptr @"9429440375181068048_cdr_inner_ptr->ptr->ptrptr", ptr %upval9, align 8
+  %closure10 = load { ptr, ptr }, ptr %closure7, align 8
+  ret { ptr, ptr } %closure10
+}
+
+define { ptr, { { ptr }, { ptr } } } @"9429440375181068048_cdr_inner_ptr->ptr->ptrptr"(ptr %0) {
+entry:
+  %calltmp2 = alloca { ptr, { { ptr }, { ptr } } }, align 8
+  %self = alloca ptr, align 8
+  store ptr %0, ptr %self, align 8
+  %rval = load { ptr }, ptr @const_stream_impl_stream, align 8
+  %rval1 = load ptr, ptr %self, align 8
+  %fnptr = extractvalue { ptr } %rval, 0
+  %calltmp = call { ptr, { { ptr }, { ptr } } } %fnptr(ptr %rval1)
+  store { ptr, { { ptr }, { ptr } } } %calltmp, ptr %calltmp2, align 8
+  %rval3 = load { ptr, { { ptr }, { ptr } } }, ptr %calltmp2, align 8
+  ret { ptr, { { ptr }, { ptr } } } %rval3
+}
+
+define { ptr, { { ptr }, { ptr } } } @"const_stream_impl_stream_ptr->ptr->ptrptr"(ptr %0) {
+entry:
+  %struct_init = alloca { ptr, { { ptr }, { ptr } } }, align 8
+  %self = alloca ptr, align 8
+  store ptr %0, ptr %self, align 8
+  %rval = load { ptr }, ptr @"9429440375181068048_car", align 8
+  store { ptr } %rval, ptr @const_stream_stream_vtable, align 8
+  %rval1 = load { ptr }, ptr @"9429440375181068048_cdr", align 8
+  store { ptr } %rval1, ptr getelementptr inbounds nuw ({ { ptr }, { ptr } }, ptr @const_stream_stream_vtable, i32 0, i32 1), align 8
+  %field = getelementptr inbounds nuw { ptr, { { ptr }, { ptr } } }, ptr %struct_init, i32 0, i32 0
+  %rval2 = load ptr, ptr %self, align 8
+  store ptr %rval2, ptr %field, align 8
+  %field3 = getelementptr inbounds nuw { ptr, { { ptr }, { ptr } } }, ptr %struct_init, i32 0, i32 1
+  %rval4 = load { { ptr }, { ptr } }, ptr @const_stream_stream_vtable, align 8
+  store { { ptr }, { ptr } } %rval4, ptr %field3, align 8
+  %struct_init5 = load { ptr, { { ptr }, { ptr } } }, ptr %struct_init, align 8
+  ret { ptr, { { ptr }, { ptr } } } %struct_init5
+}
+
+define { ptr, ptr } @"5461205560665788201_car_ptr->ptrptr"(ptr %0) {
+entry:
+  %closure7 = alloca { ptr, ptr }, align 8
+  %self5 = alloca ptr, align 8
+  %closure = alloca { ptr, ptr }, align 8
+  %self = alloca ptr, align 8
+  store ptr %0, ptr %self, align 8
+  %self1 = load ptr, ptr %self, align 8
+  %upval = getelementptr inbounds nuw { ptr, ptr }, ptr %closure, i32 0, i32 0
+  store ptr %self1, ptr %upval, align 8
+  %upval2 = getelementptr inbounds nuw { ptr, ptr }, ptr %closure, i32 0, i32 1
+  store ptr @"5461205560665788201_car_inner_i64ptr", ptr %upval2, align 8
+  %closure3 = load { ptr, ptr }, ptr %closure, align 8
+  ret { ptr, ptr } %closure3
+
+entry4:                                           ; No predecessors!
+  store ptr %0, ptr %self5, align 8
+  %self6 = load ptr, ptr %self5, align 8
+  %upval8 = getelementptr inbounds nuw { ptr, ptr }, ptr %closure7, i32 0, i32 0
+  store ptr %self6, ptr %upval8, align 8
+  %upval9 = getelementptr inbounds nuw { ptr, ptr }, ptr %closure7, i32 0, i32 1
+  store ptr @"5461205560665788201_car_inner_i64ptr", ptr %upval9, align 8
+  %closure10 = load { ptr, ptr }, ptr %closure7, align 8
+  ret { ptr, ptr } %closure10
+}
+
+define i64 @"5461205560665788201_car_inner_i64ptr"(ptr %0) {
+entry:
+  %self = alloca ptr, align 8
+  store ptr %0, ptr %self, align 8
+  %rval = load ptr, ptr %self, align 8
+  %field = getelementptr inbounds nuw { i64 }, ptr %rval, i32 0, i32 0
+  %rval1 = load i64, ptr %field, align 4
+  ret i64 %rval1
+}
+
+define { ptr, ptr } @"5461205560665788201_cdr_ptr->ptrptr"(ptr %0) {
+entry:
+  %closure7 = alloca { ptr, ptr }, align 8
+  %self5 = alloca ptr, align 8
+  %closure = alloca { ptr, ptr }, align 8
+  %self = alloca ptr, align 8
+  store ptr %0, ptr %self, align 8
+  %self1 = load ptr, ptr %self, align 8
+  %upval = getelementptr inbounds nuw { ptr, ptr }, ptr %closure, i32 0, i32 0
+  store ptr %self1, ptr %upval, align 8
+  %upval2 = getelementptr inbounds nuw { ptr, ptr }, ptr %closure, i32 0, i32 1
+  store ptr @"5461205560665788201_cdr_inner_ptr->ptr->ptrptr", ptr %upval2, align 8
+  %closure3 = load { ptr, ptr }, ptr %closure, align 8
+  ret { ptr, ptr } %closure3
+
+entry4:                                           ; No predecessors!
+  store ptr %0, ptr %self5, align 8
+  %self6 = load ptr, ptr %self5, align 8
+  %upval8 = getelementptr inbounds nuw { ptr, ptr }, ptr %closure7, i32 0, i32 0
+  store ptr %self6, ptr %upval8, align 8
+  %upval9 = getelementptr inbounds nuw { ptr, ptr }, ptr %closure7, i32 0, i32 1
+  store ptr @"5461205560665788201_cdr_inner_ptr->ptr->ptrptr", ptr %upval9, align 8
+  %closure10 = load { ptr, ptr }, ptr %closure7, align 8
+  ret { ptr, ptr } %closure10
+}
+
+define { ptr, { { ptr }, { ptr } } } @"5461205560665788201_cdr_inner_ptr->ptr->ptrptr"(ptr %0) {
+entry:
+  %calltmp10 = alloca { ptr, { { ptr }, { ptr } } }, align 8
+  %struct_init = alloca { i64 }, align 8
+  %s = alloca ptr, align 8
+  %i = alloca i64, align 8
+  %self = alloca ptr, align 8
+  store ptr %0, ptr %self, align 8
+  %rval = load ptr, ptr %self, align 8
+  %field = getelementptr inbounds nuw { i64 }, ptr %rval, i32 0, i32 0
+  %rval1 = load i64, ptr %field, align 4
+  store i64 %rval1, ptr %i, align 4
+  %rval2 = load ptr, ptr @malloc, align 8
+  %calltmp = call ptr @malloc(i64 ptrtoint (ptr getelementptr ({ i64 }, ptr null, i32 1) to i64))
+  store ptr %calltmp, ptr %s, align 8
+  %field3 = getelementptr inbounds nuw { i64 }, ptr %struct_init, i32 0, i32 0
+  %rval4 = load i64, ptr %i, align 4
+  %addtmp = add i64 %rval4, 1
+  store i64 %addtmp, ptr %field3, align 4
+  %struct_init5 = load { i64 }, ptr %struct_init, align 4
+  %rval6 = load ptr, ptr %s, align 8
+  store { i64 } %struct_init5, ptr %rval6, align 4
+  %rval7 = load { ptr }, ptr @nat_stream_impl_stream, align 8
+  %rval8 = load ptr, ptr %s, align 8
+  %fnptr = extractvalue { ptr } %rval7, 0
+  %calltmp9 = call { ptr, { { ptr }, { ptr } } } %fnptr(ptr %rval8)
+  store { ptr, { { ptr }, { ptr } } } %calltmp9, ptr %calltmp10, align 8
+  %rval11 = load { ptr, { { ptr }, { ptr } } }, ptr %calltmp10, align 8
+  ret { ptr, { { ptr }, { ptr } } } %rval11
+}
+
+define { ptr, { { ptr }, { ptr } } } @"nat_stream_impl_stream_ptr->ptr->ptrptr"(ptr %0) {
+entry:
+  %struct_init = alloca { ptr, { { ptr }, { ptr } } }, align 8
+  %self = alloca ptr, align 8
+  store ptr %0, ptr %self, align 8
+  %rval = load { ptr }, ptr @"5461205560665788201_car", align 8
+  store { ptr } %rval, ptr @nat_stream_stream_vtable, align 8
+  %rval1 = load { ptr }, ptr @"5461205560665788201_cdr", align 8
+  store { ptr } %rval1, ptr getelementptr inbounds nuw ({ { ptr }, { ptr } }, ptr @nat_stream_stream_vtable, i32 0, i32 1), align 8
+  %field = getelementptr inbounds nuw { ptr, { { ptr }, { ptr } } }, ptr %struct_init, i32 0, i32 0
+  %rval2 = load ptr, ptr %self, align 8
+  store ptr %rval2, ptr %field, align 8
+  %field3 = getelementptr inbounds nuw { ptr, { { ptr }, { ptr } } }, ptr %struct_init, i32 0, i32 1
+  %rval4 = load { { ptr }, { ptr } }, ptr @nat_stream_stream_vtable, align 8
+  store { { ptr }, { ptr } } %rval4, ptr %field3, align 8
+  %struct_init5 = load { ptr, { { ptr }, { ptr } } }, ptr %struct_init, align 8
+  ret { ptr, { { ptr }, { ptr } } } %struct_init5
+}
+
+define { ptr, ptr } @"4605303866116654876_car_ptr->ptrptr"(ptr %0) {
+entry:
+  %closure7 = alloca { ptr, ptr }, align 8
+  %self5 = alloca ptr, align 8
+  %closure = alloca { ptr, ptr }, align 8
+  %self = alloca ptr, align 8
+  store ptr %0, ptr %self, align 8
+  %self1 = load ptr, ptr %self, align 8
+  %upval = getelementptr inbounds nuw { ptr, ptr }, ptr %closure, i32 0, i32 0
+  store ptr %self1, ptr %upval, align 8
+  %upval2 = getelementptr inbounds nuw { ptr, ptr }, ptr %closure, i32 0, i32 1
+  store ptr @"4605303866116654876_car_inner_i64ptr", ptr %upval2, align 8
+  %closure3 = load { ptr, ptr }, ptr %closure, align 8
+  ret { ptr, ptr } %closure3
+
+entry4:                                           ; No predecessors!
+  store ptr %0, ptr %self5, align 8
+  %self6 = load ptr, ptr %self5, align 8
+  %upval8 = getelementptr inbounds nuw { ptr, ptr }, ptr %closure7, i32 0, i32 0
+  store ptr %self6, ptr %upval8, align 8
+  %upval9 = getelementptr inbounds nuw { ptr, ptr }, ptr %closure7, i32 0, i32 1
+  store ptr @"4605303866116654876_car_inner_i64ptr", ptr %upval9, align 8
+  %closure10 = load { ptr, ptr }, ptr %closure7, align 8
+  ret { ptr, ptr } %closure10
+}
+
+define i64 @"4605303866116654876_car_inner_i64ptr"(ptr %0) {
+entry:
+  %self = alloca ptr, align 8
+  store ptr %0, ptr %self, align 8
+  %rval = load ptr, ptr %self, align 8
+  %field = getelementptr inbounds nuw { i64, { ptr, { { ptr }, { ptr } } } }, ptr %rval, i32 0, i32 0
+  %rval1 = load i64, ptr %field, align 4
+  ret i64 %rval1
+}
+
+define { ptr, ptr } @"4605303866116654876_cdr_ptr->ptrptr"(ptr %0) {
+entry:
+  %closure7 = alloca { ptr, ptr }, align 8
+  %self5 = alloca ptr, align 8
+  %closure = alloca { ptr, ptr }, align 8
+  %self = alloca ptr, align 8
+  store ptr %0, ptr %self, align 8
+  %self1 = load ptr, ptr %self, align 8
+  %upval = getelementptr inbounds nuw { ptr, ptr }, ptr %closure, i32 0, i32 0
+  store ptr %self1, ptr %upval, align 8
+  %upval2 = getelementptr inbounds nuw { ptr, ptr }, ptr %closure, i32 0, i32 1
+  store ptr @"4605303866116654876_cdr_inner_ptr->ptr->ptrptr", ptr %upval2, align 8
+  %closure3 = load { ptr, ptr }, ptr %closure, align 8
+  ret { ptr, ptr } %closure3
+
+entry4:                                           ; No predecessors!
+  store ptr %0, ptr %self5, align 8
+  %self6 = load ptr, ptr %self5, align 8
+  %upval8 = getelementptr inbounds nuw { ptr, ptr }, ptr %closure7, i32 0, i32 0
+  store ptr %self6, ptr %upval8, align 8
+  %upval9 = getelementptr inbounds nuw { ptr, ptr }, ptr %closure7, i32 0, i32 1
+  store ptr @"4605303866116654876_cdr_inner_ptr->ptr->ptrptr", ptr %upval9, align 8
+  %closure10 = load { ptr, ptr }, ptr %closure7, align 8
+  ret { ptr, ptr } %closure10
+}
+
+define { ptr, { { ptr }, { ptr } } } @"4605303866116654876_cdr_inner_ptr->ptr->ptrptr"(ptr %0) {
+entry:
+  %self = alloca ptr, align 8
+  store ptr %0, ptr %self, align 8
+  %rval = load ptr, ptr %self, align 8
+  %field = getelementptr inbounds nuw { i64, { ptr, { { ptr }, { ptr } } } }, ptr %rval, i32 0, i32 1
+  %rval1 = load { ptr, { { ptr }, { ptr } } }, ptr %field, align 8
+  ret { ptr, { { ptr }, { ptr } } } %rval1
+}
+
+define { ptr, { { ptr }, { ptr } } } @"stream_cons_impl_stream_ptr->ptr->ptrptr"(ptr %0) {
+entry:
+  %struct_init = alloca { ptr, { { ptr }, { ptr } } }, align 8
+  %self = alloca ptr, align 8
+  store ptr %0, ptr %self, align 8
+  %rval = load { ptr }, ptr @"4605303866116654876_car", align 8
+  store { ptr } %rval, ptr @stream_cons_stream_vtable, align 8
+  %rval1 = load { ptr }, ptr @"4605303866116654876_cdr", align 8
+  store { ptr } %rval1, ptr getelementptr inbounds nuw ({ { ptr }, { ptr } }, ptr @stream_cons_stream_vtable, i32 0, i32 1), align 8
+  %field = getelementptr inbounds nuw { ptr, { { ptr }, { ptr } } }, ptr %struct_init, i32 0, i32 0
+  %rval2 = load ptr, ptr %self, align 8
+  store ptr %rval2, ptr %field, align 8
+  %field3 = getelementptr inbounds nuw { ptr, { { ptr }, { ptr } } }, ptr %struct_init, i32 0, i32 1
+  %rval4 = load { { ptr }, { ptr } }, ptr @stream_cons_stream_vtable, align 8
+  store { { ptr }, { ptr } } %rval4, ptr %field3, align 8
+  %struct_init5 = load { ptr, { { ptr }, { ptr } } }, ptr %struct_init, align 8
+  ret { ptr, { { ptr }, { ptr } } } %struct_init5
+}
+
+define { ptr, ptr } @"8896250655973739750_car_ptr->ptrptr"(ptr %0) {
+entry:
+  %closure7 = alloca { ptr, ptr }, align 8
+  %self5 = alloca ptr, align 8
+  %closure = alloca { ptr, ptr }, align 8
+  %self = alloca ptr, align 8
+  store ptr %0, ptr %self, align 8
+  %self1 = load ptr, ptr %self, align 8
+  %upval = getelementptr inbounds nuw { ptr, ptr }, ptr %closure, i32 0, i32 0
+  store ptr %self1, ptr %upval, align 8
+  %upval2 = getelementptr inbounds nuw { ptr, ptr }, ptr %closure, i32 0, i32 1
+  store ptr @"8896250655973739750_car_inner_i64ptr", ptr %upval2, align 8
+  %closure3 = load { ptr, ptr }, ptr %closure, align 8
+  ret { ptr, ptr } %closure3
+
+entry4:                                           ; No predecessors!
+  store ptr %0, ptr %self5, align 8
+  %self6 = load ptr, ptr %self5, align 8
+  %upval8 = getelementptr inbounds nuw { ptr, ptr }, ptr %closure7, i32 0, i32 0
+  store ptr %self6, ptr %upval8, align 8
+  %upval9 = getelementptr inbounds nuw { ptr, ptr }, ptr %closure7, i32 0, i32 1
+  store ptr @"8896250655973739750_car_inner_i64ptr", ptr %upval9, align 8
+  %closure10 = load { ptr, ptr }, ptr %closure7, align 8
+  ret { ptr, ptr } %closure10
+}
+
+define i64 @"8896250655973739750_car_inner_i64ptr"(ptr %0) {
+entry:
+  %calltmp22 = alloca i64, align 8
+  %calltmp17 = alloca { ptr, ptr }, align 8
+  %calltmp8 = alloca i64, align 8
+  %calltmp4 = alloca { ptr, ptr }, align 8
+  %self = alloca ptr, align 8
+  store ptr %0, ptr %self, align 8
+  %rval = load ptr, ptr %self, align 8
+  %field = getelementptr inbounds nuw { { ptr, { { ptr }, { ptr } } }, { ptr, { { ptr }, { ptr } } }, ptr }, ptr %rval, i32 0, i32 0
+  %rval1 = load { ptr }, ptr @"7319417400581242251_car", align 8
+  %rval2 = load ptr, ptr %self, align 8
+  %field3 = getelementptr inbounds nuw { { ptr, { { ptr }, { ptr } } }, { ptr, { { ptr }, { ptr } } }, ptr }, ptr %rval2, i32 0, i32 0
+  %fnptr = extractvalue { ptr } %rval1, 0
+  %calltmp = call { ptr, ptr } %fnptr(ptr %field3)
+  store { ptr, ptr } %calltmp, ptr %calltmp4, align 8
+  %rval5 = load { ptr, ptr }, ptr %calltmp4, align 8
+  %fnptr6 = extractvalue { ptr, ptr } %rval5, 1
+  %upval = extractvalue { ptr, ptr } %rval5, 0
+  %calltmp7 = call i64 %fnptr6(ptr %upval)
+  store i64 %calltmp7, ptr %calltmp8, align 4
+  %rval9 = load i64, ptr %calltmp8, align 4
+  %rval10 = load ptr, ptr %self, align 8
+  %field11 = getelementptr inbounds nuw { { ptr, { { ptr }, { ptr } } }, { ptr, { { ptr }, { ptr } } }, ptr }, ptr %rval10, i32 0, i32 1
+  %rval12 = load { ptr }, ptr @"7319417400581242251_car", align 8
+  %rval13 = load ptr, ptr %self, align 8
+  %field14 = getelementptr inbounds nuw { { ptr, { { ptr }, { ptr } } }, { ptr, { { ptr }, { ptr } } }, ptr }, ptr %rval13, i32 0, i32 1
+  %fnptr15 = extractvalue { ptr } %rval12, 0
+  %calltmp16 = call { ptr, ptr } %fnptr15(ptr %field14)
+  store { ptr, ptr } %calltmp16, ptr %calltmp17, align 8
+  %rval18 = load { ptr, ptr }, ptr %calltmp17, align 8
+  %fnptr19 = extractvalue { ptr, ptr } %rval18, 1
+  %upval20 = extractvalue { ptr, ptr } %rval18, 0
+  %calltmp21 = call i64 %fnptr19(ptr %upval20)
+  store i64 %calltmp21, ptr %calltmp22, align 4
+  %rval23 = load i64, ptr %calltmp22, align 4
+  %addtmp = add i64 %rval9, %rval23
+  ret i64 %addtmp
+}
+
+define { ptr, ptr } @"8896250655973739750_cdr_ptr->ptrptr"(ptr %0) {
+entry:
+  %closure7 = alloca { ptr, ptr }, align 8
+  %self5 = alloca ptr, align 8
+  %closure = alloca { ptr, ptr }, align 8
+  %self = alloca ptr, align 8
+  store ptr %0, ptr %self, align 8
+  %self1 = load ptr, ptr %self, align 8
+  %upval = getelementptr inbounds nuw { ptr, ptr }, ptr %closure, i32 0, i32 0
+  store ptr %self1, ptr %upval, align 8
+  %upval2 = getelementptr inbounds nuw { ptr, ptr }, ptr %closure, i32 0, i32 1
+  store ptr @"8896250655973739750_cdr_inner_ptr->ptr->ptrptr", ptr %upval2, align 8
+  %closure3 = load { ptr, ptr }, ptr %closure, align 8
+  ret { ptr, ptr } %closure3
+
+entry4:                                           ; No predecessors!
+  store ptr %0, ptr %self5, align 8
+  %self6 = load ptr, ptr %self5, align 8
+  %upval8 = getelementptr inbounds nuw { ptr, ptr }, ptr %closure7, i32 0, i32 0
+  store ptr %self6, ptr %upval8, align 8
+  %upval9 = getelementptr inbounds nuw { ptr, ptr }, ptr %closure7, i32 0, i32 1
+  store ptr @"8896250655973739750_cdr_inner_ptr->ptr->ptrptr", ptr %upval9, align 8
+  %closure10 = load { ptr, ptr }, ptr %closure7, align 8
+  ret { ptr, ptr } %closure10
+}
+
+define { ptr, { { ptr }, { ptr } } } @"8896250655973739750_cdr_inner_ptr->ptr->ptrptr"(ptr %0) {
+entry:
+  %calltmp40 = alloca { ptr, { { ptr }, { ptr } } }, align 8
+  %struct_init = alloca { { ptr, { { ptr }, { ptr } } }, { ptr, { { ptr }, { ptr } } }, ptr }, align 8
+  %add = alloca ptr, align 8
+  %calltmp22 = alloca { ptr, { { ptr }, { ptr } } }, align 8
+  %calltmp17 = alloca { ptr, ptr }, align 8
+  %s2 = alloca { ptr, { { ptr }, { ptr } } }, align 8
+  %calltmp8 = alloca { ptr, { { ptr }, { ptr } } }, align 8
+  %calltmp4 = alloca { ptr, ptr }, align 8
+  %s1 = alloca { ptr, { { ptr }, { ptr } } }, align 8
+  %self = alloca ptr, align 8
+  store ptr %0, ptr %self, align 8
+  %rval = load ptr, ptr %self, align 8
+  %field = getelementptr inbounds nuw { { ptr, { { ptr }, { ptr } } }, { ptr, { { ptr }, { ptr } } }, ptr }, ptr %rval, i32 0, i32 0
+  %rval1 = load { ptr }, ptr @"7319417400581242251_cdr", align 8
+  %rval2 = load ptr, ptr %self, align 8
+  %field3 = getelementptr inbounds nuw { { ptr, { { ptr }, { ptr } } }, { ptr, { { ptr }, { ptr } } }, ptr }, ptr %rval2, i32 0, i32 0
+  %fnptr = extractvalue { ptr } %rval1, 0
+  %calltmp = call { ptr, ptr } %fnptr(ptr %field3)
+  store { ptr, ptr } %calltmp, ptr %calltmp4, align 8
+  %rval5 = load { ptr, ptr }, ptr %calltmp4, align 8
+  %fnptr6 = extractvalue { ptr, ptr } %rval5, 1
+  %upval = extractvalue { ptr, ptr } %rval5, 0
+  %calltmp7 = call { ptr, { { ptr }, { ptr } } } %fnptr6(ptr %upval)
+  store { ptr, { { ptr }, { ptr } } } %calltmp7, ptr %calltmp8, align 8
+  %rval9 = load { ptr, { { ptr }, { ptr } } }, ptr %calltmp8, align 8
+  store { ptr, { { ptr }, { ptr } } } %rval9, ptr %s1, align 8
+  %rval10 = load ptr, ptr %self, align 8
+  %field11 = getelementptr inbounds nuw { { ptr, { { ptr }, { ptr } } }, { ptr, { { ptr }, { ptr } } }, ptr }, ptr %rval10, i32 0, i32 1
+  %rval12 = load { ptr }, ptr @"7319417400581242251_cdr", align 8
+  %rval13 = load ptr, ptr %self, align 8
+  %field14 = getelementptr inbounds nuw { { ptr, { { ptr }, { ptr } } }, { ptr, { { ptr }, { ptr } } }, ptr }, ptr %rval13, i32 0, i32 1
+  %fnptr15 = extractvalue { ptr } %rval12, 0
+  %calltmp16 = call { ptr, ptr } %fnptr15(ptr %field14)
+  store { ptr, ptr } %calltmp16, ptr %calltmp17, align 8
+  %rval18 = load { ptr, ptr }, ptr %calltmp17, align 8
+  %fnptr19 = extractvalue { ptr, ptr } %rval18, 1
+  %upval20 = extractvalue { ptr, ptr } %rval18, 0
+  %calltmp21 = call { ptr, { { ptr }, { ptr } } } %fnptr19(ptr %upval20)
+  store { ptr, { { ptr }, { ptr } } } %calltmp21, ptr %calltmp22, align 8
+  %rval23 = load { ptr, { { ptr }, { ptr } } }, ptr %calltmp22, align 8
+  store { ptr, { { ptr }, { ptr } } } %rval23, ptr %s2, align 8
+  %rval24 = load ptr, ptr @malloc, align 8
+  %calltmp25 = call ptr @malloc(i64 ptrtoint (ptr getelementptr ({ { ptr, { { ptr }, { ptr } } }, { ptr, { { ptr }, { ptr } } }, ptr }, ptr null, i32 1) to i64))
+  store ptr %calltmp25, ptr %add, align 8
+  %field26 = getelementptr inbounds nuw { { ptr, { { ptr }, { ptr } } }, { ptr, { { ptr }, { ptr } } }, ptr }, ptr %struct_init, i32 0, i32 0
+  %rval27 = load { ptr, { { ptr }, { ptr } } }, ptr %s1, align 8
+  store { ptr, { { ptr }, { ptr } } } %rval27, ptr %field26, align 8
+  %field28 = getelementptr inbounds nuw { { ptr, { { ptr }, { ptr } } }, { ptr, { { ptr }, { ptr } } }, ptr }, ptr %struct_init, i32 0, i32 1
+  %rval29 = load { ptr, { { ptr }, { ptr } } }, ptr %s2, align 8
+  store { ptr, { { ptr }, { ptr } } } %rval29, ptr %field28, align 8
+  %field30 = getelementptr inbounds nuw { { ptr, { { ptr }, { ptr } } }, { ptr, { { ptr }, { ptr } } }, ptr }, ptr %struct_init, i32 0, i32 2
+  store i64 0, ptr %field30, align 4
+  %struct_init31 = load { { ptr, { { ptr }, { ptr } } }, { ptr, { { ptr }, { ptr } } }, ptr }, ptr %struct_init, align 8
+  %rval32 = load ptr, ptr %add, align 8
+  store { { ptr, { { ptr }, { ptr } } }, { ptr, { { ptr }, { ptr } } }, ptr } %struct_init31, ptr %rval32, align 8
+  %rval33 = load ptr, ptr %add, align 8
+  %rval34 = load ptr, ptr %self, align 8
+  %field35 = getelementptr inbounds nuw { { ptr, { { ptr }, { ptr } } }, { ptr, { { ptr }, { ptr } } }, ptr }, ptr %rval34, i32 0, i32 2
+  store ptr %rval33, ptr %field35, align 8
+  %rval36 = load { ptr }, ptr @stream_add_impl_stream, align 8
+  %rval37 = load ptr, ptr %add, align 8
+  %fnptr38 = extractvalue { ptr } %rval36, 0
+  %calltmp39 = call { ptr, { { ptr }, { ptr } } } %fnptr38(ptr %rval37)
+  store { ptr, { { ptr }, { ptr } } } %calltmp39, ptr %calltmp40, align 8
+  %rval41 = load { ptr, { { ptr }, { ptr } } }, ptr %calltmp40, align 8
+  ret { ptr, { { ptr }, { ptr } } } %rval41
+}
+
+define { ptr, { { ptr }, { ptr } } } @"stream_add_impl_stream_ptr->ptr->ptrptr"(ptr %0) {
+entry:
+  %struct_init = alloca { ptr, { { ptr }, { ptr } } }, align 8
+  %self = alloca ptr, align 8
+  store ptr %0, ptr %self, align 8
+  %rval = load { ptr }, ptr @"8896250655973739750_car", align 8
+  store { ptr } %rval, ptr @stream_add_stream_vtable, align 8
+  %rval1 = load { ptr }, ptr @"8896250655973739750_cdr", align 8
+  store { ptr } %rval1, ptr getelementptr inbounds nuw ({ { ptr }, { ptr } }, ptr @stream_add_stream_vtable, i32 0, i32 1), align 8
+  %field = getelementptr inbounds nuw { ptr, { { ptr }, { ptr } } }, ptr %struct_init, i32 0, i32 0
+  %rval2 = load ptr, ptr %self, align 8
+  store ptr %rval2, ptr %field, align 8
+  %field3 = getelementptr inbounds nuw { ptr, { { ptr }, { ptr } } }, ptr %struct_init, i32 0, i32 1
+  %rval4 = load { { ptr }, { ptr } }, ptr @stream_add_stream_vtable, align 8
+  store { { ptr }, { ptr } } %rval4, ptr %field3, align 8
+  %struct_init5 = load { ptr, { { ptr }, { ptr } } }, ptr %struct_init, align 8
+  ret { ptr, { { ptr }, { ptr } } } %struct_init5
+}
+
+define { ptr, ptr } @"8896250655973739750_destroy_ptr->ptrptr"(ptr %0) {
+entry:
+  %closure = alloca { ptr, ptr }, align 8
+  %self = alloca ptr, align 8
+  store ptr %0, ptr %self, align 8
+  %self1 = load ptr, ptr %self, align 8
+  %upval = getelementptr inbounds nuw { ptr, ptr }, ptr %closure, i32 0, i32 0
+  store ptr %self1, ptr %upval, align 8
+  %upval2 = getelementptr inbounds nuw { ptr, ptr }, ptr %closure, i32 0, i32 1
+  store ptr @"8896250655973739750_destroy_inner_i8ptr", ptr %upval2, align 8
+  %closure3 = load { ptr, ptr }, ptr %closure, align 8
+  ret { ptr, ptr } %closure3
+}
+
+define i8 @"8896250655973739750_destroy_inner_i8ptr"(ptr %0) {
+entry:
+  %calltmp13 = alloca i8, align 1
+  %calltmp9 = alloca { ptr, ptr }, align 8
+  %self = alloca ptr, align 8
+  store ptr %0, ptr %self, align 8
+  %rval = load ptr, ptr %self, align 8
+  %field = getelementptr inbounds nuw { { ptr, { { ptr }, { ptr } } }, { ptr, { { ptr }, { ptr } } }, ptr }, ptr %rval, i32 0, i32 2
+  %rval1 = load ptr, ptr %field, align 8
+  %ptrtoint = ptrtoint ptr %rval1 to i64
+  %neqtmp = icmp ne i64 %ptrtoint, 0
+  br i1 %neqtmp, label %then, label %else
+
+then:                                             ; preds = %entry
+  %rval2 = load ptr, ptr %self, align 8
+  %field3 = getelementptr inbounds nuw { { ptr, { { ptr }, { ptr } } }, { ptr, { { ptr }, { ptr } } }, ptr }, ptr %rval2, i32 0, i32 2
+  %rval4 = load ptr, ptr %field3, align 8
+  %rval5 = load { ptr }, ptr @"8896250655973739750_destroy", align 8
+  %rval6 = load ptr, ptr %self, align 8
+  %field7 = getelementptr inbounds nuw { { ptr, { { ptr }, { ptr } } }, { ptr, { { ptr }, { ptr } } }, ptr }, ptr %rval6, i32 0, i32 2
+  %rval8 = load ptr, ptr %field7, align 8
+  %fnptr = extractvalue { ptr } %rval5, 0
+  %calltmp = call { ptr, ptr } %fnptr(ptr %rval8)
+  store { ptr, ptr } %calltmp, ptr %calltmp9, align 8
+  %rval10 = load { ptr, ptr }, ptr %calltmp9, align 8
+  %fnptr11 = extractvalue { ptr, ptr } %rval10, 1
+  %upval = extractvalue { ptr, ptr } %rval10, 0
+  %calltmp12 = call i8 %fnptr11(ptr %upval)
+  store i8 %calltmp12, ptr %calltmp13, align 1
+  %rval14 = load ptr, ptr @free, align 8
+  %rval15 = load ptr, ptr %self, align 8
+  %field16 = getelementptr inbounds nuw { { ptr, { { ptr }, { ptr } } }, { ptr, { { ptr }, { ptr } } }, ptr }, ptr %rval15, i32 0, i32 2
+  %rval17 = load ptr, ptr %field16, align 8
+  %calltmp18 = call i8 @free(ptr %rval17)
+  br label %ifcont
+
+else:                                             ; preds = %entry
+  br label %ifcont
+
+ifcont:                                           ; preds = %else, %then
+  ret i8 0
+}
+
+define { i64, { ptr, { { ptr }, { ptr } } } } @"cons_i64->ptr->ptr->ptri64->ptr->ptr->ptr"(i64 %0, { ptr, { { ptr }, { ptr } } } %1) {
+entry:
+  %struct_init = alloca { i64, { ptr, { { ptr }, { ptr } } } }, align 8
+  %s = alloca { ptr, { { ptr }, { ptr } } }, align 8
+  %n = alloca i64, align 8
+  store i64 %0, ptr %n, align 4
+  store { ptr, { { ptr }, { ptr } } } %1, ptr %s, align 8
+  %field = getelementptr inbounds nuw { i64, { ptr, { { ptr }, { ptr } } } }, ptr %struct_init, i32 0, i32 0
+  %rval = load i64, ptr %n, align 4
+  store i64 %rval, ptr %field, align 4
+  %field1 = getelementptr inbounds nuw { i64, { ptr, { { ptr }, { ptr } } } }, ptr %struct_init, i32 0, i32 1
+  %rval2 = load { ptr, { { ptr }, { ptr } } }, ptr %s, align 8
+  store { ptr, { { ptr }, { ptr } } } %rval2, ptr %field1, align 8
+  %struct_init3 = load { i64, { ptr, { { ptr }, { ptr } } } }, ptr %struct_init, align 8
+  ret { i64, { ptr, { { ptr }, { ptr } } } } %struct_init3
+}
+
+define { { ptr, { { ptr }, { ptr } } }, { ptr, { { ptr }, { ptr } } }, ptr } @"add_ptr->ptr->ptr->ptr->ptr->ptr->ptrptr->ptr->ptr->ptr->ptr->ptr->ptr"({ ptr, { { ptr }, { ptr } } } %0, { ptr, { { ptr }, { ptr } } } %1, ptr %2) {
+entry:
+  %struct_init = alloca { { ptr, { { ptr }, { ptr } } }, { ptr, { { ptr }, { ptr } } }, ptr }, align 8
+  %next = alloca ptr, align 8
+  %s2 = alloca { ptr, { { ptr }, { ptr } } }, align 8
+  %s1 = alloca { ptr, { { ptr }, { ptr } } }, align 8
+  store { ptr, { { ptr }, { ptr } } } %0, ptr %s1, align 8
+  store { ptr, { { ptr }, { ptr } } } %1, ptr %s2, align 8
+  store ptr %2, ptr %next, align 8
+  %field = getelementptr inbounds nuw { { ptr, { { ptr }, { ptr } } }, { ptr, { { ptr }, { ptr } } }, ptr }, ptr %struct_init, i32 0, i32 0
+  %rval = load { ptr, { { ptr }, { ptr } } }, ptr %s1, align 8
+  store { ptr, { { ptr }, { ptr } } } %rval, ptr %field, align 8
+  %field1 = getelementptr inbounds nuw { { ptr, { { ptr }, { ptr } } }, { ptr, { { ptr }, { ptr } } }, ptr }, ptr %struct_init, i32 0, i32 1
+  %rval2 = load { ptr, { { ptr }, { ptr } } }, ptr %s2, align 8
+  store { ptr, { { ptr }, { ptr } } } %rval2, ptr %field1, align 8
+  %field3 = getelementptr inbounds nuw { { ptr, { { ptr }, { ptr } } }, { ptr, { { ptr }, { ptr } } }, ptr }, ptr %struct_init, i32 0, i32 2
+  %rval4 = load ptr, ptr %next, align 8
+  store ptr %rval4, ptr %field3, align 8
+  %struct_init5 = load { { ptr, { { ptr }, { ptr } } }, { ptr, { { ptr }, { ptr } } }, ptr }, ptr %struct_init, align 8
+  ret { { ptr, { { ptr }, { ptr } } }, { ptr, { { ptr }, { ptr } } }, ptr } %struct_init5
+}
+
+define { ptr, { { ptr }, { ptr } } } @"impl_stream_6_ptr->ptr->ptrptr"(ptr %0) {
+entry:
+  %struct_init = alloca { ptr, { { ptr }, { ptr } } }, align 8
+  %vtab = alloca { { ptr }, { ptr } }, align 8
+  %self = alloca ptr, align 8
+  store ptr %0, ptr %self, align 8
+  %rval = load { ptr }, ptr @"4605303866116654876_car", align 8
+  %field = getelementptr inbounds nuw { { ptr }, { ptr } }, ptr %vtab, i32 0, i32 0
+  store { ptr } %rval, ptr %field, align 8
+  %rval1 = load { ptr }, ptr @"4605303866116654876_cdr", align 8
+  %field2 = getelementptr inbounds nuw { { ptr }, { ptr } }, ptr %vtab, i32 0, i32 1
+  store { ptr } %rval1, ptr %field2, align 8
+  %field3 = getelementptr inbounds nuw { ptr, { { ptr }, { ptr } } }, ptr %struct_init, i32 0, i32 0
+  %rval4 = load ptr, ptr %self, align 8
+  store ptr %rval4, ptr %field3, align 8
+  %field5 = getelementptr inbounds nuw { ptr, { { ptr }, { ptr } } }, ptr %struct_init, i32 0, i32 1
+  %rval6 = load { { ptr }, { ptr } }, ptr %vtab, align 8
+  store { { ptr }, { ptr } } %rval6, ptr %field5, align 8
+  %struct_init7 = load { ptr, { { ptr }, { ptr } } }, ptr %struct_init, align 8
+  ret { ptr, { { ptr }, { ptr } } } %struct_init7
+}
+
+define { ptr, { { ptr }, { ptr } } } @"impl_stream_7_ptr->ptr->ptrptr"(ptr %0) {
+entry:
+  %struct_init = alloca { ptr, { { ptr }, { ptr } } }, align 8
+  %vtab = alloca { { ptr }, { ptr } }, align 8
+  %self = alloca ptr, align 8
+  store ptr %0, ptr %self, align 8
+  %rval = load { ptr }, ptr @"4605303866116654876_car", align 8
+  %field = getelementptr inbounds nuw { { ptr }, { ptr } }, ptr %vtab, i32 0, i32 0
+  store { ptr } %rval, ptr %field, align 8
+  %rval1 = load { ptr }, ptr @"4605303866116654876_cdr", align 8
+  %field2 = getelementptr inbounds nuw { { ptr }, { ptr } }, ptr %vtab, i32 0, i32 1
+  store { ptr } %rval1, ptr %field2, align 8
+  %field3 = getelementptr inbounds nuw { ptr, { { ptr }, { ptr } } }, ptr %struct_init, i32 0, i32 0
+  %rval4 = load ptr, ptr %self, align 8
+  store ptr %rval4, ptr %field3, align 8
+  %field5 = getelementptr inbounds nuw { ptr, { { ptr }, { ptr } } }, ptr %struct_init, i32 0, i32 1
+  %rval6 = load { { ptr }, { ptr } }, ptr %vtab, align 8
+  store { { ptr }, { ptr } } %rval6, ptr %field5, align 8
+  %struct_init7 = load { ptr, { { ptr }, { ptr } } }, ptr %struct_init, align 8
+  ret { ptr, { { ptr }, { ptr } } } %struct_init7
+}
+
+define { ptr, { { ptr }, { ptr } } } @"impl_stream_8_ptr->ptr->ptrptr"(ptr %0) {
+entry:
+  %struct_init = alloca { ptr, { { ptr }, { ptr } } }, align 8
+  %vtab = alloca { { ptr }, { ptr } }, align 8
+  %self = alloca ptr, align 8
+  store ptr %0, ptr %self, align 8
+  %rval = load { ptr }, ptr @"8896250655973739750_car", align 8
+  %field = getelementptr inbounds nuw { { ptr }, { ptr } }, ptr %vtab, i32 0, i32 0
+  store { ptr } %rval, ptr %field, align 8
+  %rval1 = load { ptr }, ptr @"8896250655973739750_cdr", align 8
+  %field2 = getelementptr inbounds nuw { { ptr }, { ptr } }, ptr %vtab, i32 0, i32 1
+  store { ptr } %rval1, ptr %field2, align 8
+  %field3 = getelementptr inbounds nuw { ptr, { { ptr }, { ptr } } }, ptr %struct_init, i32 0, i32 0
+  %rval4 = load ptr, ptr %self, align 8
+  store ptr %rval4, ptr %field3, align 8
+  %field5 = getelementptr inbounds nuw { ptr, { { ptr }, { ptr } } }, ptr %struct_init, i32 0, i32 1
+  %rval6 = load { { ptr }, { ptr } }, ptr %vtab, align 8
+  store { { ptr }, { ptr } } %rval6, ptr %field5, align 8
+  %struct_init7 = load { ptr, { { ptr }, { ptr } } }, ptr %struct_init, align 8
+  ret { ptr, { { ptr }, { ptr } } } %struct_init7
+}
+
+define { ptr, { { ptr }, { ptr } } } @"impl_stream_9_ptr->ptr->ptrptr"(ptr %0) {
+entry:
+  %struct_init = alloca { ptr, { { ptr }, { ptr } } }, align 8
+  %vtab = alloca { { ptr }, { ptr } }, align 8
+  %self = alloca ptr, align 8
+  store ptr %0, ptr %self, align 8
+  %rval = load { ptr }, ptr @"4605303866116654876_car", align 8
+  %field = getelementptr inbounds nuw { { ptr }, { ptr } }, ptr %vtab, i32 0, i32 0
+  store { ptr } %rval, ptr %field, align 8
+  %rval1 = load { ptr }, ptr @"4605303866116654876_cdr", align 8
+  %field2 = getelementptr inbounds nuw { { ptr }, { ptr } }, ptr %vtab, i32 0, i32 1
+  store { ptr } %rval1, ptr %field2, align 8
+  %field3 = getelementptr inbounds nuw { ptr, { { ptr }, { ptr } } }, ptr %struct_init, i32 0, i32 0
+  %rval4 = load ptr, ptr %self, align 8
+  store ptr %rval4, ptr %field3, align 8
+  %field5 = getelementptr inbounds nuw { ptr, { { ptr }, { ptr } } }, ptr %struct_init, i32 0, i32 1
+  %rval6 = load { { ptr }, { ptr } }, ptr %vtab, align 8
+  store { { ptr }, { ptr } } %rval6, ptr %field5, align 8
+  %struct_init7 = load { ptr, { { ptr }, { ptr } } }, ptr %struct_init, align 8
+  ret { ptr, { { ptr }, { ptr } } } %struct_init7
+}
+
+define { ptr, { { ptr }, { ptr } } } @"impl_stream_10_ptr->ptr->ptrptr"(ptr %0) {
+entry:
+  %struct_init = alloca { ptr, { { ptr }, { ptr } } }, align 8
+  %vtab = alloca { { ptr }, { ptr } }, align 8
+  %self = alloca ptr, align 8
+  store ptr %0, ptr %self, align 8
+  %rval = load { ptr }, ptr @"4605303866116654876_car", align 8
+  %field = getelementptr inbounds nuw { { ptr }, { ptr } }, ptr %vtab, i32 0, i32 0
+  store { ptr } %rval, ptr %field, align 8
+  %rval1 = load { ptr }, ptr @"4605303866116654876_cdr", align 8
+  %field2 = getelementptr inbounds nuw { { ptr }, { ptr } }, ptr %vtab, i32 0, i32 1
+  store { ptr } %rval1, ptr %field2, align 8
+  %field3 = getelementptr inbounds nuw { ptr, { { ptr }, { ptr } } }, ptr %struct_init, i32 0, i32 0
+  %rval4 = load ptr, ptr %self, align 8
+  store ptr %rval4, ptr %field3, align 8
+  %field5 = getelementptr inbounds nuw { ptr, { { ptr }, { ptr } } }, ptr %struct_init, i32 0, i32 1
+  %rval6 = load { { ptr }, { ptr } }, ptr %vtab, align 8
+  store { { ptr }, { ptr } } %rval6, ptr %field5, align 8
+  %struct_init7 = load { ptr, { { ptr }, { ptr } } }, ptr %struct_init, align 8
+  ret { ptr, { { ptr }, { ptr } } } %struct_init7
+}
+
+define i64 @main_i64() {
+entry:
+  %calltmp56 = alloca i8, align 1
+  %calltmp52 = alloca { ptr, ptr }, align 8
+  %calltmp43 = alloca i64, align 8
+  %n = alloca i64, align 8
+  %i = alloca i64, align 8
+  %ret = alloca i64, align 8
+  %calltmp37 = alloca { ptr, { { ptr }, { ptr } } }, align 8
+  %s = alloca { ptr, { { ptr }, { ptr } } }, align 8
+  %calltmp32 = alloca { i64, { ptr, { { ptr }, { ptr } } } }, align 8
+  %calltmp28 = alloca { ptr, { { ptr }, { ptr } } }, align 8
+  %calltmp22 = alloca { i64, { ptr, { { ptr }, { ptr } } } }, align 8
+  %calltmp18 = alloca { ptr, { { ptr }, { ptr } } }, align 8
+  %add0 = alloca { { ptr, { { ptr }, { ptr } } }, { ptr, { { ptr }, { ptr } } }, ptr }, align 8
+  %calltmp11 = alloca { { ptr, { { ptr }, { ptr } } }, { ptr, { { ptr }, { ptr } } }, ptr }, align 8
+  %calltmp7 = alloca { ptr, { { ptr }, { ptr } } }, align 8
+  %calltmp2 = alloca { ptr, { { ptr }, { ptr } } }, align 8
+  %add = alloca { { ptr, { { ptr }, { ptr } } }, { ptr, { { ptr }, { ptr } } }, ptr }, align 8
+  %fibs_cdr = alloca { i64, { ptr, { { ptr }, { ptr } } } }, align 8
+  %fibs = alloca { i64, { ptr, { { ptr }, { ptr } } } }, align 8
+  %rval = load { ptr }, ptr @add, align 8
+  %rval1 = load { ptr }, ptr @impl_stream_6, align 8
+  %fnptr = extractvalue { ptr } %rval1, 0
+  %calltmp = call { ptr, { { ptr }, { ptr } } } %fnptr(ptr %fibs)
+  store { ptr, { { ptr }, { ptr } } } %calltmp, ptr %calltmp2, align 8
+  %rval3 = load { ptr, { { ptr }, { ptr } } }, ptr %calltmp2, align 8
+  %rval4 = load { ptr }, ptr @impl_stream_7, align 8
+  %fnptr5 = extractvalue { ptr } %rval4, 0
+  %calltmp6 = call { ptr, { { ptr }, { ptr } } } %fnptr5(ptr %fibs_cdr)
+  store { ptr, { { ptr }, { ptr } } } %calltmp6, ptr %calltmp7, align 8
+  %rval8 = load { ptr, { { ptr }, { ptr } } }, ptr %calltmp7, align 8
+  %fnptr9 = extractvalue { ptr } %rval, 0
+  %calltmp10 = call { { ptr, { { ptr }, { ptr } } }, { ptr, { { ptr }, { ptr } } }, ptr } %fnptr9({ ptr, { { ptr }, { ptr } } } %rval3, { ptr, { { ptr }, { ptr } } } %rval8, i64 0)
+  store { { ptr, { { ptr }, { ptr } } }, { ptr, { { ptr }, { ptr } } }, ptr } %calltmp10, ptr %calltmp11, align 8
+  %rval12 = load { { ptr, { { ptr }, { ptr } } }, { ptr, { { ptr }, { ptr } } }, ptr }, ptr %calltmp11, align 8
+  store { { ptr, { { ptr }, { ptr } } }, { ptr, { { ptr }, { ptr } } }, ptr } %rval12, ptr %add, align 8
+  %rval13 = load { { ptr, { { ptr }, { ptr } } }, { ptr, { { ptr }, { ptr } } }, ptr }, ptr %add, align 8
+  store { { ptr, { { ptr }, { ptr } } }, { ptr, { { ptr }, { ptr } } }, ptr } %rval13, ptr %add0, align 8
+  %rval14 = load { ptr }, ptr @cons, align 8
+  %rval15 = load { ptr }, ptr @impl_stream_8, align 8
+  %fnptr16 = extractvalue { ptr } %rval15, 0
+  %calltmp17 = call { ptr, { { ptr }, { ptr } } } %fnptr16(ptr %add)
+  store { ptr, { { ptr }, { ptr } } } %calltmp17, ptr %calltmp18, align 8
+  %rval19 = load { ptr, { { ptr }, { ptr } } }, ptr %calltmp18, align 8
+  %fnptr20 = extractvalue { ptr } %rval14, 0
+  %calltmp21 = call { i64, { ptr, { { ptr }, { ptr } } } } %fnptr20(i64 1, { ptr, { { ptr }, { ptr } } } %rval19)
+  store { i64, { ptr, { { ptr }, { ptr } } } } %calltmp21, ptr %calltmp22, align 8
+  %rval23 = load { i64, { ptr, { { ptr }, { ptr } } } }, ptr %calltmp22, align 8
+  store { i64, { ptr, { { ptr }, { ptr } } } } %rval23, ptr %fibs_cdr, align 8
+  %rval24 = load { ptr }, ptr @cons, align 8
+  %rval25 = load { ptr }, ptr @impl_stream_9, align 8
+  %fnptr26 = extractvalue { ptr } %rval25, 0
+  %calltmp27 = call { ptr, { { ptr }, { ptr } } } %fnptr26(ptr %fibs_cdr)
+  store { ptr, { { ptr }, { ptr } } } %calltmp27, ptr %calltmp28, align 8
+  %rval29 = load { ptr, { { ptr }, { ptr } } }, ptr %calltmp28, align 8
+  %fnptr30 = extractvalue { ptr } %rval24, 0
+  %calltmp31 = call { i64, { ptr, { { ptr }, { ptr } } } } %fnptr30(i64 0, { ptr, { { ptr }, { ptr } } } %rval29)
+  store { i64, { ptr, { { ptr }, { ptr } } } } %calltmp31, ptr %calltmp32, align 8
+  %rval33 = load { i64, { ptr, { { ptr }, { ptr } } } }, ptr %calltmp32, align 8
+  store { i64, { ptr, { { ptr }, { ptr } } } } %rval33, ptr %fibs, align 8
+  %rval34 = load { ptr }, ptr @impl_stream_10, align 8
+  %fnptr35 = extractvalue { ptr } %rval34, 0
+  %calltmp36 = call { ptr, { { ptr }, { ptr } } } %fnptr35(ptr %fibs)
+  store { ptr, { { ptr }, { ptr } } } %calltmp36, ptr %calltmp37, align 8
+  %rval38 = load { ptr, { { ptr }, { ptr } } }, ptr %calltmp37, align 8
+  store { ptr, { { ptr }, { ptr } } } %rval38, ptr %s, align 8
+  store i64 0, ptr %ret, align 4
+  store i64 0, ptr %i, align 4
+  br label %loop_102
+
+loop_102:                                         ; preds = %body_102, %entry
+  %rval39 = load i64, ptr %i, align 4
+  %lttmp = icmp slt i64 %rval39, 30
+  br i1 %lttmp, label %body_102, label %merge_102
+
+body_102:                                         ; preds = %loop_102
+  %rval40 = load { ptr }, ptr @next, align 8
+  %fnptr41 = extractvalue { ptr } %rval40, 0
+  %calltmp42 = call i64 %fnptr41(ptr %s)
+  store i64 %calltmp42, ptr %calltmp43, align 4
+  %rval44 = load i64, ptr %calltmp43, align 4
+  store i64 %rval44, ptr %n, align 4
+  %rval45 = load i64, ptr %ret, align 4
+  %rval46 = load i64, ptr %n, align 4
+  %addtmp = add i64 %rval45, %rval46
+  store i64 %addtmp, ptr %ret, align 4
+  %rval47 = load i64, ptr %i, align 4
+  %addtmp48 = add i64 %rval47, 1
+  store i64 %addtmp48, ptr %i, align 4
+  br label %loop_102
+
+merge_102:                                        ; preds = %loop_102
+  %rval49 = load { ptr }, ptr @"8896250655973739750_destroy", align 8
+  %fnptr50 = extractvalue { ptr } %rval49, 0
+  %calltmp51 = call { ptr, ptr } %fnptr50(ptr %add0)
+  store { ptr, ptr } %calltmp51, ptr %calltmp52, align 8
+  %rval53 = load { ptr, ptr }, ptr %calltmp52, align 8
+  %fnptr54 = extractvalue { ptr, ptr } %rval53, 1
+  %upval = extractvalue { ptr, ptr } %rval53, 0
+  %calltmp55 = call i8 %fnptr54(ptr %upval)
+  store i8 %calltmp55, ptr %calltmp56, align 1
+  %rval57 = load i64, ptr %ret, align 4
+  ret i64 %rval57
+}

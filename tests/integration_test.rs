@@ -13,24 +13,28 @@ use test_case::{test_case, test_matrix};
 #[test_case("highly_composites.ser" => matches Ok(355168))]
 #[test_case("generic.ser" => matches Ok(6))]
 #[test_case("generic_func.ser" => matches Ok(540))]
-pub fn test_file_run(file : &str) -> Result<usize> {
-
-    let file = format!("test_files/{}", file);
+#[test_case("generic_method.ser" => matches Ok(12))]
+#[test_case("fib_stream.ser" => matches Ok(1346268))]
+#[test_case("mat_fib.ser" => matches Ok(1346268))]
+pub fn test_file_run(file: &str) -> Result<usize> {
+    let file = format!("tests/test_files/{}", file);
 
     let mut out = Vec::new();
     let code = serenity::run_file(&file, &mut out)?;
-    
+
     Ok(code as usize)
 }
 
 #[test_matrix(
-    ["trivial.ser", "prime_sieve.ser", "interfaces.ser", "babbage.ser", "linkedlist.ser", "prime_conspiricy.ser", "highly_composites.ser", "generic.ser", "generic_func.ser"],
+    ["trivial.ser", "prime_sieve.ser", "interfaces.ser", "babbage.ser", "linkedlist.ser", "prime_conspiricy.ser", "highly_composites.ser", "generic.ser", "generic_func.ser", "generic_method.ser", "fib_stream.ser", "mat_fib.ser"],
     ["scan", "parse", "compile"]
 )]
-fn test_file_artifacts(file : &str, mode: &str) -> Result<()> {
-    let file = format!("test_files/{}", file);
+fn test_file_artifacts(file: &str, mode: &str) -> Result<()> {
+    let file = format!("tests/test_files/{}", file);
     let result = match mode {
-        "scan" => serenity::scan(&file)?.iter().fold(String::new(), |acc, x| acc + &format!("{}\n", x)),
+        "scan" => serenity::scan(&file)?
+            .iter()
+            .fold(String::new(), |acc, x| acc + &format!("{}\n", x)),
         "parse" => serenity::parse(&file)?,
         "compile" => serenity::compile(&file)?,
         _ => bail!("Invalid mode"),
@@ -40,12 +44,7 @@ fn test_file_artifacts(file : &str, mode: &str) -> Result<()> {
     settings.set_snapshot_suffix(format!("{}_{}", file, mode));
     let _g = settings.bind_to_scope();
 
-    match mode {
-        "scan" => assert_snapshot!(result),
-        "parse" => assert_snapshot!(result),
-        "compile" => assert_snapshot!(result),
-        _ => bail!("Invalid mode"),
-    }
+    assert_snapshot!(result);
 
     Ok(())
 }

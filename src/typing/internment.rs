@@ -13,14 +13,14 @@ impl ValueType {
     ///
     /// This function takes a type and interns it.
     ///
-    /// If the type has already been interned, the function returns the interned 
-    /// type. If the type has not been interned, the function places the type 
+    /// If the type has already been interned, the function returns the interned
+    /// type. If the type has not been interned, the function places the type
     /// in static memory and returns a shared reference to it.
     ///
     /// This function is used to ensure that all types are unique and that
-    /// the same type is not duplicated in memory. It also allows us to avoid 
-    /// needless clones when passing types around, by ensuring that all equivalant 
-    /// types are references to the same memory location. The static lifetime 
+    /// the same type is not duplicated in memory. It also allows us to avoid
+    /// needless clones when passing types around, by ensuring that all equivalant
+    /// types are references to the same memory location. The static lifetime
     /// allows us to bypass Rc and Arc, which would generate a lot of overhead.
     ///
     /// ## Arguments

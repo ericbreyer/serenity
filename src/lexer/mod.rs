@@ -13,7 +13,7 @@ pub struct Lexer {
     keywords: Trie<u8>,
 }
 
-#[derive(Debug, Display,PartialEq, Copy, Clone, EnumCount)]
+#[derive(Debug, Display, PartialEq, Copy, Clone, EnumCount)]
 pub enum TokenType {
     LeftParen,
     RightParen,
@@ -45,7 +45,6 @@ pub enum TokenType {
     For,
     If,
     Or,
-    Print,
     Return,
     Super,
     This,
@@ -76,6 +75,7 @@ pub enum TokenType {
     Type,
     Percent,
     Sizeof,
+    Mut,
     Eof,
     Error,
 }
@@ -97,7 +97,7 @@ const KEYWORDS: [(&str, TokenType); 35] = [
     ("if", TokenType::If),
     ("nil", TokenType::SimpleType),
     ("or", TokenType::Or),
-    ("print", TokenType::Print),
+    // ("print", TokenType::Print),
     ("return", TokenType::Return),
     ("super", TokenType::Super),
     ("this", TokenType::This),
@@ -122,6 +122,7 @@ const KEYWORDS: [(&str, TokenType); 35] = [
     ("implements", TokenType::Implements),
     ("type", TokenType::Type),
     ("sizeof", TokenType::Sizeof),
+    ("mut", TokenType::Mut),
 ];
 
 #[derive(Clone)]
@@ -139,7 +140,11 @@ impl Token {
 
 impl Debug for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, r#"<{:12} {:13?} [{}]>"#, self.token_type, self.lexeme, self.line)
+        write!(
+            f,
+            r#"<{:12} {:13?} [{}]>"#,
+            self.token_type, self.lexeme, self.line
+        )
     }
 }
 
@@ -293,8 +298,13 @@ impl Lexer {
             }
             '%' => self.make_token(TokenType::Percent),
             '#' => self.make_token(TokenType::Cast),
-
-            _ => self.error_token("Unexpected character."),
+            '$' => {
+                while self.peek().is_ascii_alphanumeric() || self.peek() == '_' {
+                    self.advance();
+                }
+                self.make_token(TokenType::SimpleType)
+            }
+            _ => self.error_token(format!("Unexpected character: {}", c).as_str()),
         }
     }
     fn is_at_end(&self) -> bool {

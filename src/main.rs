@@ -84,7 +84,6 @@ fn main() -> Result<()> {
         println!("{}", ast);
         return Ok(());
     };
-    
 
     if run {
         let mut out = Vec::new();

@@ -1,8 +1,8 @@
+mod parse_type;
 mod pratt_parse;
 mod recdec_parse;
 mod templates;
 mod test;
-mod parse_type;
 
 use std::{cell::Cell, collections::HashMap};
 
@@ -16,8 +16,6 @@ use crate::{
 };
 
 use super::Parser;
-
-
 
 #[derive(Debug, PartialEq, PartialOrd, FromPrimitive, Copy, Clone, Default)]
 #[repr(u8)]
@@ -218,7 +216,7 @@ impl SerenityParser {
     fn parse_helper(
         source: SharedString,
         name: SharedString,
-       _: bool,
+        _: bool,
         custom_types: HashMap<SharedString, CustomStruct>,
     ) -> Result<ParseResult> {
         tracing::info!("Starting parse of {name}");

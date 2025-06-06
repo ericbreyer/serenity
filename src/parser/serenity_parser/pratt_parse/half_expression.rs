@@ -13,11 +13,11 @@ pub enum HalfExpression {
     Index(Box<Expression>),
     Call(Vec<Expression>),
     Assign(Box<Expression>),
+    DoubleColon(Box<Expression>),
 }
 
 impl HalfExpression {
     pub fn fill(self, left: Expression, line: usize) -> Expression {
-
         match self {
             HalfExpression::Binary(t, r) => Expression::Binary(BinaryExpression {
                 left: Box::new(left),
@@ -71,6 +71,29 @@ impl HalfExpression {
                 field: t.lexeme,
                 line_no: line,
             }),
+            HalfExpression::DoubleColon(t) => {
+                let Expression::Variable(VariableExpression { token, .. }) = left else {
+                    println!(
+                        "Expected a variable before '::' but got {:?}",
+                        left.as_node()
+                    );
+                    return Expression::Empty;
+                };
+
+                let typ = ValueType::from(token.borrow().lexeme.clone());
+
+                let Expression::Variable(VariableExpression { token, line_no, .. }) = *t else {
+                    println!("Expected a variable after '::' but got {:?}", t.as_node());
+                    return Expression::Empty;
+                };
+
+                let x = Expression::DoubleColon(DoubleColonExpression {
+                    typ: typ.intern(),
+                    acessor: token.borrow().lexeme.clone(),
+                    line_no,
+                });
+                x
+            }
         }
     }
 }

@@ -126,7 +126,7 @@ impl ValueType {
 
             // If we can't unify the types, return an error
             (a, b) if a != b => {
-                return Err(anyhow::anyhow!("types do not match {:?} {:?}", a, b));
+                return Err(anyhow::anyhow!("types do not match {:#?} {:#?}", a, b));
             }
             // Otherwise, types match we good
             (_, _) => {}
@@ -234,13 +234,14 @@ impl ValueType {
                     );
                 }
 
-                Self::Struct(CustomStruct {
-                    name: s.name.clone(),
-                    fields: RefCell::new(new_fields),
-                    embed: s.embed.clone(),
-                    methods: s.methods.clone(),
-                    type_vars: s.type_vars.borrow().clone().into(),
-                })
+                Self::Struct(Box::new(CustomStruct {
+                                    name: s.name.clone(),
+                                    fields: RefCell::new(new_fields),
+                                    embed: s.embed.clone(),
+                                    methods: s.methods.clone(),
+                                    parametric_methods: s.parametric_methods.clone(),
+                                    type_vars: s.type_vars.borrow().clone().into(),
+                                }))
                 .intern()
             }
             ValueType::SelfStruct(s, v) => Self::SelfStruct(
@@ -304,7 +305,10 @@ impl ValueType {
                     new_args.into_boxed_slice(),
                     new_upvals.into_boxed_slice(),
                     new_ret,
-                    generics.iter().map(|(k, v)| (k.clone(), *v)).collect::<BTreeMap<_, _>>(),
+                    generics
+                        .iter()
+                        .map(|(k, v)| (k.clone(), *v))
+                        .collect::<BTreeMap<_, _>>(),
                 ))
                 .intern()
             }
@@ -324,13 +328,14 @@ impl ValueType {
                     );
                 }
 
-                Self::Struct(CustomStruct {
-                    name: s.name.clone(),
-                    fields: RefCell::new(new_fields),
-                    embed: s.embed.clone(),
-                    methods: s.methods.clone(),
-                    type_vars: vec![].into(),
-                })
+                Self::Struct(Box::new(CustomStruct {
+                                    name: s.name.clone(),
+                                    fields: RefCell::new(new_fields),
+                                    embed: s.embed.clone(),
+                                    methods: s.methods.clone(),
+                                    parametric_methods: s.parametric_methods.clone(),
+                                    type_vars: vec![].into(),
+                                }))
                 .intern()
             }
             Self::SelfStruct(s, v) => {

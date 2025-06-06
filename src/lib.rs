@@ -36,6 +36,8 @@ mod prelude;
 mod typing;
 mod value_literals;
 
+pub use typing::ValueType;
+
 enum LevelOrFn {
     Level(LevelFilter),
     Fn(FilterFn),
@@ -128,7 +130,7 @@ pub fn typecheck(path: &str) -> Result<String> {
         .context("Failed to parse file")?;
     println!("{:?}", parsed.ast);
     let ast = compiler::typecheck(parsed)?;
-    
+
     Ok(format!("{:?}", ast))
 }
 
@@ -155,7 +157,7 @@ pub fn run_file(path: &str, output: &mut impl std::io::Write) -> Result<i64> {
 
     let out = unsafe {
         let main = engine
-            .get_function::<unsafe extern "C" fn() -> i64>("main_fn")
+            .get_function::<unsafe extern "C" fn() -> i64>("main_i64")
             .context("Failed to get main function")?;
 
         info!("Calling main function");

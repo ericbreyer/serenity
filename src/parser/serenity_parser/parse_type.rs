@@ -7,11 +7,13 @@ impl SerenityParser {
         &mut self,
         struct_name: Option<&SharedString>,
         type_params: Option<&Vec<SharedString>>,
+        mutability: bool,
     ) -> UValueType {
         let leading_star = self.match_token(TokenType::Star);
+        let mutable = self.match_token(TokenType::Mut);
 
         let parsed_type = if leading_star {
-            self.parse_type(struct_name, type_params)
+            self.parse_type(struct_name, type_params, mutability)
         } else {
             self.parse_complex_type(struct_name, type_params)
         };
@@ -24,7 +26,7 @@ impl SerenityParser {
                 return ValueType::Err.intern();
             }
 
-            return ValueType::Pointer(parsed_type, true).intern();
+            return ValueType::Pointer(parsed_type, mutability || mutable).intern();
         }
 
         parsed_type
@@ -87,7 +89,7 @@ impl SerenityParser {
                 return ValueType::SelfStruct(name, vec![]).intern();
             }
             if let Some(s) = self.custom_types.get(&name) {
-                return ValueType::Struct(s.clone()).intern();
+                return ValueType::Struct(Box::new(s.clone())).intern();
             }
         }
 
@@ -109,7 +111,7 @@ impl SerenityParser {
                 // if the struct has type parameters, parse them
                 let mut params = Vec::new();
                 loop {
-                    let p_type = self.parse_type(struct_name, type_params);
+                    let p_type = self.parse_type(struct_name, type_params, false);
                     params.push(p_type);
                     if !self.match_token(TokenType::Comma) {
                         break;
@@ -131,7 +133,7 @@ impl SerenityParser {
             let mut tps = if self.match_token(TokenType::Less) {
                 let mut params = Vec::new();
                 loop {
-                    let p_type = self.parse_type(struct_name, type_params);
+                    let p_type = self.parse_type(struct_name, type_params, false);
                     params.push(p_type);
                     if !self.match_token(TokenType::Comma) {
                         break;
@@ -151,7 +153,9 @@ impl SerenityParser {
                 // if the struct has no type parameters, return an empty hashmap as the type parameters
                 HashMap::new()
             };
-            return ValueType::Struct(s.clone()).intern().instantiate_generic(&mut tps);
+            return ValueType::Struct(Box::new(s.clone()))
+                .intern()
+                .instantiate_generic(&mut tps);
         }
         self.error("Unknown struct type.");
         ValueType::Err.intern()
@@ -167,7 +171,7 @@ impl SerenityParser {
         let mut captures = Vec::new();
         if self.match_token(TokenType::LeftBracket) {
             loop {
-                let p_type = self.parse_type(struct_name, type_params);
+                let p_type = self.parse_type(struct_name, type_params, false);
                 captures.push(p_type);
                 if !self.match_token(TokenType::Comma) {
                     break;
@@ -179,7 +183,7 @@ impl SerenityParser {
         self.consume(TokenType::LeftParen, "Expect '(' after 'fun'.");
         if self.current.token_type != TokenType::RightParen {
             loop {
-                let p_type = self.parse_type(struct_name, type_params);
+                let p_type = self.parse_type(struct_name, type_params, false);
                 param_types.push(p_type);
                 if !self.match_token(TokenType::Comma) {
                     break;
@@ -189,16 +193,16 @@ impl SerenityParser {
         self.consume(TokenType::RightParen, "Expect ')' after arguments.");
         let mut return_type = ValueType::Nil.intern();
         if self.match_token(TokenType::RightArrow) {
-            return_type = self.parse_type(struct_name, type_params);
+            return_type = self.parse_type(struct_name, type_params, false);
         }
 
-        return ValueType::Closure(Closure::new(
+        ValueType::Closure(Closure::new(
             param_types.as_slice().into(),
             captures.as_slice().into(),
             return_type,
             None,
         ))
         .intern()
-        .instantiate_generic(&mut HashMap::new());
+        .instantiate_generic(&mut HashMap::new())
     }
 }

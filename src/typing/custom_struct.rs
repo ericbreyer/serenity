@@ -6,6 +6,7 @@ pub struct CustomStruct {
     pub fields: RefCell<IndexMap<SharedString, StructEntry>>,
     pub embed: Option<SharedString>,
     pub methods: RefCell<HashSet<SharedString>>,
+    pub parametric_methods: RefCell<HashSet<SharedString>>,
     pub type_vars: RefCell<Vec<SharedString>>,
 }
 
@@ -51,7 +52,7 @@ impl<'ctx> CustomStruct {
     }
 
     pub fn to_value_type(&self) -> UValueType {
-        ValueType::Struct(self.clone()).intern()
+        ValueType::Struct(Box::new(self.clone())).intern()
     }
 }
 
