@@ -7,7 +7,8 @@ pub struct CustomStruct {
     pub embed: Option<SharedString>,
     pub methods: RefCell<HashSet<SharedString>>,
     pub parametric_methods: RefCell<HashSet<SharedString>>,
-    pub type_vars: RefCell<Vec<SharedString>>,
+    pub type_vars: RefCell<IndexMap<SharedString, Box<[Constraint]>>>,
+    pub implements: HashSet<SharedString>,
 }
 
 impl core::hash::Hash for CustomStruct {

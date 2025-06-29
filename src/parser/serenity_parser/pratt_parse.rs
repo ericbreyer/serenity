@@ -1,14 +1,14 @@
 mod half_expression;
 mod parse_table;
 use std::{
-    rc::Rc,
-    sync::atomic::{AtomicUsize, Ordering},
+    collections::HashMap, rc::Rc, sync::atomic::{AtomicUsize, Ordering}
 };
 
 use half_expression::HalfExpression;
+use indexmap::IndexMap;
 pub use parse_table::ParseTable;
 
-use crate::{lexer::TokenType, prelude::*, typing::UValueType, value_literals::Value};
+use crate::{lexer::TokenType, prelude::*, typing::{Constraint, UValueType}, value_literals::Value};
 
 use super::{Precedence, SerenityParser};
 
@@ -92,13 +92,13 @@ impl SerenityParser {
             let cast_type = if self.match_token(TokenType::Comma) {
                 self.parse_type(None, None, false)
             } else {
-                ValueType::new_type_var()
+                ValueType::new_type_var(Box::new([]))
             };
             self.consume(TokenType::RightParen, "Expect ')' after type.");
             (node, cast_type)
         } else {
             let node = self.parse_precedence(Precedence::Unary);
-            (node, ValueType::new_type_var())
+            (node, ValueType::new_type_var(Box::new([])))
         };
 
         Expression::Cast(CastExpression {
@@ -136,7 +136,7 @@ impl SerenityParser {
                 ANON_ID.with(|ai| ai.fetch_add(1, Ordering::Relaxed))
             )
             .as_str(),
-            Vec::new(),
+            IndexMap::new( /* No type params for anonymous functions */ ),
         );
         Expression::Function(func_expr)
     }
@@ -144,7 +144,7 @@ impl SerenityParser {
     pub(super) fn function(
         &mut self,
         name: &str,
-        type_params: Vec<SharedString>,
+        type_params: IndexMap<SharedString, Box<[Constraint]>>,
     ) -> FunctionExpression {
         let mut captures = Vec::new();
 
@@ -187,7 +187,7 @@ impl SerenityParser {
             }
         }
         self.consume(TokenType::RightParen, "Expect ')' after parameters.");
-        let mut return_type = ValueType::new_type_var();
+        let mut return_type = ValueType::new_type_var(Box::new([]));
         if self.match_token(TokenType::RightArrow) {
             return_type = self.parse_type(None, Some(&type_params), false);
         }

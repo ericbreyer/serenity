@@ -1,5 +1,5 @@
 use core::fmt;
-use std::{cell::RefCell, fmt::Debug, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, fmt::Debug, rc::Rc};
 
 mod to_str;
 
@@ -8,7 +8,7 @@ use indexmap::IndexMap;
 use crate::{
     lexer::{Token, TokenType},
     prelude::shared_strings::SharedString,
-    typing::{CustomStruct, UValueType, ValueType},
+    typing::{Constraint, CustomStruct, UValueType, ValueType},
     value_literals::Value,
 };
 
@@ -846,7 +846,7 @@ pub struct FunctionDeclaration {
     pub prototype: Prototype,
     pub line_no: usize,
     pub body: Rc<Option<Vec<ASTNode>>>,
-    pub type_params: Vec<SharedString>,
+    pub type_params: IndexMap<SharedString, Box<[Constraint]>>,
     pub generic_instantiations: FunctionGenerics,
 }
 

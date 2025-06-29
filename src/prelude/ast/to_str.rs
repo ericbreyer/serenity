@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 
-use crate::prelude::shared_strings::SharedString;
+use crate::{prelude::shared_strings::SharedString, typing::Constraint};
 
 use super::{
     ASTNode, Acceptor, Declaration, DeclarationVisitor, Expression, ExpressionVisitor,
@@ -602,8 +602,21 @@ impl DeclarationVisitor<String> for ToStrVisitor<'_> {
         ));
         if !declaration.type_params.is_empty() {
             s.push('<');
-            for (i, t) in declaration.type_params.iter().enumerate() {
+            for (i, (t, c)) in declaration.type_params.iter().enumerate() {
                 s.push_str(t);
+                if c.len() > 0 {
+                    s.push(':');
+                    for (j, constraint) in c.iter().enumerate() {
+                        if let Constraint(Some(c)) = constraint {
+                            s.push_str(c);
+                        } else {
+                            s.push_str("nil");
+                        }
+                        if j != c.len() - 1 {
+                            s.push_str(", ");
+                        }
+                    }
+                }
                 if i != declaration.type_params.len() - 1 {
                     s.push_str(", ");
                 }
@@ -736,6 +749,7 @@ impl Prototype {
 #[cfg(test)]
 mod test {
 
+    use std::collections::HashMap;
     use std::rc::Rc;
 
     use super::*;
@@ -966,7 +980,7 @@ mod test {
                 value: Value::Integer(1),
             }).into(),
         }).as_node()].into()),
-        type_params: vec![],
+        type_params: IndexMap::new(),
         generic_instantiations: FunctionGenerics::Monomorphic(IndexMap::new()),
     }), "function"; "test_function")]
     fn test_to_str_for_decl(decl: Declaration, name: &str) {

@@ -3,18 +3,28 @@ use super::*;
 thread_local! {
     static TVAR: Cell<usize> = 0.into();
     static SUBSTITUTIONS: RefCell<Vec<UValueType>> = vec![ValueType::TypeVar(0).intern()].into();
+    static CONSTRAINTS: RefCell<Vec<Box<[Constraint]>>> = vec![vec![Constraint(None)].into_boxed_slice()].into();
 }
 
 impl ValueType {
     /// # New Type Var
     /// Create a new type var with a unique id
-    pub fn new_type_var() -> UValueType {
+    pub fn new_type_var(constraints: Box<[Constraint]>) -> UValueType {
         ValueType::TypeVar(TVAR.with(|u| {
             u.set(u.get() + 1);
             SUBSTITUTIONS.with_borrow_mut(|v| v.push(ValueType::TypeVar(u.get()).intern()));
+            CONSTRAINTS.with_borrow_mut(|c| c.push(constraints));
             u.get()
         }))
         .intern()
+    }
+
+    pub fn get_constraints(&'static self) -> Option<Box<[Constraint]>> {
+        println!("get_constraints for {}", self);
+        match self {
+            ValueType::TypeVar(x) => CONSTRAINTS.with_borrow(|c| c.get(*x).cloned()),
+            _ => None,
+        }
     }
 
     /// # Unify
@@ -45,7 +55,7 @@ impl ValueType {
             | (ValueType::Integer, ValueType::Pointer(_, _)) => {}
 
             // Generic params should be resolved
-            (ValueType::GenericParam(s0), _) | (_, ValueType::GenericParam(s0)) => {
+            (ValueType::GenericParam(s0, _), _) | (_, ValueType::GenericParam(s0, _)) => {
                 if let Ok(v) = generics.get(s0) {
                     ValueType::unify(v, t2, generics)?;
                 } else {
@@ -64,6 +74,17 @@ impl ValueType {
             (ValueType::TypeVar(x), t) | (t, ValueType::TypeVar(x)) => {
                 if ValueType::occurs_in(*x, t) {
                     return Err(anyhow::anyhow!("occurs check failed"));
+                }
+
+                // check for constraints
+                if let Some(c) = CONSTRAINTS.with_borrow(|c| c.get(*x).cloned()) {
+                    if !t.satisfies_constraints(&c, generics) {
+                        return Err(anyhow::anyhow!(
+                            "type {} does not satisfy constraints {:?}",
+                            t.id_str(),
+                            c
+                        ));
+                    }
                 }
 
                 SUBSTITUTIONS.with_borrow_mut(|v| v[*x] = t);
@@ -115,7 +136,7 @@ impl ValueType {
                     ValueType::unify(v0.value, v1.value, generics)?;
                 }
             }
-            (ValueType::SelfStruct(s0, v0), ValueType::SelfStruct(s1, v1)) => {
+            (ValueType::SelfStructRef(s0, v0), ValueType::SelfStructRef(s1, v1)) => {
                 if s0 != s1 || v0.len() != v1.len() {
                     return Err(anyhow::anyhow!("self struct types do not match"));
                 }
@@ -241,15 +262,16 @@ impl ValueType {
                                     methods: s.methods.clone(),
                                     parametric_methods: s.parametric_methods.clone(),
                                     type_vars: s.type_vars.borrow().clone().into(),
+                                    implements: s.implements.clone(),
                                 }))
                 .intern()
             }
-            ValueType::SelfStruct(s, v) => Self::SelfStruct(
+            ValueType::SelfStructRef(s, v) => Self::SelfStructRef(
                 s.clone(),
                 v.iter().map(|t| t.substitute(generics)).collect(),
             )
             .intern(),
-            ValueType::GenericParam(s) => {
+            ValueType::GenericParam(s, _) => {
                 if let Ok(v) = generics.get(s) {
                     v
                 } else {
@@ -276,13 +298,15 @@ impl ValueType {
         &'static self,
         generics: &mut HashMap<SharedString, UValueType>,
     ) -> UValueType {
+        
         match self {
-            Self::GenericParam(s) => {
+            Self::GenericParam(s, c) => {
                 if let Some(v) = generics.get(s) {
                     v
                 } else {
-                    let tv = ValueType::new_type_var();
+                    let tv = ValueType::new_type_var(c.clone());
                     generics.insert(s.clone(), tv);
+                    println!("Instantiated generic {s} {c:?} to {tv} {:?}", tv.get_constraints());
                     tv
                 }
             }
@@ -334,16 +358,17 @@ impl ValueType {
                                     embed: s.embed.clone(),
                                     methods: s.methods.clone(),
                                     parametric_methods: s.parametric_methods.clone(),
-                                    type_vars: vec![].into(),
+                                    type_vars: IndexMap::new().into(),
+                                    implements: s.implements.clone(),
                                 }))
                 .intern()
             }
-            Self::SelfStruct(s, v) => {
+            Self::SelfStructRef(s, v) => {
                 let mut new_v = Vec::with_capacity(v.len());
                 for x in v.iter() {
                     new_v.push(x.instantiate_generic(generics));
                 }
-                Self::SelfStruct(s.clone(), new_v).intern()
+                Self::SelfStructRef(s.clone(), new_v).intern()
             }
             _ => self,
         }

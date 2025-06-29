@@ -1,4 +1,6 @@
-use crate::typing::{Closure, UValueType};
+use indexmap::IndexMap;
+
+use crate::typing::{Closure, Constraint, UValueType};
 
 use super::*;
 
@@ -6,7 +8,7 @@ impl SerenityParser {
     pub fn parse_type(
         &mut self,
         struct_name: Option<&SharedString>,
-        type_params: Option<&Vec<SharedString>>,
+        type_params: Option<&IndexMap<SharedString, Box<[Constraint]>>>,
         mutability: bool,
     ) -> UValueType {
         let leading_star = self.match_token(TokenType::Star);
@@ -35,7 +37,7 @@ impl SerenityParser {
     fn parse_complex_type(
         &mut self,
         struct_name: Option<&SharedString>,
-        type_params: Option<&Vec<SharedString>>,
+        type_params: Option<&IndexMap<SharedString, Box<[Constraint]>>>,
     ) -> UValueType {
         if self.match_token(TokenType::LeftParen) {
             let t = self.parse_complex_type(struct_name, type_params);
@@ -64,8 +66,8 @@ impl SerenityParser {
 
         if self.match_token(TokenType::Identifier) {
             let name = self.previous.lexeme.clone();
-            if let Some(s) = type_params.and_then(|tp| tp.contains(&name).then(|| name.clone())) {
-                return ValueType::GenericParam(s.clone()).intern();
+            if let Some((s, c)) = type_params.and_then(|tp| tp.contains_key(&name).then(|| (name.clone(), tp.get(&name).unwrap().clone()))) {
+                return ValueType::GenericParam(s.clone(), c).intern();
             }
         }
 
@@ -86,7 +88,7 @@ impl SerenityParser {
             let name: SharedString = format!("{}_impl", self.previous.lexeme).into();
 
             if struct_name.is_some_and(|s| *s == name) {
-                return ValueType::SelfStruct(name, vec![]).intern();
+                return ValueType::SelfStructRef(name, vec![]).intern();
             }
             if let Some(s) = self.custom_types.get(&name) {
                 return ValueType::Struct(Box::new(s.clone())).intern();
@@ -100,7 +102,7 @@ impl SerenityParser {
     fn parse_struct_type(
         &mut self,
         struct_name: Option<&SharedString>,
-        type_params: Option<&Vec<SharedString>>,
+        type_params: Option<&IndexMap<SharedString, Box<[Constraint]>>>,
     ) -> UValueType {
         self.consume(TokenType::Identifier, "Expect struct name.");
         let name = self.previous.lexeme.clone();
@@ -124,7 +126,7 @@ impl SerenityParser {
                 Vec::new()
             };
 
-            return ValueType::SelfStruct(name, tps).intern();
+            return ValueType::SelfStructRef(name, tps).intern();
         }
 
         // if the struct is a valid custom struct, return the struct type
@@ -145,7 +147,11 @@ impl SerenityParser {
                     return ValueType::Err.intern();
                 }
                 let mut type_params = HashMap::new();
-                for (name, p_type) in s.type_vars.borrow().iter().zip(params) {
+                for ((name, c), p_type) in s.type_vars.borrow().iter().zip(params) {
+                    if !p_type.satisfies_constraints(c, &ScopedMap::new()) {
+                        self.error("Type parameter does not satisfy constraints.");
+                        return ValueType::Err.intern();
+                    }
                     type_params.insert(name.clone(), p_type);
                 }
                 type_params
@@ -164,7 +170,7 @@ impl SerenityParser {
     fn parse_function_type(
         &mut self,
         struct_name: Option<&SharedString>,
-        type_params: Option<&Vec<SharedString>>,
+        type_params: Option<&IndexMap<SharedString, Box<[Constraint]>>>,
     ) -> UValueType {
         let mut param_types = Vec::new();
 

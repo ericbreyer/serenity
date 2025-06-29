@@ -4,6 +4,7 @@ use crate::{
     typing::{Closure, UValueType},
 };
 use anyhow::{Context as _, Result};
+use indexmap::IndexMap;
 
 use core::str;
 
@@ -76,12 +77,14 @@ impl Typechecker {
 
 impl Typechecker {
     fn get_variable(&self, name: &str) -> Result<(UValueType, bool)> {
-        self.variables.borrow()
+        self.variables
+            .borrow()
             .get(Into::<SharedString>::into(name.to_string()))
     }
 
     fn set_variable(&self, name: &str, value: UValueType, mutable: bool) {
-        self.variables.borrow_mut()
+        self.variables
+            .borrow_mut()
             .set(name.to_string().into(), (value, mutable));
     }
 }
@@ -143,10 +146,11 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
     }
 
     fn visit_double_colon_expression(&self, _expression: &DoubleColonExpression) -> ExprResult {
+        // TODO: Implement this
         // let t = expression.typ.substitute(&*self.generics_in_scope);
         // println!("want to get ({t}) {}_{} in {:?}", t.id_str(), expression.acessor, self.variables.as_hashmap().keys());
         // Ok(ExprResultInner::new(self.variables.get(&format!("{}_{}", t.id_str(), expression.acessor).into()).unwrap()))
-        Ok(ExprResultInner::new(ValueType::new_type_var()))
+        Ok(ExprResultInner::new(ValueType::new_type_var(Box::new([]))))
     }
 
     fn visit_string_literal_expression(&self, _: &StringLiteralExpression) -> ExprResult {
@@ -246,7 +250,11 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
             .context("Rvalue")?;
 
         if matches!(*lhs, ValueType::Array(_, _) | ValueType::Pointer(_, _)) {
-            ValueType::unify(ValueType::Integer.intern(), rhs.0, &self.generics_in_scope.borrow())?;
+            ValueType::unify(
+                ValueType::Integer.intern(),
+                rhs.0,
+                &self.generics_in_scope.borrow(),
+            )?;
         } else {
             ValueType::unify(lhs.0, rhs.0, &self.generics_in_scope.borrow())?;
         }
@@ -321,13 +329,16 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
             .context("Ternary expression condition")?
             .rvalue()
             .context("Rvalue")?;
-        ValueType::unify(ValueType::Bool.intern(), cond.0, &self.generics_in_scope.borrow()).context(
-            format!(
-                "Ternary expression unification {:?} = {:?}",
-                ValueType::Bool.intern(),
-                cond.0
-            ),
-        )?;
+        ValueType::unify(
+            ValueType::Bool.intern(),
+            cond.0,
+            &self.generics_in_scope.borrow(),
+        )
+        .context(format!(
+            "Ternary expression unification {:?} = {:?}",
+            ValueType::Bool.intern(),
+            cond.0
+        ))?;
 
         let lhs = expression
             .then_branch
@@ -356,9 +367,9 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
         let tipe = self.get_variable(name);
 
         if let Ok((t, m)) = tipe {
-            if let ValueType::GenericParam(g) = t {
+            if let ValueType::GenericParam(g, _) = t {
                 if let Ok(t) = self.generics_in_scope.borrow().get(g.clone()) {
-                    return Ok(ExprResultInner::new(t));
+                    return Ok(ExprResultInner::new(ValueType::LValue(t, m).intern()));
                 }
             }
             return Ok(ExprResultInner::new(ValueType::LValue(t, m).intern()));
@@ -378,7 +389,7 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
             expression.token.borrow_mut().lexeme = new_name.clone();
             let mut new_declaration = declaration.clone();
             new_declaration.prototype.name = new_name.clone();
-            new_declaration.type_params = vec![];
+            new_declaration.type_params = IndexMap::new();
             new_declaration.generic_instantiations =
                 FunctionGenerics::Monomorphic(maping.into_iter().collect());
             self.visit_function_declaration(&new_declaration)?;
@@ -444,13 +455,16 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
             .rvalue()
             .context("Rvalue")?;
 
-        ValueType::unify(ValueType::Bool.intern(), lhs.0, &self.generics_in_scope.borrow()).context(
-            format!(
-                "Logical expression unification {:?} = {:?}",
-                ValueType::Bool.intern(),
-                lhs.0
-            ),
-        )?;
+        ValueType::unify(
+            ValueType::Bool.intern(),
+            lhs.0,
+            &self.generics_in_scope.borrow(),
+        )
+        .context(format!(
+            "Logical expression unification {:?} = {:?}",
+            ValueType::Bool.intern(),
+            lhs.0
+        ))?;
 
         let rhs = expression
             .right
@@ -459,13 +473,16 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
             .rvalue()
             .context("Rvalue")?;
 
-        ValueType::unify(ValueType::Bool.intern(), rhs.0, &self.generics_in_scope.borrow()).context(
-            format!(
-                "Logical expression unification {:?} = {:?}",
-                ValueType::Bool.intern(),
-                rhs.0
-            ),
-        )?;
+        ValueType::unify(
+            ValueType::Bool.intern(),
+            rhs.0,
+            &self.generics_in_scope.borrow(),
+        )
+        .context(format!(
+            "Logical expression unification {:?} = {:?}",
+            ValueType::Bool.intern(),
+            rhs.0
+        ))?;
 
         Ok(ExprResultInner::new(ValueType::Bool.intern()))
     }
@@ -488,7 +505,6 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
             })
             .collect::<Result<Vec<_>>>()?;
         let arg_types = args.iter().map(|a| a.0).collect::<Vec<_>>();
-
         let fn_type = callee.0.instantiate_generic(&mut HashMap::new());
 
         if let ValueType::ExternalFn(r, _) = fn_type {
@@ -510,13 +526,16 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
         };
 
         for arg in args.iter().zip(arg_types.iter()) {
-            ValueType::unify(arg.0.decay(), arg.1.decay(), &self.generics_in_scope.borrow()).context(
-                format!(
-                    "Call expression unification {:?} = {:?}",
-                    arg.0.decay(),
-                    arg.1.decay()
-                ),
-            )?;
+            ValueType::unify(
+                arg.0.decay(),
+                arg.1.decay(),
+                &self.generics_in_scope.borrow(),
+            )
+            .context(format!(
+                "Call expression unification {:?} = {:?}",
+                arg.0.decay(),
+                arg.1.decay()
+            ))?;
         }
 
         Ok(ExprResultInner::new(ValueType::LValue(r, false).intern()))
@@ -527,17 +546,50 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
             .object
             .accept(self)
             .context("Dot expression lhs")?;
+        println!(
+            "Dot expression lhs: {:?} {:?}",
+            lhs.0.substitute(&*self.generics_in_scope.borrow()),
+            lhs.0.get_constraints()
+        );
         let ValueType::LValue(st, m) = *lhs else {
             return Err(anyhow::anyhow!("Invalid dot expression lhs"));
         };
 
         let st = st.fill_self_struct((*self.types).clone());
-        let ValueType::Struct(t) = st.clone() else {
-            return Err(anyhow::anyhow!(
-                "Invalid dot expression lhs got {:?} on {:?}",
-                st,
-                expression.line_no
-            ));
+        let t = match st.clone() {
+            ValueType::Struct(t) => t,
+            ValueType::TypeVar(t) => {
+                let cs = st.get_constraints().unwrap();
+                if cs.is_empty() {
+                    return Err(anyhow::anyhow!(
+                        "Generic parameter {} has no constraints",
+                        st.id_str()
+                    ));
+                }
+                'a: {
+                    println!(
+                        "{:?}, looking for constraints {:?} {:?}",
+                        st, cs, self.types
+                    );
+                    for c in cs.iter() {
+                        let impler_str = format!("{}_impl", c.0.as_ref().unwrap()).into();
+                        if let Some(t) = self.types.get(&impler_str) {
+                            break 'a Box::new(t.clone());
+                        }
+                    }
+                    return Err(anyhow::anyhow!(
+                        "Generic parameter {} has no matching struct",
+                        st.id_str()
+                    ));
+                }
+            }
+            _ => {
+                return Err(anyhow::anyhow!(
+                    "Invalid dot expression lhs got {:?} on {:?}",
+                    st,
+                    expression.line_no
+                ));
+            }
         };
 
         let ofield = t
@@ -585,7 +637,7 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
                 let types = maping.values().cloned().collect::<Vec<_>>();
                 let mut new_declaration = g_method.clone();
                 new_declaration.prototype.name = method_name.clone();
-                new_declaration.type_params = vec![];
+                new_declaration.type_params = IndexMap::new();
                 new_declaration.generic_instantiations =
                     FunctionGenerics::Monomorphic(maping.into_iter().collect());
                 self.visit_function_declaration(&new_declaration)?;
@@ -674,10 +726,12 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
                 .map(|f| f.value)
                 .ok_or_else(|| anyhow::anyhow!("Field {} not found in struct", name))?;
             let expr_t = expr.accept(self)?.rvalue()?;
-            ValueType::unify(t.decay(), expr_t.0, &self.generics_in_scope.borrow()).context(format!(
-                "Struct initializer expression unification {:?} = {:?}",
-                t, expr_t.0
-            ))?;
+            ValueType::unify(t.decay(), expr_t.0, &self.generics_in_scope.borrow()).context(
+                format!(
+                    "Struct initializer expression unification {:?} = {:?}",
+                    t, expr_t.0
+                ),
+            )?;
         }
         Ok(ExprResultInner::new(
             expression.struct_type.to_value_type().substitute(None),
@@ -739,12 +793,11 @@ impl Typechecker {
                 .get()
                 .unwrap_or_else(|| ValueType::Nil.intern());
 
-            ValueType::unify(prototype.return_type, ret, &self.generics_in_scope.borrow()).context(
-                format!(
+            ValueType::unify(prototype.return_type, ret, &self.generics_in_scope.borrow())
+                .context(format!(
                     "Function return unification \n{:?}\n{:?}",
                     prototype.return_type, ret
-                ),
-            )?;
+                ))?;
             ret
         } else {
             prototype.return_type
@@ -762,10 +815,12 @@ impl DeclarationVisitor<Result<()>> for Typechecker {
 
         if let Some(init) = &declaration.initializer {
             let init_type = init.accept(self)?.rvalue()?;
-            ValueType::unify(var_type, init_type.0, &self.generics_in_scope.borrow()).context(format!(
-                "Var declaration unification {:?} = {:?}",
-                var_type, init_type.0
-            ))?;
+            ValueType::unify(var_type, init_type.0, &self.generics_in_scope.borrow()).context(
+                format!(
+                    "Var declaration unification {:?} = {:?}",
+                    var_type, init_type.0
+                ),
+            )?;
         }
         self.set_variable(&declaration.name, var_type, declaration.mutable);
 
@@ -820,13 +875,16 @@ impl StatementVisitor<Result<()>> for Typechecker {
 
     fn visit_if_statement(&self, statement: &IfStatement) -> Result<()> {
         let cond = statement.condition.accept(self)?.rvalue()?;
-        ValueType::unify(ValueType::Bool.intern(), cond.0, &self.generics_in_scope.borrow()).context(
-            format!(
-                "If statement unification {:?} = {:?}",
-                ValueType::Bool.intern(),
-                cond.0
-            ),
-        )?;
+        ValueType::unify(
+            ValueType::Bool.intern(),
+            cond.0,
+            &self.generics_in_scope.borrow(),
+        )
+        .context(format!(
+            "If statement unification {:?} = {:?}",
+            ValueType::Bool.intern(),
+            cond.0
+        ))?;
 
         statement.then_branch.accept(self)?;
 
@@ -840,7 +898,11 @@ impl StatementVisitor<Result<()>> for Typechecker {
     fn visit_while_statement(&self, statement: &WhileStatement) -> Result<()> {
         let cond = statement.condition.accept(self)?.rvalue()?;
 
-        ValueType::unify(ValueType::Bool.intern(), cond.0, &self.generics_in_scope.borrow())?;
+        ValueType::unify(
+            ValueType::Bool.intern(),
+            cond.0,
+            &self.generics_in_scope.borrow(),
+        )?;
 
         statement.body.accept(self)?;
 
@@ -855,7 +917,11 @@ impl StatementVisitor<Result<()>> for Typechecker {
 
         if let Some(cond) = &statement.condition {
             let cond = cond.accept(self)?.rvalue()?;
-            ValueType::unify(ValueType::Bool.intern(), cond.0, &self.generics_in_scope.borrow())?;
+            ValueType::unify(
+                ValueType::Bool.intern(),
+                cond.0,
+                &self.generics_in_scope.borrow(),
+            )?;
         }
 
         if let Some(inc) = &statement.increment {

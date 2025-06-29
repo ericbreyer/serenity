@@ -23,6 +23,9 @@ mod print;
 
 pub type UValueType = &'static ValueType;
 
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct Constraint(pub Option<SharedString>);
+
 #[allow(clippy::derived_hash_with_manual_eq)]
 #[derive(Clone, Hash)]
 #[repr(usize)]
@@ -38,13 +41,38 @@ pub enum ValueType {
     LValue(UValueType, bool),
     Array(UValueType, Option<usize>),
     Struct(Box<CustomStruct>),
-    SelfStruct(SharedString, Vec<UValueType>),
-    GenericParam(SharedString),
+    SelfStructRef(SharedString, Vec<UValueType>),
+    GenericParam(SharedString, Box<[Constraint]>),
     TypeVar(usize),
     Err,
 }
 
 impl ValueType {
+
+    pub fn satisfies_constraints(
+        &'static self,
+        constraint: &Box<[Constraint]>,
+        generics: &ScopedMap<SharedString, UValueType>,
+    ) -> bool {
+                        if constraint.is_empty() {
+                    return true;
+                }
+        let subedself = self.substitute(generics);
+        match subedself {
+            Self::Struct(s) => {
+                for c in constraint.iter() {
+                    if let Some(ref name) = c.0 {
+                        if !s.implements.contains(name) {
+                            return false;
+                        }
+                    }
+                }                
+                true
+            }
+            _ => false,
+        }
+    }
+
     /// # Decay
     /// This is an identity function for all types except arrays, which decay
     /// to pointers as in `[T; N] -> *T`
@@ -67,11 +95,11 @@ impl ValueType {
             Self::Pointer(t, b) => Self::Pointer(t.fill_self_struct(custom_structs), *b).intern(),
             Self::LValue(t, b) => Self::LValue(t.fill_self_struct(custom_structs), *b).intern(),
             Self::Array(t, n) => Self::Array(t.fill_self_struct(custom_structs), *n).intern(),
-            Self::SelfStruct(s, v) => {
+            Self::SelfStructRef(s, v) => {
                 if let Some(s) = custom_structs.get(s) {
                     let mut tvs = HashMap::new();
                     for (n, t) in s.type_vars.borrow().iter().zip(v.iter()) {
-                        tvs.insert(n.clone(), *t);
+                        tvs.insert(n.0.clone(), *t);
                     }
                     Self::Struct(Box::new(s.clone()))
                         .intern()
@@ -117,10 +145,10 @@ impl ValueType {
             }
             (Self::Array(l0, l0c), Self::Array(r0, r0c)) => l0 == r0 && (l0c == r0c),
             (Self::Pointer(l0, _), Self::Pointer(r0, _)) => l0 == r0,
-            (Self::SelfStruct(l0, _), Self::SelfStruct(r0, _)) => l0 == r0,
-            (Self::SelfStruct(l0, _), Self::Struct(r0)) => l0 == &r0.name,
-            (Self::Struct(l0), Self::SelfStruct(r0, _)) => &l0.name == r0,
-            (Self::GenericParam(l0), Self::GenericParam(r0)) => l0 == r0,
+            (Self::SelfStructRef(l0, _), Self::SelfStructRef(r0, _)) => l0 == r0,
+            (Self::SelfStructRef(l0, _), Self::Struct(r0)) => l0 == &r0.name,
+            (Self::Struct(l0), Self::SelfStructRef(r0, _)) => &l0.name == r0,
+            (Self::GenericParam(l0, l1), Self::GenericParam(r0, r1)) => l0 == r0 && l1 == r1,
             (Self::TypeVar(l0), Self::TypeVar(r0)) => l0 == r0,
             _ => core::mem::discriminant(self) == core::mem::discriminant(other),
         }
@@ -165,8 +193,8 @@ impl ValueType {
                 }
                 ctx.struct_type(&types, false).as_basic_type_enum()
             }
-            Self::SelfStruct(_, _) => unreachable!("self struct should be replaced by struct"),
-            Self::GenericParam(p) => {
+            Self::SelfStructRef(_, _) => unreachable!("self struct should be replaced by struct"),
+            Self::GenericParam(p, _) => {
                 if let Ok(v) = generics.get(p) {
                     v.llvm(ctx, generics)?
                 } else {
@@ -195,7 +223,22 @@ impl From<SharedString> for ValueType {
             "nil" => Self::Nil,
             "err" => Self::Err,
             s if s.chars().nth(0).unwrap() == '$' => Self::TypeVar(s[1..].parse().unwrap()),
-            s => Self::GenericParam(s.into()),
+            s if s.contains(":") => {
+                // generic param with constraints
+                let parts: Vec<&str> = s.split(':').collect();
+                let name = parts[0].to_string();
+                let constraints = parts[1..]
+                    .iter()
+                    .map(|c| {
+                        if c.is_empty() {
+                            Constraint(None)
+                        } else {
+                            Constraint(Some(c.to_string().into())) 
+                        }})
+                    .collect::<Vec<_>>();
+                Self::GenericParam(name.into(), constraints.into_boxed_slice())
+            }
+            s =>{Self::GenericParam(s.into(), Box::new([]))},
         }
     }
 }

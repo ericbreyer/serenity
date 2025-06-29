@@ -1544,7 +1544,7 @@ impl DeclarationVisitor<Result<()>> for LLVMFunctionCompiler<'_, '_> {
                         .type_params
                         .iter()
                         .zip(instantiation.types.iter())
-                        .map(|(t, v)| (t.clone(), *v))
+                        .map(|((t, _), v)| (t.clone(), *v))
                         .collect(),
                 );
                 dec.prototype.name = instantiation.name.clone();

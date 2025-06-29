@@ -10,7 +10,7 @@ use tracing::debug;
 use crate::{
     lexer::TokenType,
     prelude::*,
-    typing::{Closure, UValueType},
+    typing::{Closure, Constraint, UValueType},
 };
 
 use super::{Precedence, SerenityParser};
@@ -201,11 +201,13 @@ impl SerenityParser {
     //----Declarations----//
 
     fn type_declaration(&mut self) -> Vec<ASTNode> {
-        let mut type_params = Vec::new();
+        let mut type_params: IndexMap<SharedString, Box<[Constraint]>> = IndexMap::new();
         if self.match_token(TokenType::Less) {
             while self.current.token_type != TokenType::Greater {
                 self.consume(TokenType::Identifier, "Expect type parameter name.");
-                type_params.push(self.previous.lexeme.clone());
+                let name = self.previous.lexeme.clone();
+                let constriants = self.extract_function_constraints();
+                type_params.insert(name, constriants.into_boxed_slice());
                 if !self.match_token(TokenType::Comma) {
                     break;
                 }
@@ -229,7 +231,7 @@ impl SerenityParser {
     fn struct_declaration(
         &mut self,
         name: SharedString,
-        type_params: Vec<SharedString>,
+        type_params: IndexMap<SharedString, Box<[Constraint]>>,
     ) -> Vec<ASTNode> {
         let _ = self.previous.line;
 
@@ -249,6 +251,7 @@ impl SerenityParser {
                 methods: HashSet::new().into(),
                 parametric_methods: HashSet::new().into(),
                 type_vars: type_params.clone().into(),
+                implements: HashSet::new(),
             },
         );
         let mut embed = None;
@@ -330,6 +333,11 @@ impl SerenityParser {
         if self.match_token(TokenType::Implements) {
             while self.match_token(TokenType::Identifier) {
                 let interface = &self.previous.lexeme;
+                self.custom_types
+                    .get_mut(&name)
+                    .unwrap()
+                    .implements
+                    .insert(interface.clone());
                 let interfacev = format!("{}_vtable", self.previous.lexeme).into();
                 let Some(interface_vtab) = self.custom_types.get(&interfacev) else {
                     return vec![ASTNode::Empty];
@@ -400,7 +408,7 @@ impl SerenityParser {
     fn interface_definition(
         &mut self,
         name: SharedString,
-        type_params: Vec<SharedString>,
+        type_params: IndexMap<SharedString, Box<[Constraint]>>,
     ) -> Vec<ASTNode> {
         let vtable_name: SharedString = format!("{name}_vtable").into();
         let _ = self.previous.line;
@@ -423,6 +431,7 @@ impl SerenityParser {
                 methods: HashSet::new().into(),
                 parametric_methods: HashSet::new().into(),
                 type_vars: type_params.clone().into(),
+                implements: HashSet::new(),
             },
         );
         let mut methods: Vec<(SharedString, SharedString)> = vec![];
@@ -435,8 +444,11 @@ impl SerenityParser {
 
             let field_name = self.previous.clone();
             self.consume(TokenType::Colon, "Expect ':' after field name.");
-            let field_type =
-                self.parse_type(Some(&format!("{name}_impl").into()), Some(&type_params), false);
+            let field_type = self.parse_type(
+                Some(&format!("{name}_impl").into()),
+                Some(&type_params),
+                false,
+            );
 
             // if the field is this struct throw an error
             let ValueType::Closure(Closure {
@@ -531,9 +543,9 @@ impl SerenityParser {
                 (
                     "vtable".into(),
                     StructEntry {
-                        value: ValueType::Struct(
-                            Box::new(self.custom_types.get(&vtable_name).unwrap().clone()),
-                        )
+                        value: ValueType::Struct(Box::new(
+                            self.custom_types.get(&vtable_name).unwrap().clone(),
+                        ))
                         .intern(),
                         offset: 1,
                     },
@@ -543,7 +555,8 @@ impl SerenityParser {
             embed: None,
             methods: RefCell::new(methods.iter().map(|(name, _)| name.clone()).collect()),
             parametric_methods: RefCell::new(HashSet::new()),
-            type_vars: vec![].into(),
+            type_vars: IndexMap::new().into(),
+            implements: HashSet::new(),
         };
 
         self.custom_types.insert(impler_name, impler);
@@ -633,7 +646,7 @@ impl SerenityParser {
 
         ASTNode::Declaration(Declaration::Var(VarDeclaration {
             name,
-            tipe: var_type.unwrap_or(ValueType::new_type_var()),
+            tipe: var_type.unwrap_or(ValueType::new_type_var(Box::new([]))),
             initializer: initializer.map(Box::new),
             mutable: mutable && !is_const,
             line_no,
@@ -672,17 +685,21 @@ impl SerenityParser {
     fn fun_declaration(&mut self) -> ASTNode {
         let line_no = self.previous.line;
 
-        let mut type_params = Vec::new();
+        let mut type_params = IndexMap::new();
         if self.match_token(TokenType::Less) {
             loop {
                 self.consume(TokenType::Identifier, "Expect type param name.");
-                type_params.push(self.previous.lexeme.clone());
+                let name = self.previous.lexeme.clone();
+                let constriants = self.extract_function_constraints();
+
+                type_params.insert(name, constriants.into_boxed_slice());
                 if !self.match_token(TokenType::Comma) {
                     break;
                 }
             }
             self.consume(TokenType::Greater, "Expect '>' after generic params.");
         }
+        println!("type_params: {:?}", type_params);
 
         if self.match_token(TokenType::LeftParen) {
             return self.method_declaration(type_params);
@@ -707,7 +724,26 @@ impl SerenityParser {
         }))
     }
 
-    fn method_declaration(&mut self, type_params: Vec<SharedString>) -> ASTNode {
+    fn extract_function_constraints(&mut self) -> Vec<Constraint> {
+        let mut constriants = Vec::new();
+        if self.match_token(TokenType::Colon) {
+            loop {
+                self.consume(TokenType::Identifier, "Expect constraint name.");
+                let constraint_name = self.previous.lexeme.clone();
+                let constriant = Constraint(Some(constraint_name));
+                constriants.push(constriant);
+                if !self.match_token(TokenType::Comma) {
+                    break;
+                }
+            }
+        }
+        constriants
+    }
+
+    fn method_declaration(
+        &mut self,
+        type_params: IndexMap<SharedString, Box<[Constraint]>>,
+    ) -> ASTNode {
         let line_no = self.previous.line;
         let mutable = self.match_token(TokenType::Mut);
         self.consume(TokenType::Identifier, "Expect receiver name.");
