@@ -55,7 +55,7 @@ fn (self: * struct Arena) alloc(size: int) -> *nil {
     return ptr;
 }
 
-fn( self: * struct Arena) destroy() {
+fn (self: * struct Arena) destroy() {
     var current = self->head->next;
     while (current != self->head) {
         let next = current->next;
