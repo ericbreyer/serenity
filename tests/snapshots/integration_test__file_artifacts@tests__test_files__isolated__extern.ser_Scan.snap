@@ -1,0 +1,39 @@
+---
+source: tests/integration_test.rs
+expression: result
+---
+<Fun          "fn"          [1]>
+<Identifier   "main"        [1]>
+<LeftParen    "("           [1]>
+<RightParen   ")"           [1]>
+<RightArrow   "->"          [1]>
+<SimpleType   "int"         [1]>
+<LeftBrace    "{"           [1]>
+<Identifier   "printf"      [2]>
+<LeftParen    "("           [2]>
+<String       "\"Hello, World!\\n\"" [2]>
+<RightParen   ")"           [2]>
+<Semicolon    ";"           [2]>
+<Var          "let"         [3]>
+<Identifier   "p"           [3]>
+<Equal        "="           [3]>
+<Identifier   "malloc"      [3]>
+<LeftParen    "("           [3]>
+<Number       "100"         [3]>
+<RightParen   ")"           [3]>
+<Semicolon    ";"           [3]>
+<Identifier   "free"        [4]>
+<LeftParen    "("           [4]>
+<Identifier   "p"           [4]>
+<RightParen   ")"           [4]>
+<Semicolon    ";"           [4]>
+<Identifier   "usleep"      [5]>
+<LeftParen    "("           [5]>
+<Number       "1000"        [5]>
+<RightParen   ")"           [5]>
+<Semicolon    ";"           [5]>
+<Return       "return"      [7]>
+<Number       "1"           [7]>
+<Semicolon    ";"           [7]>
+<RightBrace   "}"           [8]>
+<Eof          ""            [8]>

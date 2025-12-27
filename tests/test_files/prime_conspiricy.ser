@@ -58,12 +58,10 @@ fn main() -> int {
 
     for (var i = 0; i < 10; i = i + 1) {
         if(i != 1 and i != 2 and i != 3 and i != 5 and i != 7) {
-            i = i + 1;
             continue;
         }
         for(var j = 0; j < 10; j = j + 1) {
             if(j!= 1 and j != 3 and j != 5 and j != 7) {
-                j = j + 1;
                 continue;
             }
             result = result + transitions[i][j] * pow(2, i) * pow(3, j);

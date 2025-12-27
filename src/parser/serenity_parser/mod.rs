@@ -10,12 +10,11 @@ use anyhow::{Error, Result};
 use num_enum::FromPrimitive;
 use pratt_parse::ParseTable;
 
+use super::Parser;
 use crate::{
     lexer::{Lexer, Token, TokenType},
     prelude::*,
 };
-
-use super::Parser;
 
 #[derive(Debug, PartialEq, PartialOrd, FromPrimitive, Copy, Clone, Default)]
 #[repr(u8)]
@@ -56,10 +55,11 @@ pub struct SerenityParser {
     parse_table: ParseTable,
     custom_types: HashMap<SharedString, CustomStruct>,
     constants: HashMap<SharedString, Value>,
+    include_paths: Vec<SharedString>,
 }
 
 impl SerenityParser {
-    pub fn new(lexer: Lexer) -> SerenityParser {
+    pub fn new(lexer: Lexer, include_paths: Vec<SharedString>) -> SerenityParser {
         SerenityParser {
             current: Token {
                 token_type: TokenType::Error,
@@ -77,6 +77,7 @@ impl SerenityParser {
             parse_table: Self::parse_table(),
             custom_types: HashMap::new(),
             constants: HashMap::new(),
+            include_paths,
         }
     }
     fn advance(&mut self) {
@@ -207,8 +208,17 @@ impl SerenityParser {
 }
 
 impl Parser for SerenityParser {
-    fn parse(source: SharedString, name: SharedString) -> Result<ParseResult> {
-        SerenityParser::parse_helper(source, name, true, HashMap::default())
+    fn parse(
+        source: SharedString,
+        name: SharedString,
+        include_paths: Vec<String>,
+    ) -> Result<ParseResult> {
+        SerenityParser::parse_helper(
+            source,
+            name,
+            HashMap::default(),
+            include_paths.into_iter().map(|s| s.into()).collect(),
+        )
     }
 }
 
@@ -216,15 +226,15 @@ impl SerenityParser {
     fn parse_helper(
         source: SharedString,
         name: SharedString,
-        _: bool,
         custom_types: HashMap<SharedString, CustomStruct>,
+        include_paths: Vec<SharedString>,
     ) -> Result<ParseResult> {
         tracing::info!("Starting parse of {name}");
         let mut ret = ParseResult::default();
         let errors: Option<Error>;
         {
             let lexer = crate::lexer::Lexer::new(source);
-            let mut parser = SerenityParser::new(lexer);
+            let mut parser = SerenityParser::new(lexer, include_paths);
             parser.custom_types.extend(custom_types);
             parser.advance();
 
@@ -236,9 +246,9 @@ impl SerenityParser {
             ret.custom_structs = parser.custom_types;
         }
 
-        if errors.is_some() {
+        if let Some(e) = errors {
             tracing::error!("Parse failed");
-            return Err(errors.unwrap());
+            return Err(e);
         } else {
             tracing::info!("Parse of {name} succeeded");
         }

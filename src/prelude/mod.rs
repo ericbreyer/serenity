@@ -2,12 +2,13 @@ mod ast;
 mod scoped_map;
 mod shared_strings;
 
+use std::fmt::Debug;
+
 pub use crate::{
     prelude::{ast::*, scoped_map::*, shared_strings::SharedString},
     typing::{CustomStruct, StructEntry, ValueType},
     value_literals::Value,
 };
-use std::fmt::Debug;
 
 #[derive(Clone)]
 pub struct ParseResult {

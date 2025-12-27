@@ -4,16 +4,18 @@ expression: result
 ---
 ; ModuleID = 'main'
 source_filename = "main"
+target datalayout = "e-m:o-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-n32:64-S128-Fn32"
+target triple = "arm64-apple-darwin24.6.0"
 
-@"9267239460987309703_add" = global { ptr } { ptr @"9267239460987309703_add_ptr->ptrptr" }
-@"17291069585011617692_add" = global { ptr } { ptr @"17291069585011617692_add_ptr->ptrptr" }
+@"9267239460987309703_add#closure_wrapper" = global { ptr } { ptr @"9267239460987309703_add_ptr->ptrptr" }
+@"17291069585011617692_add#closure_wrapper" = global { ptr } { ptr @"17291069585011617692_add_ptr->ptrptr" }
 @c_adder_vtable = global { { ptr } } zeroinitializer
-@c_impl_adder = global { ptr } { ptr @"c_impl_adder_ptr->ptrptr" }
-@"1865986952864376157_add" = global { ptr } { ptr @"1865986952864376157_add_ptr->ptrptr" }
+@"c_impl_adder#closure_wrapper" = global { ptr } { ptr @"c_impl_adder_ptr->ptrptr" }
+@"1865986952864376157_add#closure_wrapper" = global { ptr } { ptr @"1865986952864376157_add_ptr->ptrptr" }
 @d_adder_vtable = global { { ptr } } zeroinitializer
-@d_impl_adder = global { ptr } { ptr @"d_impl_adder_ptr->ptrptr" }
-@stuff = global { ptr } { ptr @"stuff_i64ptr->ptr" }
-@main = global { ptr } { ptr @main_i64 }
+@"d_impl_adder#closure_wrapper" = global { ptr } { ptr @"d_impl_adder_ptr->ptrptr" }
+@"stuff#closure_wrapper" = global { ptr } { ptr @"stuff_i64ptr->ptr" }
+@"main#closure_wrapper" = global { ptr } { ptr @main_i64 }
 
 declare i8 @printf(ptr, ...)
 
@@ -22,6 +24,8 @@ declare ptr @malloc(i64)
 declare i8 @free(ptr)
 
 declare i8 @usleep(i64)
+
+declare i8 @exit(i64)
 
 define { ptr, ptr } @"9267239460987309703_add_ptr->ptrptr"(ptr %0) {
 entry:
@@ -44,7 +48,7 @@ entry:
   %a0 = alloca i64, align 8
   %self = alloca ptr, align 8
   store ptr %0, ptr %self, align 8
-  store i64 %1, ptr %a0, align 4
+  store i64 %1, ptr %a0, align 8
   %rval = load ptr, ptr %self, align 8
   %field = getelementptr inbounds nuw { ptr, { { ptr } } }, ptr %rval, i32 0, i32 1
   %field1 = getelementptr inbounds nuw { { ptr } }, ptr %field, i32 0, i32 0
@@ -56,12 +60,12 @@ entry:
   %calltmp = call { ptr, ptr } %fnptr(ptr %rval5)
   store { ptr, ptr } %calltmp, ptr %calltmp6, align 8
   %rval7 = load { ptr, ptr }, ptr %calltmp6, align 8
-  %rval8 = load i64, ptr %a0, align 4
+  %rval8 = load i64, ptr %a0, align 8
   %fnptr9 = extractvalue { ptr, ptr } %rval7, 1
   %upval = extractvalue { ptr, ptr } %rval7, 0
   %calltmp10 = call i64 %fnptr9(ptr %upval, i64 %rval8)
-  store i64 %calltmp10, ptr %calltmp11, align 4
-  %rval12 = load i64, ptr %calltmp11, align 4
+  store i64 %calltmp10, ptr %calltmp11, align 8
+  %rval12 = load i64, ptr %calltmp11, align 8
   ret i64 %rval12
 }
 
@@ -97,17 +101,17 @@ entry:
   %j = alloca i64, align 8
   %self = alloca ptr, align 8
   store ptr %0, ptr %self, align 8
-  store i64 %1, ptr %j, align 4
+  store i64 %1, ptr %j, align 8
   %rval = load ptr, ptr %self, align 8
   store ptr %rval, ptr %rself, align 8
   %rval1 = load ptr, ptr %rself, align 8
   %field = getelementptr inbounds nuw { i64 }, ptr %rval1, i32 0, i32 0
-  %rval2 = load i64, ptr %field, align 4
-  %rval3 = load i64, ptr %j, align 4
+  %rval2 = load i64, ptr %field, align 8
+  %rval3 = load i64, ptr %j, align 8
   %addtmp = add i64 %rval2, %rval3
   %rval4 = load ptr, ptr %rself, align 8
   %field5 = getelementptr inbounds nuw { i64 }, ptr %rval4, i32 0, i32 0
-  store i64 %addtmp, ptr %field5, align 4
+  store i64 %addtmp, ptr %field5, align 8
   ret i64 %addtmp
 }
 
@@ -116,7 +120,7 @@ entry:
   %struct_init = alloca { ptr, { { ptr } } }, align 8
   %self = alloca ptr, align 8
   store ptr %0, ptr %self, align 8
-  %rval = load { ptr }, ptr @"17291069585011617692_add", align 8
+  %rval = load { ptr }, ptr @"17291069585011617692_add#closure_wrapper", align 8
   store { ptr } %rval, ptr @c_adder_vtable, align 8
   %field = getelementptr inbounds nuw { ptr, { { ptr } } }, ptr %struct_init, i32 0, i32 0
   %rval1 = load ptr, ptr %self, align 8
@@ -160,17 +164,17 @@ entry:
   %j = alloca i64, align 8
   %self = alloca ptr, align 8
   store ptr %0, ptr %self, align 8
-  store i64 %1, ptr %j, align 4
+  store i64 %1, ptr %j, align 8
   %rval = load ptr, ptr %self, align 8
   store ptr %rval, ptr %rself, align 8
   %rval1 = load ptr, ptr %rself, align 8
   %field = getelementptr inbounds nuw { i64 }, ptr %rval1, i32 0, i32 0
-  %rval2 = load i64, ptr %field, align 4
-  %rval3 = load i64, ptr %j, align 4
+  %rval2 = load i64, ptr %field, align 8
+  %rval3 = load i64, ptr %j, align 8
   %subtmp = sub i64 %rval2, %rval3
   %rval4 = load ptr, ptr %rself, align 8
   %field5 = getelementptr inbounds nuw { i64 }, ptr %rval4, i32 0, i32 0
-  store i64 %subtmp, ptr %field5, align 4
+  store i64 %subtmp, ptr %field5, align 8
   ret i64 %subtmp
 }
 
@@ -179,7 +183,7 @@ entry:
   %struct_init = alloca { ptr, { { ptr } } }, align 8
   %self = alloca ptr, align 8
   store ptr %0, ptr %self, align 8
-  %rval = load { ptr }, ptr @"1865986952864376157_add", align 8
+  %rval = load { ptr }, ptr @"1865986952864376157_add#closure_wrapper", align 8
   store { ptr } %rval, ptr @d_adder_vtable, align 8
   %field = getelementptr inbounds nuw { ptr, { { ptr } } }, ptr %struct_init, i32 0, i32 0
   %rval1 = load ptr, ptr %self, align 8
@@ -197,7 +201,7 @@ entry:
   %calltmp1 = alloca { ptr, ptr }, align 8
   %adder = alloca { ptr, { { ptr } } }, align 8
   store { ptr, { { ptr } } } %0, ptr %adder, align 8
-  %rval = load { ptr }, ptr @"9267239460987309703_add", align 8
+  %rval = load { ptr }, ptr @"9267239460987309703_add#closure_wrapper", align 8
   %fnptr = extractvalue { ptr } %rval, 0
   %calltmp = call { ptr, ptr } %fnptr(ptr %adder)
   store { ptr, ptr } %calltmp, ptr %calltmp1, align 8
@@ -205,8 +209,8 @@ entry:
   %fnptr3 = extractvalue { ptr, ptr } %rval2, 1
   %upval = extractvalue { ptr, ptr } %rval2, 0
   %calltmp4 = call i64 %fnptr3(ptr %upval, i64 2)
-  store i64 %calltmp4, ptr %calltmp5, align 4
-  %rval6 = load i64, ptr %calltmp5, align 4
+  store i64 %calltmp4, ptr %calltmp5, align 8
+  %rval6 = load i64, ptr %calltmp5, align 8
   ret i64 %rval6
 }
 
@@ -231,26 +235,26 @@ entry:
   %struct_init = alloca { i64 }, align 8
   %c_conc = alloca { i64 }, align 8
   %field = getelementptr inbounds nuw { i64 }, ptr %struct_init, i32 0, i32 0
-  store i64 0, ptr %field, align 4
-  %struct_init1 = load { i64 }, ptr %struct_init, align 4
-  store { i64 } %struct_init1, ptr %c_conc, align 4
-  %rval = load { ptr }, ptr @c_impl_adder, align 8
+  store i64 0, ptr %field, align 8
+  %struct_init1 = load { i64 }, ptr %struct_init, align 8
+  store { i64 } %struct_init1, ptr %c_conc, align 8
+  %rval = load { ptr }, ptr @"c_impl_adder#closure_wrapper", align 8
   %fnptr = extractvalue { ptr } %rval, 0
   %calltmp = call { ptr, { { ptr } } } %fnptr(ptr %c_conc)
   store { ptr, { { ptr } } } %calltmp, ptr %calltmp2, align 8
   %rval3 = load { ptr, { { ptr } } }, ptr %calltmp2, align 8
   store { ptr, { { ptr } } } %rval3, ptr %c_impl, align 8
   %field5 = getelementptr inbounds nuw { i64 }, ptr %struct_init4, i32 0, i32 0
-  store i64 0, ptr %field5, align 4
-  %struct_init6 = load { i64 }, ptr %struct_init4, align 4
-  store { i64 } %struct_init6, ptr %d_conc, align 4
-  %rval7 = load { ptr }, ptr @d_impl_adder, align 8
+  store i64 0, ptr %field5, align 8
+  %struct_init6 = load { i64 }, ptr %struct_init4, align 8
+  store { i64 } %struct_init6, ptr %d_conc, align 8
+  %rval7 = load { ptr }, ptr @"d_impl_adder#closure_wrapper", align 8
   %fnptr8 = extractvalue { ptr } %rval7, 0
   %calltmp9 = call { ptr, { { ptr } } } %fnptr8(ptr %d_conc)
   store { ptr, { { ptr } } } %calltmp9, ptr %calltmp10, align 8
   %rval11 = load { ptr, { { ptr } } }, ptr %calltmp10, align 8
   store { ptr, { { ptr } } } %rval11, ptr %d_impl, align 8
-  %rval12 = load { ptr }, ptr @"9267239460987309703_add", align 8
+  %rval12 = load { ptr }, ptr @"9267239460987309703_add#closure_wrapper", align 8
   %fnptr13 = extractvalue { ptr } %rval12, 0
   %calltmp14 = call { ptr, ptr } %fnptr13(ptr %c_impl)
   store { ptr, ptr } %calltmp14, ptr %calltmp15, align 8
@@ -258,8 +262,8 @@ entry:
   %fnptr17 = extractvalue { ptr, ptr } %rval16, 1
   %upval = extractvalue { ptr, ptr } %rval16, 0
   %calltmp18 = call i64 %fnptr17(ptr %upval, i64 2)
-  store i64 %calltmp18, ptr %calltmp19, align 4
-  %rval20 = load { ptr }, ptr @"17291069585011617692_add", align 8
+  store i64 %calltmp18, ptr %calltmp19, align 8
+  %rval20 = load { ptr }, ptr @"17291069585011617692_add#closure_wrapper", align 8
   %fnptr21 = extractvalue { ptr } %rval20, 0
   %calltmp22 = call { ptr, ptr } %fnptr21(ptr %c_conc)
   store { ptr, ptr } %calltmp22, ptr %calltmp23, align 8
@@ -267,13 +271,13 @@ entry:
   %fnptr25 = extractvalue { ptr, ptr } %rval24, 1
   %upval26 = extractvalue { ptr, ptr } %rval24, 0
   %calltmp27 = call i64 %fnptr25(ptr %upval26, i64 2)
-  store i64 %calltmp27, ptr %calltmp28, align 4
-  %rval29 = load { ptr }, ptr @stuff, align 8
+  store i64 %calltmp27, ptr %calltmp28, align 8
+  %rval29 = load { ptr }, ptr @"stuff#closure_wrapper", align 8
   %rval30 = load { ptr, { { ptr } } }, ptr %c_impl, align 8
   %fnptr31 = extractvalue { ptr } %rval29, 0
   %calltmp32 = call i64 %fnptr31({ ptr, { { ptr } } } %rval30)
-  store i64 %calltmp32, ptr %calltmp33, align 4
-  %rval34 = load { ptr }, ptr @"9267239460987309703_add", align 8
+  store i64 %calltmp32, ptr %calltmp33, align 8
+  %rval34 = load { ptr }, ptr @"9267239460987309703_add#closure_wrapper", align 8
   %fnptr35 = extractvalue { ptr } %rval34, 0
   %calltmp36 = call { ptr, ptr } %fnptr35(ptr %d_impl)
   store { ptr, ptr } %calltmp36, ptr %calltmp37, align 8
@@ -281,8 +285,8 @@ entry:
   %fnptr39 = extractvalue { ptr, ptr } %rval38, 1
   %upval40 = extractvalue { ptr, ptr } %rval38, 0
   %calltmp41 = call i64 %fnptr39(ptr %upval40, i64 2)
-  store i64 %calltmp41, ptr %calltmp42, align 4
-  %rval43 = load { ptr }, ptr @"1865986952864376157_add", align 8
+  store i64 %calltmp41, ptr %calltmp42, align 8
+  %rval43 = load { ptr }, ptr @"1865986952864376157_add#closure_wrapper", align 8
   %fnptr44 = extractvalue { ptr } %rval43, 0
   %calltmp45 = call { ptr, ptr } %fnptr44(ptr %d_conc)
   store { ptr, ptr } %calltmp45, ptr %calltmp46, align 8
@@ -290,16 +294,23 @@ entry:
   %fnptr48 = extractvalue { ptr, ptr } %rval47, 1
   %upval49 = extractvalue { ptr, ptr } %rval47, 0
   %calltmp50 = call i64 %fnptr48(ptr %upval49, i64 2)
-  store i64 %calltmp50, ptr %calltmp51, align 4
-  %rval52 = load { ptr }, ptr @stuff, align 8
+  store i64 %calltmp50, ptr %calltmp51, align 8
+  %rval52 = load { ptr }, ptr @"stuff#closure_wrapper", align 8
   %rval53 = load { ptr, { { ptr } } }, ptr %d_impl, align 8
   %fnptr54 = extractvalue { ptr } %rval52, 0
   %calltmp55 = call i64 %fnptr54({ ptr, { { ptr } } } %rval53)
-  store i64 %calltmp55, ptr %calltmp56, align 4
+  store i64 %calltmp55, ptr %calltmp56, align 8
   %field57 = getelementptr inbounds nuw { i64 }, ptr %c_conc, i32 0, i32 0
-  %rval58 = load i64, ptr %field57, align 4
+  %rval58 = load i64, ptr %field57, align 8
   %field59 = getelementptr inbounds nuw { i64 }, ptr %d_conc, i32 0, i32 0
-  %rval60 = load i64, ptr %field59, align 4
+  %rval60 = load i64, ptr %field59, align 8
   %subtmp = sub i64 %rval58, %rval60
   ret i64 %subtmp
+}
+
+define i32 @main(i32 %0, ptr %1) {
+entry:
+  %ret64 = call i64 @main_i64()
+  %ret32 = trunc i64 %ret64 to i32
+  ret i32 %ret32
 }

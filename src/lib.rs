@@ -11,12 +11,10 @@
 //! implement an LLVM backend in the future.
 //!
 //! [`Crafting Interpreters`]: https://craftinginterpreters.com/
-//!
 
-#![warn(clippy::too_many_lines)]
+// #![warn(clippy::too_many_lines)]
 
 use anyhow::{Context, Result};
-
 use tracing::{info, level_filters::LevelFilter, subscriber::DefaultGuard};
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{
@@ -103,17 +101,17 @@ pub fn scan(path: &str) -> Result<Vec<String>> {
     Ok(tokens.into_iter().map(|t| format!("{:?}", t)).collect())
 }
 
-pub fn parse(path: &str) -> Result<String> {
+pub fn parse(path: &str, include_paths: Vec<String>) -> Result<String> {
     let source = std::fs::read_to_string(path).context("Failed to read file")?;
-    let parser =
-        SerenityParser::parse(source.into(), path.into()).context("Failed to parse file")?;
+    let parser = SerenityParser::parse(source.into(), path.into(), include_paths)
+        .context("Failed to parse file")?;
     let ast = parser.ast;
     Ok(format!("{:?}", ast))
 }
 
-pub fn compile(path: &str) -> Result<String> {
+pub fn compile(path: &str, include_paths: Vec<String>) -> Result<String> {
     let source = std::fs::read_to_string(path).context("Failed to read file")?;
-    let parsed = parser::SerenityParser::parse(source.into(), path.into())
+    let parsed = parser::SerenityParser::parse(source.into(), path.into(), include_paths)
         .context("Failed to parse file")?;
     let context = inkwell::context::Context::create();
     let module = compiler::compile(&context, parsed)?;
@@ -124,9 +122,9 @@ pub fn compile(path: &str) -> Result<String> {
     Ok(module.print_to_string().to_string())
 }
 
-pub fn typecheck(path: &str) -> Result<String> {
+pub fn typecheck(path: &str, include_paths: Vec<String>) -> Result<String> {
     let source = std::fs::read_to_string(path).context("Failed to read file")?;
-    let parsed = parser::SerenityParser::parse(source.into(), path.into())
+    let parsed = parser::SerenityParser::parse(source.into(), path.into(), include_paths)
         .context("Failed to parse file")?;
     println!("{:?}", parsed.ast);
     let ast = compiler::typecheck(parsed)?;
@@ -134,10 +132,14 @@ pub fn typecheck(path: &str) -> Result<String> {
     Ok(format!("{:?}", ast))
 }
 
-pub fn run_file(path: &str, output: &mut impl std::io::Write) -> Result<i64> {
+pub fn run_file(
+    path: &str,
+    include_paths: Vec<String>,
+    output: &mut impl std::io::Write,
+) -> Result<i64> {
     let source = std::fs::read_to_string(path).context("Failed to read file")?;
 
-    let parsed = parser::SerenityParser::parse(source.into(), path.into())
+    let parsed = parser::SerenityParser::parse(source.into(), path.into(), include_paths)
         .context("Failed to parse file")?;
 
     let context = inkwell::context::Context::create();
@@ -170,4 +172,89 @@ pub fn run_file(path: &str, output: &mut impl std::io::Write) -> Result<i64> {
     };
 
     Ok(out as i64)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{
+        fs,
+        io::Cursor,
+        path::PathBuf,
+        time::{SystemTime, UNIX_EPOCH},
+    };
+
+    use super::*;
+
+    fn temp_file(name: &str) -> PathBuf {
+        let mut path = std::env::temp_dir();
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        path.push(format!("serenity_{}_{}.ser", name, nanos));
+        path
+    }
+
+    fn write_program(contents: &str) -> PathBuf {
+        let path = temp_file("prog");
+        fs::write(&path, contents).unwrap();
+        path
+    }
+
+    #[test]
+    fn test_set_log_verbosity_levels() {
+        // Ensure all verbosity levels initialize without panic
+        let _ = set_log_verbosity(0).unwrap();
+        let _ = set_log_verbosity(1).unwrap();
+        let _ = set_log_verbosity(2).unwrap();
+    }
+
+    #[test]
+    fn test_scan_and_parse_roundtrip() {
+        let program = r#"
+            fn main() -> int {
+                return 1 + 2;
+            }
+        "#;
+        let path = write_program(program);
+
+        let tokens = scan(path.to_str().unwrap()).unwrap();
+        assert!(tokens.len() > 2);
+
+        let parsed = parse(path.to_str().unwrap(), vec![]).unwrap();
+        assert!(!parsed.is_empty());
+    }
+
+    #[test]
+    fn test_compile_and_run_file() {
+        let program = r#"
+            fn main() -> int {
+                return 42;
+            }
+        "#;
+        let path = write_program(program);
+
+        let module_ir = compile(path.to_str().unwrap(), vec![]).unwrap();
+        assert!(module_ir.contains("main"));
+
+        let mut output = Cursor::new(Vec::new());
+        let result = run_file(path.to_str().unwrap(), vec![], &mut output).unwrap();
+        assert_eq!(result, 42);
+        assert!(String::from_utf8(output.into_inner())
+            .unwrap()
+            .contains("Exited with code 42"));
+    }
+
+    #[test]
+    fn test_typecheck_smoke() {
+        let program = r#"
+            fn id(x: int) -> int { return x; }
+            fn main() -> int { return id(7); }
+        "#;
+        let path = write_program(program);
+
+        let typed = typecheck(path.to_str().unwrap(), vec![]).unwrap();
+        assert!(!typed.is_empty());
+        assert!(typed.contains("Function"));
+    }
 }

@@ -1,19 +1,20 @@
 use std::{
     cell::RefCell,
     collections::{HashMap, HashSet},
+    iter::once,
     rc::Rc,
 };
 
+use anyhow::Result;
 use indexmap::IndexMap;
 use tracing::debug;
 
+use super::{Precedence, SerenityParser};
 use crate::{
     lexer::TokenType,
     prelude::*,
     typing::{Closure, Constraint, UValueType},
 };
-
-use super::{Precedence, SerenityParser};
 
 impl SerenityParser {
     //--------------------------------------
@@ -23,37 +24,44 @@ impl SerenityParser {
     pub(super) fn declaration(&mut self) -> Vec<ASTNode> {
         let ret;
         if self.match_token(TokenType::Var) {
-            ret = self.var_declaration(false);
+            ret = self.var_declaration(false).vec_of();
         } else if self.match_token(TokenType::Const) {
-            ret = self.var_declaration(true);
+            ret = self.var_declaration(true).vec_of();
         } else if self.match_token(TokenType::Fun) {
-            ret = self.fun_declaration();
+            ret = self.fun_declaration().vec_of();
         } else if self.match_token(TokenType::Type) {
-            return self.type_declaration();
+            ret = self.type_declaration();
         } else if self.match_token(TokenType::Include) {
             self.consume(TokenType::String, "Expect SharedString after include.");
             let mut path = self.previous.lexeme.clone();
             path = path.trim_matches('"').into();
             self.consume(TokenType::Semicolon, "Expect ';' after include.");
-            let source = std::fs::read_to_string(path.as_ref()).expect("Failed to read file");
-            let mparse_result = Self::parse_helper(source.into(), path, false, HashMap::default());
-            let Ok(parse_result) = mparse_result else {
+            let source = std::fs::read_to_string(
+                self.find_include_file(&path)
+                    .expect("Failed to read file")
+                    .to_string(),
+            )
+            .expect("Failed to read file");
+            let mparse_result = Self::parse_helper(
+                source.into(),
+                path,
+                HashMap::default(),
+                self.include_paths.clone(),
+            );
+            if let Ok(parse_result) = mparse_result {
+                self.custom_types.extend(parse_result.custom_structs);
+                ret = parse_result.ast.roots;
+            } else {
                 self.had_error.set(Some(mparse_result.err().unwrap()));
-                return vec![ASTNode::Empty];
-            };
-            self.custom_types.extend(parse_result.custom_structs);
-            return parse_result.ast.roots;
+                ret = vec![];
+            }
         } else {
-            ret = ASTNode::Statement(self.statement());
+            ret = ASTNode::Statement(self.statement()).vec_of();
         }
         if self.panic_mode.get() {
             self.synchronize();
         }
-        if let ASTNode::Empty = &ret {
-            vec![]
-        } else {
-            vec![ret]
-        }
+        ret
     }
 
     fn statement(&mut self) -> Statement {
@@ -65,22 +73,22 @@ impl SerenityParser {
                 line_no,
             })
         } else if self.match_token(TokenType::If) {
-            return self.if_statement();
+            self.if_statement()
         } else if self.match_token(TokenType::While) {
-            return self.while_statement();
+            self.while_statement()
         } else if self.match_token(TokenType::For) {
-            return self.for_statement();
+            self.for_statement()
         } else if self.match_token(TokenType::Semicolon) {
-            return Statement::Expression(ExpressionStatement {
+            Statement::Expression(ExpressionStatement {
                 expr: Expression::Empty.into(),
                 line_no,
-            });
+            })
         } else if self.match_token(TokenType::Break) {
             self.consume(TokenType::Semicolon, "Expect ';' after break.");
-            return Statement::Break(BreakStatement { line_no });
+            Statement::Break(BreakStatement { line_no })
         } else if self.match_token(TokenType::Continue) {
             self.consume(TokenType::Semicolon, "Expect ';' after continue.");
-            return Statement::Continue(ContinueStatement { line_no });
+            Statement::Continue(ContinueStatement { line_no })
         } else if self.match_token(TokenType::Return) {
             let mut return_node = None;
             if self.match_token(TokenType::Semicolon) {
@@ -89,12 +97,12 @@ impl SerenityParser {
                 return_node = e_node.into();
                 self.consume(TokenType::Semicolon, "Expect ';' after return value.");
             }
-            return Statement::Return(ReturnStatement {
+            Statement::Return(ReturnStatement {
                 value: return_node.map(Box::new),
                 line_no,
-            });
+            })
         } else {
-            return self.expression_statement();
+            self.expression_statement()
         }
     }
 
@@ -275,7 +283,7 @@ impl SerenityParser {
                     fields.insert(
                         field_name.clone(),
                         StructEntry {
-                            value: field.value.decay(),
+                            value: field.value,
                             offset,
                         },
                     );
@@ -301,7 +309,7 @@ impl SerenityParser {
             fields.insert(
                 field_name.lexeme.clone(),
                 StructEntry {
-                    value: field_type.decay(),
+                    value: field_type,
                     offset,
                 },
             );
@@ -390,8 +398,8 @@ impl SerenityParser {
                     Self::parse_helper(
                         s.into(),
                         format!("{name}_{interface}_impl").into(),
-                        false,
                         self.custom_types.clone(),
+                        self.include_paths.clone(),
                     )
                     .unwrap()
                     .ast
@@ -592,8 +600,8 @@ impl SerenityParser {
                 Self::parse_helper(
                     node.clone(),
                     format!("{name}_{}_meth_mod", methname).into(),
-                    false,
                     self.custom_types.clone(),
+                    self.include_paths.clone(),
                 )
                 .unwrap()
                 .ast
@@ -699,7 +707,6 @@ impl SerenityParser {
             }
             self.consume(TokenType::Greater, "Expect '>' after generic params.");
         }
-        println!("type_params: {:?}", type_params);
 
         if self.match_token(TokenType::LeftParen) {
             return self.method_declaration(type_params);
@@ -815,5 +822,15 @@ impl SerenityParser {
                 FunctionGenerics::Parametric(Rc::new(Vec::new().into()))
             },
         }))
+    }
+
+    fn find_include_file(&self, path: &SharedString) -> Result<SharedString> {
+        for include_path in self.include_paths.iter().chain(once(&".".into())) {
+            let full_path = format!("{}/{}", include_path, path);
+            if std::path::Path::new(&full_path).exists() {
+                return Ok(full_path.into());
+            }
+        }
+        Err(anyhow::anyhow!("Include file not found: {}", path))
     }
 }

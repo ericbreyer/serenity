@@ -1,0 +1,67 @@
+const ARENA_NODE_SIZE = 1024 * 1024;
+
+type ArenaNodeCDLL struct {
+    buffer: [char; ARENA_NODE_SIZE],
+    offset: int,
+    next: *struct ArenaNodeCDLL,
+    prev: *struct ArenaNodeCDLL,
+};
+
+fn new_node() -> * struct ArenaNodeCDLL {
+    let node: *struct ArenaNodeCDLL = malloc(sizeof(struct ArenaNodeCDLL));
+    node->offset = 0;
+    node->next = node;
+    node->prev = node;
+    return node;
+}
+
+fn (node: * struct ArenaNodeCDLL) has_space(size: int) -> bool {
+    return node->offset + size <= ARENA_NODE_SIZE;
+}
+
+fn (node: * struct ArenaNodeCDLL) insert(new: * struct ArenaNodeCDLL) {
+    new->next = node->next;
+    new->prev = node;
+    node->next->prev = new;
+    node->next = new;
+}
+
+fn (node: * struct ArenaNodeCDLL) remove() {
+    node->prev->next = node->next;
+    node->next->prev = node->prev;
+}
+
+type Arena struct {
+    head: *struct ArenaNodeCDLL
+};
+
+fn create_arena() -> struct Arena {
+    let node: *struct ArenaNodeCDLL = new_node();
+    return struct Arena { head: node };
+}
+
+fn (self: * struct Arena) alloc(size: int) -> *nil {
+    if (size > ARENA_NODE_SIZE) {
+        printf("Allocation size exceeds arena node size");
+    }
+    var current = self->head->prev;
+    if (!current->has_space(size)) {
+        let new = new_node();
+        current->insert(new);
+        current = new;
+    }
+    let ptr = current->buffer + current->offset;
+    current->offset = current->offset + size;
+    return ptr;
+}
+
+fn( self: * struct Arena) destroy() {
+    var current = self->head->next;
+    while (current != self->head) {
+        let next = current->next;
+        current->remove();
+        free(current);
+        current = next;
+    }
+    free(self->head);
+}

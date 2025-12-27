@@ -19,13 +19,14 @@ impl ValueType {
     ///
     /// This function is used to ensure that all types are unique and that
     /// the same type is not duplicated in memory. It also allows us to avoid
-    /// needless clones when passing types around, by ensuring that all equivalant
-    /// types are references to the same memory location. The static lifetime
-    /// allows us to bypass Rc and Arc, which would generate a lot of overhead.
+    /// needless clones when passing types around, by ensuring that all
+    /// equivalant types are references to the same memory location. The
+    /// static lifetime allows us to bypass Rc and Arc, which would generate
+    /// a lot of overhead.
     ///
     /// ## Arguments
-    /// - `self` - The type to intern, taken by value as to avoid needless re-interning
-    ///
+    /// - `self` - The type to intern, taken by value as to avoid needless
+    ///   re-interning
     pub fn intern(self) -> UValueType {
         // generate a unique string for the type
         let sid = self.id_str();

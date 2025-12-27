@@ -1,19 +1,19 @@
 use std::{
     cell::RefCell,
     collections::{HashMap, VecDeque},
-    hint::unreachable_unchecked,
     path::Path,
     rc::Rc,
     str,
 };
 
 use anyhow::{Context as _, Result};
-
+use indexmap::IndexMap;
 use inkwell::{
     basic_block::BasicBlock,
     builder::Builder,
     context::Context,
     module::{Linkage, Module},
+    targets::{InitializationConfig, Target, TargetData, TargetMachine},
     types::{BasicMetadataTypeEnum, BasicType, FunctionType, StructType},
     values::{
         BasicMetadataValueEnum, BasicValue, BasicValueEnum, FunctionValue, PointerValue,
@@ -25,8 +25,7 @@ use inkwell::{
 use crate::{
     compiler::ffi_funcs::FfiFunc,
     lexer::{Token, TokenType},
-    prelude::*,
-    prelude::{Generics, ScopedMap},
+    prelude::{Generics, ScopedMap, *},
     typing::{Closure, UValueType},
 };
 
@@ -34,10 +33,13 @@ type Variables<'ctx> = ScopedMap<String, (PointerValue<'ctx>, UValueType)>;
 
 mod prototypes;
 
+const CLOSURE_SUFFIX: &str = "#closure_wrapper";
+
 pub struct LLVMCompiler<'ctx> {
     context: &'ctx Context,
     builder: Builder<'ctx>,
     module: Module<'ctx>,
+    target_data: TargetData,
 
     variables: RefCell<Variables<'ctx>>,
 
@@ -54,13 +56,19 @@ impl<'ctx> LLVMCompiler<'ctx> {
             &self.builder,
             &self.variables,
             &self.generics_in_scope,
+            &self.target_data,
             &self.types,
         );
         fc.compile(ast).context("LLVM compilation")
     }
 
-    pub fn module(self) -> Module<'ctx> {
-        self.module
+    pub fn module(self) -> Result<Module<'ctx>> {
+        let main_i64 = self
+            .module
+            .get_function("main_i64")
+            .ok_or_else(|| anyhow::anyhow!("No main_i64 function found"))?;
+        self.emit_c_main_wrapper(main_i64);
+        Ok(self.module)
     }
 
     fn register_ffi_function(&self, ffi: &FfiFunc) -> Result<()> {
@@ -72,19 +80,20 @@ impl<'ctx> LLVMCompiler<'ctx> {
         } = ffi;
         let fnvalue = self.module.add_function(
             name,
-            ret.llvm(self.context, &self.generics_in_scope.borrow())?.fn_type(
-                args.iter()
-                    .map(|t| {
-                        anyhow::Ok(
-                            t.llvm(self.context, &self.generics_in_scope.borrow())?
-                                .as_basic_type_enum(),
-                        )
-                    })
-                    .map(|m| Ok(BasicMetadataTypeEnum::from(m?)))
-                    .collect::<Result<Vec<_>>>()?
-                    .as_slice(),
-                *va,
-            ),
+            ret.llvm(self.context, &self.generics_in_scope.borrow())?
+                .fn_type(
+                    args.iter()
+                        .map(|t| {
+                            anyhow::Ok(
+                                t.llvm(self.context, &self.generics_in_scope.borrow())?
+                                    .as_basic_type_enum(),
+                            )
+                        })
+                        .map(|m| Ok(BasicMetadataTypeEnum::from(m?)))
+                        .collect::<Result<Vec<_>>>()?
+                        .as_slice(),
+                    *va,
+                ),
             Some(Linkage::External),
         );
         self.variables.borrow_mut().set(
@@ -113,6 +122,9 @@ impl<'ctx> LLVMCompiler<'ctx> {
         inkwell::support::load_visible_symbols();
 
         let builder = context.create_builder();
+
+        let target_data = get_target_data(&module);
+
         let c = LLVMCompiler {
             context,
             builder,
@@ -120,6 +132,7 @@ impl<'ctx> LLVMCompiler<'ctx> {
             variables,
             generics_in_scope,
             types: custom_structs,
+            target_data,
         };
         ffi_functions
             .iter()
@@ -127,12 +140,78 @@ impl<'ctx> LLVMCompiler<'ctx> {
 
         c
     }
+
+    pub fn emit_c_main_wrapper(&self, main_i64: FunctionValue<'ctx>) -> FunctionValue<'ctx> {
+        let i32_type = self.context.i32_type();
+        let ptr_type = self.context.ptr_type(AddressSpace::default());
+
+        // i32 (i32, ptr)
+        let main_fn_type = i32_type.fn_type(
+            &[
+                i32_type.into(), // argc
+                ptr_type.into(), // argv
+            ],
+            false,
+        );
+
+        let main_fn = self.module.add_function("main", main_fn_type, None);
+
+        let entry = self.context.append_basic_block(main_fn, "entry");
+        self.builder.position_at_end(entry);
+
+        // Call main_i64()
+        let ret64 = self
+            .builder
+            .build_call(main_i64, &[], "ret64")
+            .expect("call main_i64")
+            .try_as_basic_value()
+            .left()
+            .expect("main_i64 returned void");
+
+        // Truncate i64 → i32
+        let ret32 = self
+            .builder
+            .build_int_truncate(ret64.into_int_value(), i32_type, "ret32")
+            .expect("truncate return value");
+
+        self.builder.build_return(Some(&ret32)).unwrap();
+        main_fn
+    }
+}
+
+fn get_target_data(module: &Module<'_>) -> TargetData {
+    let target_data = {
+        Target::initialize_native(&InitializationConfig::default())
+            .expect("failed to initialize native target");
+
+        let triple = TargetMachine::get_default_triple();
+        let target = Target::from_triple(&triple).unwrap();
+
+        let target_machine = target
+            .create_target_machine(
+                &triple,
+                "apple-m1", // or "generic"
+                "",
+                inkwell::OptimizationLevel::None,
+                inkwell::targets::RelocMode::Default,
+                inkwell::targets::CodeModel::Default,
+            )
+            .expect("could not create target machine");
+        module.set_triple(&triple);
+        module.set_data_layout(&target_machine.get_target_data().get_data_layout());
+
+        let data_layout = module.get_data_layout();
+
+        TargetData::create(data_layout.as_str().to_str().unwrap())
+    };
+    target_data
 }
 
 struct LLVMFunctionCompiler<'a, 'ctx> {
     pub context: &'ctx Context,
     pub builder: &'a Builder<'ctx>,
     pub module: &'a Module<'ctx>,
+    target_data: &'a TargetData,
 
     variables: &'a RefCell<Variables<'ctx>>,
     types: &'a HashMap<SharedString, CustomStruct>,
@@ -154,6 +233,7 @@ impl<'a, 'ctx> LLVMFunctionCompiler<'a, 'ctx> {
         builder: &'a Builder<'ctx>,
         variables: &'a RefCell<Variables<'ctx>>,
         generics: &'a RefCell<Generics>,
+        target_data: &'a TargetData,
         types: &'a HashMap<SharedString, CustomStruct>,
     ) -> Self {
         LLVMFunctionCompiler {
@@ -162,6 +242,7 @@ impl<'a, 'ctx> LLVMFunctionCompiler<'a, 'ctx> {
             module,
             variables,
             types,
+            target_data,
             function: None,
             generics_in_scope: generics,
             break_continue_contexts: VecDeque::new().into(),
@@ -175,6 +256,7 @@ impl<'a, 'ctx> LLVMFunctionCompiler<'a, 'ctx> {
             context: self.context,
             builder: self.builder,
             module: self.module,
+            target_data: self.target_data,
             variables: self.variables,
             types: self.types,
             generics_in_scope: self.generics_in_scope,
@@ -184,14 +266,41 @@ impl<'a, 'ctx> LLVMFunctionCompiler<'a, 'ctx> {
     }
 
     fn get_variable(&self, name: &str) -> Result<(PointerValue<'ctx>, UValueType)> {
-        self.variables.borrow().get(name.to_string()).map(|(ptr, t)| {
-            let t = t.substitute(&*self.generics_in_scope.borrow());
-            (ptr, t)
-        })
+        self.variables
+            .borrow()
+            .get(name.to_string())
+            .or_else(|_| {
+                self.variables
+                    .borrow()
+                    .get(format!("{name}{CLOSURE_SUFFIX}"))
+            })
+            .map(|(ptr, t)| {
+                let t = t.substitute(&*self.generics_in_scope.borrow());
+                (ptr, t)
+            })
     }
 
     fn set_variable(&self, name: &str, value: (PointerValue<'ctx>, UValueType)) {
         self.variables.borrow_mut().set(name.to_string(), value);
+    }
+
+    fn make_store(
+        &self,
+        lhs_ptr: PointerValue<'ctx>,
+        rhs_value: BasicValueEnum<'ctx>,
+        serenity_type: UValueType,
+    ) -> Result<inkwell::values::InstructionValue<'ctx>> {
+        let store = self
+            .builder
+            .build_store(lhs_ptr, rhs_value)
+            .context("Setting variable alignment")?;
+        let align = self.target_data.get_abi_alignment(
+            &serenity_type.llvm(self.context, &self.generics_in_scope.borrow())?,
+        );
+        store
+            .set_alignment(align)
+            .map_err(|e| anyhow::anyhow!("{:?}", e))?;
+        Ok(store)
     }
 
     fn make_alloca(&self, serenity_type: UValueType, name: &str) -> Result<PointerValue<'ctx>> {
@@ -206,8 +315,9 @@ impl<'a, 'ctx> LLVMFunctionCompiler<'a, 'ctx> {
         //             serenity_type
         //         ));
         //     }
-        //     return Err(anyhow::anyhow!("Cannot allocate variable of unsized type {0:?}, consider adding an element of indirection as in *{0:?}", serenity_type));
-        // }
+        //     return Err(anyhow::anyhow!("Cannot allocate variable of unsized type
+        // {0:?}, consider adding an element of indirection as in *{0:?}",
+        // serenity_type)); }
 
         // save the current block
         let current_block = self.builder.get_insert_block().unwrap();
@@ -222,16 +332,42 @@ impl<'a, 'ctx> LLVMFunctionCompiler<'a, 'ctx> {
 
         let llvm_type = serenity_type
             .fill_self_struct(self.types.clone())
-            .llvm(self.context, &*self.generics_in_scope.borrow())?;
+            .llvm(self.context, &self.generics_in_scope.borrow())?;
         let var = self
             .builder
             .build_alloca(llvm_type, name)
             .context("Variable allocation")?;
 
+        let align = self.target_data.get_abi_alignment(&llvm_type);
+        var.as_instruction_value()
+            .context("Setting variable alignment")?
+            .set_alignment(align)
+            .map_err(|e| anyhow::anyhow!("{:?}", e))?;
+
         // return to the current block
         self.builder.position_at_end(current_block);
 
         Ok(var)
+    }
+
+    fn make_load(
+        &self,
+        serenity_type: UValueType,
+        ptr: PointerValue<'ctx>,
+        name: &str,
+    ) -> Result<BasicValueEnum<'ctx>> {
+        let serenity_type = serenity_type.substitute(&*self.generics_in_scope.borrow());
+        let llvm_type = serenity_type.llvm(self.context, &self.generics_in_scope.borrow())?;
+        let load = self
+            .builder
+            .build_load(llvm_type, ptr, name)
+            .context("Build load")?;
+        let align = self.target_data.get_abi_alignment(&llvm_type);
+        load.as_instruction_value()
+            .context("Setting load alignment")?
+            .set_alignment(align)
+            .map_err(|e| anyhow::anyhow!("{:?}", e))?;
+        Ok(load)
     }
 }
 
@@ -274,13 +410,7 @@ impl<'ctx> ExprResultInner<'ctx> {
                 _ => {
                     let ptr = self.value.into_pointer_value();
                     let v = compiler
-                        .builder
-                        .build_load(
-                            t.fill_self_struct(compiler.types.clone())
-                                .llvm(compiler.context, &*compiler.generics_in_scope.borrow())?,
-                            ptr,
-                            "rval",
-                        )
+                        .make_load(t.fill_self_struct(compiler.types.clone()), ptr, "rval")
                         .context("Rvalue")?;
                     ExprResultInner::new(v, t.substitute(&*compiler.generics_in_scope.borrow()))
                 }
@@ -350,7 +480,10 @@ impl<'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'_, 'ctx
             .rvalue(self)
             .context("Rvalue")?;
         let expr = match expression.operator {
-            TokenType::Minus => match operand.serenity_type.substitute(&*self.generics_in_scope.borrow()) {
+            TokenType::Minus => match operand
+                .serenity_type
+                .substitute(&*self.generics_in_scope.borrow())
+            {
                 ValueType::Integer => ExprResultInner::new(
                     self.builder
                         .build_int_neg(operand.value.into_int_value(), "negtmp")
@@ -373,7 +506,10 @@ impl<'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'_, 'ctx
                     ))
                 }
             },
-            TokenType::Bang => match operand.serenity_type.substitute(&*self.generics_in_scope.borrow()) {
+            TokenType::Bang => match operand
+                .serenity_type
+                .substitute(&*self.generics_in_scope.borrow())
+            {
                 ValueType::Bool => ExprResultInner::new(
                     self.builder
                         .build_not(operand.value.into_int_value(), "nottmp")
@@ -407,7 +543,9 @@ impl<'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'_, 'ctx
             .context("Deref expression operand")?
             .rvalue(self)
             .context("Rvalue")?;
-        let t = expr.serenity_type.substitute(&*self.generics_in_scope.borrow());
+        let t = expr
+            .serenity_type
+            .substitute(&*self.generics_in_scope.borrow());
         let ValueType::Pointer(t, _) = t else {
             return Err(anyhow::anyhow!("Invalid deref expression"));
         };
@@ -422,7 +560,9 @@ impl<'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'_, 'ctx
             .operand
             .accept(self)
             .context("Ref expression operand")?;
-        let t = expr.serenity_type.substitute(&*self.generics_in_scope.borrow());
+        let t = expr
+            .serenity_type
+            .substitute(&*self.generics_in_scope.borrow());
         let ValueType::LValue(t, _) = t else {
             return Err(anyhow::anyhow!("Invalid ref expression"));
         };
@@ -446,7 +586,9 @@ impl<'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'_, 'ctx
             .rvalue(self)
             .context("Rvalue")?;
 
-        let a = array.serenity_type.substitute(&*self.generics_in_scope.borrow());
+        let a = array
+            .serenity_type
+            .substitute(&*self.generics_in_scope.borrow());
 
         let t = match a {
             ValueType::Pointer(t, _) => t,
@@ -460,7 +602,7 @@ impl<'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'_, 'ctx
 
         let ptr = unsafe {
             self.builder.build_gep(
-                t.llvm(self.context, &*self.generics_in_scope.borrow())?,
+                t.llvm(self.context, &self.generics_in_scope.borrow())?,
                 array.value.into_pointer_value(),
                 &[
                     // self.context.i32_type().const_zero(), // For the pointer base
@@ -516,9 +658,13 @@ impl<'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'_, 'ctx
             (TokenType::Plus, ValueType::Pointer(t1, _), ValueType::Integer) => {
                 let ptr = unsafe {
                     self.builder.build_gep(
-                        t1.llvm(self.context, &*self.generics_in_scope.borrow())?.array_type(0),
+                        t1.llvm(self.context, &self.generics_in_scope.borrow())?
+                            .array_type(0),
                         lhs.value.into_pointer_value(),
-                        &[rhs.value.into_int_value()],
+                        &[
+                            self.context.i16_type().const_zero(),
+                            rhs.value.into_int_value(),
+                        ],
                         "addptr",
                     )?
                 };
@@ -527,7 +673,7 @@ impl<'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'_, 'ctx
             (TokenType::Plus, ValueType::Array(t1, s), ValueType::Integer) if s.is_some() => {
                 let ptr = unsafe {
                     self.builder.build_gep(
-                        t1.llvm(self.context, &*self.generics_in_scope.borrow())?
+                        t1.llvm(self.context, &self.generics_in_scope.borrow())?
                             .array_type(s.unwrap() as u32),
                         lhs_ptr.value.into_pointer_value(),
                         &[
@@ -780,6 +926,32 @@ impl<'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'_, 'ctx
                     ValueType::Bool.intern(),
                 )
             }
+            (TokenType::BangEqual, ValueType::Pointer(_, _), ValueType::Pointer(_, _)) => {
+                ExprResultInner::new(
+                    self.builder
+                        .build_int_compare(
+                            inkwell::IntPredicate::NE,
+                            self.builder
+                                .build_ptr_to_int(
+                                    lhs.value.into_pointer_value(),
+                                    self.context.i64_type(),
+                                    "ptrtoint",
+                                )
+                                .context("Build ptr to int")?,
+                            self.builder
+                                .build_ptr_to_int(
+                                    rhs.value.into_pointer_value(),
+                                    self.context.i64_type(),
+                                    "ptrtoint",
+                                )
+                                .context("Build ptr to int")?,
+                            "neqtmp",
+                        )
+                        .context("Build not equal")
+                        .map(BasicValueEnum::IntValue)?,
+                    ValueType::Bool.intern(),
+                )
+            }
             (TokenType::Percent, ValueType::Integer, ValueType::Integer) => ExprResultInner::new(
                 self.builder
                     .build_int_signed_rem(
@@ -890,12 +1062,13 @@ impl<'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'_, 'ctx
             .variable
             .accept(self)
             .context("Assign expression lhs")?;
-        let t = lhs.serenity_type.substitute(&*self.generics_in_scope.borrow());
+        let t = lhs
+            .serenity_type
+            .substitute(&*self.generics_in_scope.borrow());
         let ValueType::LValue(t, _) = t else {
             return Err(anyhow::anyhow!("Invalid assign expression lhs"));
         };
-        self.builder
-            .build_store(lhs.value.into_pointer_value(), rhs.value)?;
+        self.make_store(lhs.value.into_pointer_value(), rhs.value, rhs.serenity_type)?;
         Ok(ExprResultInner::new(rhs.value, t))
     }
 
@@ -972,7 +1145,9 @@ impl<'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'_, 'ctx
         let arg_values = args.iter().map(|a| a.value).collect::<Vec<_>>();
         let arg_types = args.iter().map(|a| a.serenity_type).collect::<Vec<_>>();
 
-        let fn_type = callee.serenity_type.substitute(&*self.generics_in_scope.borrow());
+        let fn_type = callee
+            .serenity_type
+            .substitute(&*self.generics_in_scope.borrow());
 
         if let ValueType::ExternalFn(r, name) = fn_type {
             let arg_value_meta = arg_values
@@ -1053,7 +1228,7 @@ impl<'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'_, 'ctx
             .iter()
             .map(|t| {
                 Ok(BasicMetadataTypeEnum::from(
-                    t.llvm(self.context, &*self.generics_in_scope.borrow())?,
+                    t.llvm(self.context, &self.generics_in_scope.borrow())?,
                 ))
             })
             .collect::<Result<Vec<_>>>()?;
@@ -1065,10 +1240,9 @@ impl<'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'_, 'ctx
         if !fnptr.is_pointer_value() {
             return Err(anyhow::anyhow!("Invalid fnptr llvm type got {:?}", fnptr));
         }
-
+        let t = r.fill_self_struct(self.types.clone());
         let call = self.builder.build_indirect_call(
-            r.fill_self_struct(self.types.clone())
-                .llvm(self.context, &*self.generics_in_scope.borrow())?
+            t.llvm(self.context, &self.generics_in_scope.borrow())?
                 .fn_type(arg_type_meta.as_slice(), false),
             fnptr.into_pointer_value(),
             arg_value_meta.as_slice(),
@@ -1077,8 +1251,7 @@ impl<'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'_, 'ctx
         let r_ptr = self
             .make_alloca(r, "calltmp")
             .context("Call expression alloca")?;
-        self.builder
-            .build_store(r_ptr, call.try_as_basic_value().left().unwrap())?;
+        self.make_store(r_ptr, call.try_as_basic_value().left().unwrap(), t)?;
 
         Ok(ExprResultInner::new(
             r_ptr.as_basic_value_enum(),
@@ -1105,7 +1278,7 @@ impl<'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'_, 'ctx
                 expression.line_no
             ));
         };
-        let struct_type = t.llvm(self.context, &*self.generics_in_scope.borrow())?;
+        let struct_type = t.llvm(self.context, &self.generics_in_scope.borrow())?;
         let ofield = t
             .fields
             .borrow()
@@ -1181,8 +1354,11 @@ impl<'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'_, 'ctx
             .rvalue(self)
             .context("Rvalue")?;
         match (
-            expr.serenity_type.substitute(&*self.generics_in_scope.borrow()),
-            expression.target_type.substitute(&*self.generics_in_scope.borrow()),
+            expr.serenity_type
+                .substitute(&*self.generics_in_scope.borrow()),
+            expression
+                .target_type
+                .substitute(&*self.generics_in_scope.borrow()),
         ) {
             (ValueType::Float, ValueType::Float) => Ok(expr),
             (ValueType::Float, ValueType::Integer) => {
@@ -1217,7 +1393,7 @@ impl<'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'_, 'ctx
                     expr.value.into_int_value(),
                     expression
                         .target_type
-                        .llvm(self.context, &*self.generics_in_scope.borrow())?
+                        .llvm(self.context, &self.generics_in_scope.borrow())?
                         .into_pointer_type(),
                     "inttoptr",
                 )?;
@@ -1246,7 +1422,7 @@ impl<'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'_, 'ctx
         let struct_value: StructValue<'ctx> = if self.function.is_none() {
             expression
                 .struct_type
-                .llvm(self.context, &*self.generics_in_scope.borrow())?
+                .llvm(self.context, &self.generics_in_scope.borrow())?
                 .const_named_struct(
                     expression
                         .fields
@@ -1275,7 +1451,7 @@ impl<'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'_, 'ctx
                 let field_ptr = self.builder.build_struct_gep(
                     expression
                         .struct_type
-                        .llvm(self.context, &*self.generics_in_scope.borrow())?,
+                        .llvm(self.context, &self.generics_in_scope.borrow())?,
                     struct_value_ptr,
                     i as u32,
                     "field",
@@ -1286,16 +1462,13 @@ impl<'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'_, 'ctx
                     .context("Struct initializer field")?
                     .rvalue(self)
                     .context("Rvalue")?;
-                self.builder.build_store(field_ptr, field_val.value)?;
+                self.make_store(field_ptr, field_val.value, field_val.serenity_type)?;
             }
-            let struct_value = self.builder.build_load(
-                expression
-                    .struct_type
-                    .llvm(self.context, &*self.generics_in_scope.borrow())?,
+            let struct_value = self.make_load(
+                expression.struct_type.to_value_type(),
                 struct_value_ptr,
                 "struct_init",
             )?;
-
             struct_value.into_struct_value()
         };
         Ok(ExprResultInner::new(
@@ -1307,7 +1480,7 @@ impl<'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'_, 'ctx
     fn visit_sizeof_expression(&self, expression: &SizeofExpression) -> ExprResult<'ctx> {
         let literal = expression
             .tipe
-            .llvm(self.context, &*self.generics_in_scope.borrow())?
+            .llvm(self.context, &self.generics_in_scope.borrow())?
             .size_of()
             .context("Sizeof expression")?;
 
@@ -1350,16 +1523,12 @@ impl<'ctx> LLVMFunctionCompiler<'_, 'ctx> {
             .captures
             .iter()
             .map(|capture| {
-                self.builder
-                    .build_load(
-                        self.get_variable(capture)
-                            .unwrap()
-                            .1
-                            .llvm(self.context, &*self.generics_in_scope.borrow())?,
-                        self.get_variable(capture).unwrap().0,
-                        capture,
-                    )
-                    .context("Capture load")
+                self.make_load(
+                    self.get_variable(capture).unwrap().1,
+                    self.get_variable(capture).unwrap().0,
+                    capture,
+                )
+                .context("Capture load")
             })
             .collect::<Result<Vec<_>>>()?;
         struct_init.push(
@@ -1372,8 +1541,9 @@ impl<'ctx> LLVMFunctionCompiler<'_, 'ctx> {
         let struct_value = if self.function.is_none() {
             closure_type.const_named_struct(struct_init.as_slice())
         } else {
+            let tipe = self.function_type_serenity(&prototype);
             let struct_value_ptr = self
-                .make_alloca(self.function_type_serenity(&prototype), "closure")
+                .make_alloca(tipe, "closure")
                 .context("Closure alloca")?;
             for (i, v) in struct_init.iter().enumerate() {
                 let ptr = self.builder.build_struct_gep(
@@ -1382,10 +1552,9 @@ impl<'ctx> LLVMFunctionCompiler<'_, 'ctx> {
                     i as u32,
                     "upval",
                 )?;
-                self.builder.build_store(ptr, *v)?;
+                self.make_store(ptr, *v, tipe)?;
             }
-            self.builder
-                .build_load(closure_type, struct_value_ptr, "closure")?
+            self.make_load(tipe, struct_value_ptr, "closure")?
                 .into_struct_value()
         };
         if let Some(body) = &body {
@@ -1403,7 +1572,7 @@ impl<'ctx> LLVMFunctionCompiler<'_, 'ctx> {
                 let arg = fncompiler
                     .make_alloca(arg_type_serenity, s)
                     .context("Upvalue alloca")?;
-                self.builder.build_store(arg, arg_v)?;
+                self.make_store(arg, arg_v, arg_type_serenity)?;
                 self.set_variable(s, (arg, self.get_variable(s).unwrap().1));
             }
 
@@ -1414,7 +1583,7 @@ impl<'ctx> LLVMFunctionCompiler<'_, 'ctx> {
                 let arg = fncompiler
                     .make_alloca(t.decay(), s)
                     .context("Function alloca")?;
-                self.builder.build_store(arg, arg_v)?;
+                self.make_store(arg, arg_v, t.decay())?;
                 self.set_variable(s, (arg, t.decay()));
             }
 
@@ -1446,18 +1615,15 @@ impl<'ctx> LLVMFunctionCompiler<'_, 'ctx> {
 impl DeclarationVisitor<Result<()>> for LLVMFunctionCompiler<'_, '_> {
     fn visit_var_declaration(&self, declaration: &VarDeclaration) -> Result<()> {
         if self.function.is_none() {
-            
             let var_type = declaration.tipe;
 
             let var = self.module.add_global(
                 var_type
-                    .llvm(self.context, &*self.generics_in_scope.borrow())
+                    .llvm(self.context, &self.generics_in_scope.borrow())
                     .context("Var decl type")?,
                 Some(AddressSpace::default()),
                 &declaration.name,
             );
-
-
 
             let mut value = None;
             if let Some(initializer) = &declaration.initializer {
@@ -1468,7 +1634,7 @@ impl DeclarationVisitor<Result<()>> for LLVMFunctionCompiler<'_, '_> {
             } else {
                 var.set_initializer(
                     &var_type
-                        .llvm(self.context, &*self.generics_in_scope.borrow())
+                        .llvm(self.context, &self.generics_in_scope.borrow())
                         .context("Var decl initializer")?
                         .const_zero(),
                 );
@@ -1478,9 +1644,9 @@ impl DeclarationVisitor<Result<()>> for LLVMFunctionCompiler<'_, '_> {
 
             Ok(())
         } else {
-            
-
-            let var_type = declaration.tipe.substitute(&*self.generics_in_scope.borrow());
+            let var_type = declaration
+                .tipe
+                .substitute(&*self.generics_in_scope.borrow());
 
             let current_block = self.builder.get_insert_block().unwrap();
             if self
@@ -1509,55 +1675,72 @@ impl DeclarationVisitor<Result<()>> for LLVMFunctionCompiler<'_, '_> {
                 .context("Variable allocation")?;
             self.builder.position_at_end(current_block);
 
-
             let mut init_expr_r = None;
             if let Some(initializer) = &declaration.initializer {
                 init_expr_r = Some(initializer.accept(self)?.rvalue(self)?);
             }
             if let Some(initializer) = init_expr_r {
-                self.builder.build_store(var, initializer.value)?;
+                self.make_store(var, initializer.value, var_type)?;
             }
 
-                        self.set_variable(&declaration.name, (var, var_type));
-
+            self.set_variable(&declaration.name, (var, var_type));
 
             Ok(())
         }
     }
 
     fn visit_function_declaration(&self, declaration: &FunctionDeclaration) -> Result<()> {
-        if let FunctionGenerics::Parametric(ref generic_instantiations) =
-            declaration.generic_instantiations
-        {
-            for instantiation in generic_instantiations.borrow().iter() {
-                if instantiation.types.len() != declaration.type_params.len() {
-                    return Err(anyhow::anyhow!(
-                        "Invalid number of generics {:?} {:?}",
-                        instantiation,
-                        declaration.type_params
-                    ));
-                }
-
-                let mut dec = declaration.clone();
-                dec.generic_instantiations = FunctionGenerics::Monomorphic(
-                    declaration
-                        .type_params
-                        .iter()
-                        .zip(instantiation.types.iter())
-                        .map(|((t, _), v)| (t.clone(), *v))
-                        .collect(),
-                );
-                dec.prototype.name = instantiation.name.clone();
-
-                self.visit_function_declaration(&dec)?;
+        match declaration.generic_instantiations {
+            FunctionGenerics::Monomorphic(ref mapping) => {
+                self.visit_monomorphic_function_declaration(declaration, mapping)
             }
-            return Ok(());
+            FunctionGenerics::Parametric(ref generic_instantiations) => {
+                self.visit_polymorphic_function_declaration(declaration, generic_instantiations)
+            }
         }
+    }
+}
+impl LLVMFunctionCompiler<'_, '_> {
 
-        let FunctionGenerics::Monomorphic(ref mapping) = declaration.generic_instantiations else {
-            unsafe { unreachable_unchecked() }
-        };
+    fn visit_polymorphic_function_declaration(
+        &self,
+        declaration: &FunctionDeclaration,
+        generic_instantiations: &RefCell<Vec<InstantiateAs>>,
+    ) -> Result<()> {
+        // monomorphize each instantiation
+        // visit the monomorphized function declaration
+        // return early
+        for instantiation in generic_instantiations.borrow().iter() {
+            if instantiation.types.len() != declaration.type_params.len() {
+                return Err(anyhow::anyhow!(
+                    "Invalid number of generics {:?} {:?}",
+                    instantiation,
+                    declaration.type_params
+                ));
+            }
 
+            let mut dec = declaration.clone();
+            let mut mapping: IndexMap<SharedString, _> = IndexMap::new();
+            for (t, _) in declaration.type_params.iter() {
+                let v = instantiation
+                    .types
+                    .get(t)
+                    .expect("type param instantiation missing");
+                mapping.insert(t.clone(), *v);
+            }
+            dec.generic_instantiations = FunctionGenerics::Monomorphic(mapping.clone());
+            dec.prototype.name = instantiation.name.clone();
+
+            self.visit_monomorphic_function_declaration(&dec, &mapping)?;
+        }
+        Ok(())
+    }
+
+    fn visit_monomorphic_function_declaration(
+        &self,
+        declaration: &FunctionDeclaration,
+        mapping: &IndexMap<SharedString, UValueType>,
+    ) -> Result<()> {
         self.generics_in_scope.borrow_mut().begin_scope();
 
         for (t, v) in mapping {
@@ -1565,30 +1748,27 @@ impl DeclarationVisitor<Result<()>> for LLVMFunctionCompiler<'_, '_> {
         }
 
         let closure_type = self.closure_type_llvm(&declaration.prototype)?;
+        let closure_name = format!("{}{CLOSURE_SUFFIX}", declaration.prototype.name,);
 
         let closure = if self.function.is_none() {
             self.module
-                .get_global(&declaration.prototype.name)
+                .get_global(&closure_name)
                 .map(|g| g.as_pointer_value())
                 .unwrap_or_else(|| {
                     self.module
-                        .add_global(
-                            closure_type,
-                            Some(AddressSpace::default()),
-                            &declaration.prototype.name,
-                        )
+                        .add_global(closure_type, Some(AddressSpace::default()), &closure_name)
                         .as_pointer_value()
                 })
         } else {
             self.make_alloca(
                 self.function_type_serenity(&declaration.prototype),
-                &declaration.prototype.name,
+                &closure_name,
             )
             .context("Function declaration alloca")?
         };
 
         self.set_variable(
-            &declaration.prototype.name,
+            &closure_name,
             (closure, self.function_type_serenity(&declaration.prototype)),
         );
 
@@ -1598,13 +1778,15 @@ impl DeclarationVisitor<Result<()>> for LLVMFunctionCompiler<'_, '_> {
         if self.function.is_none() {
             let global_closure = self
                 .module
-                .get_global(&declaration.prototype.name)
+                .get_global(&closure_name)
                 .context("Global closure")?;
             global_closure.set_initializer(&struct_init);
         } else {
-            self.builder
-                .build_store(closure, struct_init)
-                .context("Closure store")?;
+            self.make_store(
+                closure,
+                struct_init.as_basic_value_enum(),
+                self.function_type_serenity(&declaration.prototype),
+            )?;
         }
         self.generics_in_scope.borrow_mut().end_scope();
 
@@ -1717,10 +1899,10 @@ impl StatementVisitor<Result<()>> for LLVMFunctionCompiler<'_, '_> {
         if body_block.get_terminator().is_none() {
             self.builder.build_unconditional_branch(loop_block)?;
         }
-        // if body_block.get_previous_basic_block().unwrap().get_terminator().is_none() {
-        //     self.builder.position_at_end(body_block.get_previous_basic_block().unwrap());
-        //     self.builder.build_unconditional_branch(loop_block)?;
-        // }
+        // if body_block.get_previous_basic_block().unwrap().get_terminator().is_none()
+        // {     self.builder.position_at_end(body_block.
+        // get_previous_basic_block().unwrap());     self.builder.
+        // build_unconditional_branch(loop_block)?; }
 
         self.builder.position_at_end(merge_block);
         self.break_continue_contexts.borrow_mut().pop_front();
@@ -1738,6 +1920,10 @@ impl StatementVisitor<Result<()>> for LLVMFunctionCompiler<'_, '_> {
             *self.function.unwrap(),
             &format!("body_{}", statement.line_no),
         );
+        let increment_block = self.context.append_basic_block(
+            *self.function.unwrap(),
+            &format!("increment_{}", statement.line_no),
+        );
         let merge_block = self.context.append_basic_block(
             *self.function.unwrap(),
             &format!("merge_{}", statement.line_no),
@@ -1745,7 +1931,7 @@ impl StatementVisitor<Result<()>> for LLVMFunctionCompiler<'_, '_> {
 
         self.break_continue_contexts
             .borrow_mut()
-            .push_front((merge_block, loop_block));
+            .push_front((merge_block, increment_block));
 
         if let Some(init) = &statement.init {
             init.accept(self)?;
@@ -1779,11 +1965,15 @@ impl StatementVisitor<Result<()>> for LLVMFunctionCompiler<'_, '_> {
             .get_terminator()
             .is_none()
         {
-            if let Some(update) = &statement.increment {
-                update.accept(self)?;
-            }
-            self.builder.build_unconditional_branch(loop_block)?;
+            self.builder.build_unconditional_branch(increment_block)?;
         }
+
+        self.builder.position_at_end(increment_block);
+        if let Some(increment) = &statement.increment {
+            increment.accept(self)?;
+        }
+        self.builder.build_unconditional_branch(loop_block)?;
+
         self.builder.position_at_end(merge_block);
 
         self.break_continue_contexts.borrow_mut().pop_front();
@@ -1835,10 +2025,11 @@ impl StatementVisitor<Result<()>> for LLVMFunctionCompiler<'_, '_> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::parser::Parser;
     use inkwell::OptimizationLevel;
     use test_case::test_case;
+
+    use super::*;
+    use crate::parser::Parser;
     #[test_case(r##"
         fn main() -> int {
             let x: int = 1;
@@ -2250,8 +2441,35 @@ mod tests {
     fn main() -> int {
         return test(1, 2);
     }"##, 3; "generic_fn_args")]
+    #[test_case(r##"
+    fn main() -> int {
+        let arr: [int; 2];
+        arr[0] = 1;
+        arr[1] = 2;
+        let p: *int = &arr[0];
+        if (arr[0] < arr[1] and *p == 1) {
+            return sizeof(int) + arr[1];
+        }
+        return 0;
+    }
+    "##, 10; "sizeof_and_logic")]
+    #[test_case(r##"
+    // ffi malloc/free
+    fn main() -> int {
+        let p = malloc(8);
+        free(p);
+        return 3;
+    }
+    "##, 3; "ffi_malloc_free")]
+    #[test_case(r##"
+    // ffi printf
+    fn main() -> int {
+        printf("hi\n");
+        return 4;
+    }
+    "##, 4; "ffi_printf")]
     fn test_program_integer_return(prog: &str, expected: i64) {
-        let ast = crate::parser::SerenityParser::parse(prog.into(), "mod".into()).unwrap();
+        let ast = crate::parser::SerenityParser::parse(prog.into(), "mod".into(), vec![]).unwrap();
 
         let ctx = Context::create();
         let ffi = crate::compiler::ffi_funcs::ffi_funcs();
@@ -2283,5 +2501,588 @@ mod tests {
                 .unwrap();
             assert_eq!(func.call(), expected);
         };
+    }
+
+    #[test]
+    fn test_llvm_compiler_new() {
+        let ctx = Context::create();
+        let ffi = crate::compiler::ffi_funcs::ffi_funcs();
+        let libs = ["/usr/lib/libSystem.dylib"];
+        let compiler = LLVMCompiler::new(&ctx, HashMap::new(), ffi.as_ref(), &libs);
+
+        // Just ensure it compiles
+        let _ = compiler.module();
+    }
+
+    #[test]
+    fn test_simple_arithmetic() {
+        test_program_integer_return(
+            r##"
+            fn main() -> int {
+                return 5 + 3 * 2;
+            }
+            "##,
+            11,
+        );
+    }
+
+    #[test]
+    fn test_complex_arithmetic() {
+        test_program_integer_return(
+            r##"
+            fn main() -> int {
+                return (10 + 5) * 2 - 8 / 2;
+            }
+            "##,
+            26,
+        );
+    }
+
+    #[test]
+    fn test_variable_reassignment() {
+        test_program_integer_return(
+            r##"
+            fn main() -> int {
+                var x: int = 10;
+                x = x + 5;
+                x = x * 2;
+                return x;
+            }
+            "##,
+            30,
+        );
+    }
+
+    #[test]
+    fn test_multiple_variables() {
+        test_program_integer_return(
+            r##"
+            fn main() -> int {
+                let x: int = 10;
+                let y: int = 20;
+                let z: int = x + y;
+                return z;
+            }
+            "##,
+            30,
+        );
+    }
+
+    #[test]
+    fn test_if_true_branch() {
+        test_program_integer_return(
+            r##"
+            fn main() -> int {
+                if (true) {
+                    return 42;
+                }
+                return 0;
+            }
+            "##,
+            42,
+        );
+    }
+
+    #[test]
+    fn test_if_false_branch() {
+        test_program_integer_return(
+            r##"
+            fn main() -> int {
+                if (false) {
+                    return 0;
+                } else {
+                    return 99;
+                }
+            }
+            "##,
+            99,
+        );
+    }
+
+    #[test]
+    fn test_while_loop() {
+        test_program_integer_return(
+            r##"
+            fn main() -> int {
+                var x: int = 0;
+                var i: int = 0;
+                while (i < 5) {
+                    x = x + i;
+                    i = i + 1;
+                }
+                return x;
+            }
+            "##,
+            10,
+        );
+    }
+
+    #[test]
+    fn test_for_loop_sum() {
+        test_program_integer_return(
+            r##"
+            fn main() -> int {
+                var sum: int = 0;
+                for (var i: int = 1; i <= 5; i = i + 1) {
+                    sum = sum + i;
+                }
+                return sum;
+            }
+            "##,
+            15,
+        );
+    }
+
+    #[test]
+    fn test_nested_loops() {
+        test_program_integer_return(
+            r##"
+            fn main() -> int {
+                var sum: int = 0;
+                for (var i: int = 0; i < 3; i = i + 1) {
+                    for (var j: int = 0; j < 3; j = j + 1) {
+                        sum = sum + 1;
+                    }
+                }
+                return sum;
+            }
+            "##,
+            9,
+        );
+    }
+
+    #[test]
+    fn test_comparison_operators() {
+        test_program_integer_return(
+            r##"
+            fn main() -> int {
+                let a: int = 10;
+                let b: int = 5;
+                if (a > b) {
+                    if (a >= 10) {
+                        if (b < 10) {
+                            if (b <= 5) {
+                                return 1;
+                            }
+                        }
+                    }
+                }
+                return 0;
+            }
+            "##,
+            1,
+        );
+    }
+
+    #[test]
+    fn test_equality_operators() {
+        test_program_integer_return(
+            r##"
+            fn main() -> int {
+                let x: int = 42;
+                if (x == 42) {
+                    return 1;
+                }
+                if (x != 100) {
+                    return 2;
+                }
+                return 0;
+            }
+            "##,
+            1,
+        );
+    }
+
+    #[test]
+    fn test_logical_operators() {
+        test_program_integer_return(
+            r##"
+            fn main() -> int {
+                if (true and true) {
+                    return 1;
+                }
+                return 0;
+            }
+            "##,
+            1,
+        );
+    }
+
+    #[test]
+    fn test_logical_or() {
+        test_program_integer_return(
+            r##"
+            fn main() -> int {
+                if (false || true) {
+                    return 1;
+                }
+                return 0;
+            }
+            "##,
+            1,
+        );
+    }
+
+    #[test]
+    fn test_function_with_multiple_params() {
+        test_program_integer_return(
+            r##"
+            fn add3(a: int, b: int, c: int) -> int {
+                return a + b + c;
+            }
+            
+            fn main() -> int {
+                return add3(10, 20, 30);
+            }
+            "##,
+            60,
+        );
+    }
+
+    #[test]
+    fn test_recursive_function() {
+        test_program_integer_return(
+            r##"
+            fn factorial(n: int) -> int {
+                if (n <= 1) {
+                    return 1;
+                }
+                return n * factorial(n - 1);
+            }
+            
+            fn main() -> int {
+                return factorial(5);
+            }
+            "##,
+            120,
+        );
+    }
+
+    #[test]
+    fn test_array_access() {
+        test_program_integer_return(
+            r##"
+            fn main() -> int {
+                let arr: [int; 3];
+                arr[0] = 10;
+                arr[1] = 20;
+                arr[2] = 30;
+                return arr[0] + arr[1] + arr[2];
+            }
+            "##,
+            60,
+        );
+    }
+
+    #[test]
+    fn test_array_iteration() {
+        test_program_integer_return(
+            r##"
+            fn main() -> int {
+                let arr: [int; 5];
+                for (var i: int = 0; i < 5; i = i + 1) {
+                    arr[i] = i * 2;
+                }
+                var sum: int = 0;
+                for (var i: int = 0; i < 5; i = i + 1) {
+                    sum = sum + arr[i];
+                }
+                return sum;
+            }
+            "##,
+            20,
+        );
+    }
+
+    #[test]
+    fn test_pointer_arithmetic() {
+        test_program_integer_return(
+            r##"
+            fn main() -> int {
+                var x: int = 42;
+                let p: *int = &x;
+                return *p;
+            }
+            "##,
+            42,
+        );
+    }
+
+    #[test]
+    fn test_pointer_modification() {
+        test_program_integer_return(
+            r##"
+            fn main() -> int {
+                var x: int = 10;
+                let p: *int = &x;
+                *p = 20;
+                return x;
+            }
+            "##,
+            20,
+        );
+    }
+
+    #[test]
+    fn test_struct_field_access() {
+        test_program_integer_return(
+            r##"
+            type Point struct {
+                x: int,
+                y: int,
+            };
+            
+            fn main() -> int {
+                let p: struct Point = struct Point {x: 10, y: 20};
+                return p.x + p.y;
+            }
+            "##,
+            30,
+        );
+    }
+
+    #[test]
+    fn test_struct_field_modification() {
+        test_program_integer_return(
+            r##"
+            type Point struct {
+                x: int,
+                y: int,
+            };
+            
+            fn main() -> int {
+                var p: struct Point = struct Point {x: 10, y: 20};
+                p.x = 30;
+                return p.x + p.y;
+            }
+            "##,
+            50,
+        );
+    }
+
+    #[test]
+    fn test_nested_struct_access() {
+        test_program_integer_return(
+            r##"
+            type Inner struct {
+                value: int,
+            };
+            
+            type Outer struct {
+                inner: struct Inner,
+            };
+            
+            fn main() -> int {
+                let o: struct Outer = struct Outer {
+                    inner: struct Inner {value: 42}
+                };
+                return o.inner.value;
+            }
+            "##,
+            42,
+        );
+    }
+
+    #[test]
+    fn test_break_in_loop() {
+        test_program_integer_return(
+            r##"
+            fn main() -> int {
+                var x: int = 0;
+                while (true) {
+                    x = x + 1;
+                    if (x == 5) {
+                        break;
+                    }
+                }
+                return x;
+            }
+            "##,
+            5,
+        );
+    }
+
+    #[test]
+    fn test_continue_in_loop() {
+        test_program_integer_return(
+            r##"
+            fn main() -> int {
+                var sum: int = 0;
+                for (var i: int = 0; i < 10; i = i + 1) {
+                    if (i % 2 == 0) {
+                        continue;
+                    }
+                    sum = sum + i;
+                }
+                return sum;
+            }
+            "##,
+            25,
+        );
+    }
+
+    #[test]
+    fn test_ternary_operator() {
+        test_program_integer_return(
+            r##"
+            fn main() -> int {
+                let x: int = 10;
+                return x > 5 ? 1 : 0;
+            }
+            "##,
+            1,
+        );
+    }
+
+    #[test]
+    fn test_nested_ternary() {
+        test_program_integer_return(
+            r##"
+            fn main() -> int {
+                let x: int = 5;
+                return x > 10 ? 1 : (x > 3 ? 2 : 3);
+            }
+            "##,
+            2,
+        );
+    }
+
+    #[test]
+    fn test_lambda_basic() {
+        test_program_integer_return(
+            r##"
+            fn main() -> int {
+                let f = lambda(x: int) -> int {
+                    return x * 2;
+                };
+                return f(21);
+            }
+            "##,
+            42,
+        );
+    }
+
+    #[test]
+    fn test_closure_captures_value() {
+        test_program_integer_return(
+            r##"
+            fn make_multiplier(factor: int) -> fn[int](int) -> int {
+                fn multiply[factor](x: int) -> int {
+                    return x * factor;
+                }
+                return multiply;
+            }
+            
+            fn main() -> int {
+                let times3 = make_multiplier(3);
+                return times3(14);
+            }
+            "##,
+            42,
+        );
+    }
+
+    #[test]
+    fn test_multiple_closures() {
+        test_program_integer_return(
+            r##"
+            fn make_adder(x: int) -> fn[int](int) -> int {
+                fn add[x](y: int) -> int {
+                    return x + y;
+                }
+                return add;
+            }
+            
+            fn main() -> int {
+                let add10 = make_adder(10);
+                let add20 = make_adder(20);
+                return add10(5) + add20(5);
+            }
+            "##,
+            40,
+        );
+    }
+
+    #[test]
+    fn test_method_call_basic() {
+        test_program_integer_return(
+            r##"
+            type Counter struct {
+                count: int,
+            };
+            
+            fn (self: *struct Counter) increment() {
+                self->count = self->count + 1;
+            }
+            
+            fn main() -> int {
+                var c: struct Counter = struct Counter {count: 0};
+                c.increment();
+                c.increment();
+                c.increment();
+                return c.count;
+            }
+            "##,
+            3,
+        );
+    }
+
+    #[test]
+    fn test_method_with_return_value() {
+        test_program_integer_return(
+            r##"
+            type Calculator struct {
+                value: int,
+            };
+            
+            fn (self: *struct Calculator) add(x: int) -> int {
+                self->value = self->value + x;
+                return self->value;
+            }
+            
+            fn main() -> int {
+                var calc: struct Calculator = struct Calculator {value: 10};
+                return calc.add(32);
+            }
+            "##,
+            42,
+        );
+    }
+
+    #[test]
+    fn test_global_variable() {
+        test_program_integer_return(
+            r##"
+            var global: int;
+            
+            fn main() -> int {
+                global = 42;
+                return global;
+            }
+            "##,
+            42,
+        );
+    }
+
+    #[test]
+    fn test_global_variable_modification() {
+        test_program_integer_return(
+            r##"
+            var counter: int;
+            
+            fn increment() {
+                counter = counter + 1;
+            }
+            
+            fn main() -> int {
+                counter = 0;
+                increment();
+                increment();
+                increment();
+                return counter;
+            }
+            "##,
+            3,
+        );
     }
 }

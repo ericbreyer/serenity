@@ -2,6 +2,284 @@
 source: tests/integration_test.rs
 expression: result
 ---
+[line   10] Function Declaration: new_node
+[line   10] ╰─── Function Expression:
+[line   10]      ├─── Name: new_node
+[line   10]      ├─── Return Type: *struct ArenaNodeCDLL { buffer: [char; 1048576], offset: int, next: *struct ArenaNodeCDLL, prev: *struct ArenaNodeCDLL, }
+[line   10]      ╰─── Body: 
+[line   11]           ├─── Var Declaration: node
+[line   11]           │    ╰───  Initializer
+[line   11]           │         ╰─── Call:
+[line   11]           │              ├─── Variable: malloc
+[line   11]           │              ╰─── Sizeof: struct ArenaNodeCDLL { buffer: [char; 1048576], offset: int, next: *struct ArenaNodeCDLL, prev: *struct ArenaNodeCDLL, }
+[line   12]           ├─── Expression: 
+[line   12]           │    ╰─── Assign:
+[line   12]           │         ├─── Get: "offset"
+[line   12]           │         │    ╰─── Deref: 
+[line   12]           │         │         ╰─── Variable: node
+[line   12]           │         ╰─── Literal: 0
+[line   13]           ├─── Expression: 
+[line   13]           │    ╰─── Assign:
+[line   13]           │         ├─── Get: "next"
+[line   13]           │         │    ╰─── Deref: 
+[line   13]           │         │         ╰─── Variable: node
+[line   13]           │         ╰─── Variable: node
+[line   14]           ├─── Expression: 
+[line   14]           │    ╰─── Assign:
+[line   14]           │         ├─── Get: "prev"
+[line   14]           │         │    ╰─── Deref: 
+[line   14]           │         │         ╰─── Variable: node
+[line   14]           │         ╰─── Variable: node
+[line   14]           ╰─── Return:
+[line   15]                ╰─── Variable: node
+[line   18] Function Declaration: 16844181369236998197_has_space
+[line   18] ╰─── Function Expression:
+[line   18]      ├─── Name: 16844181369236998197_has_space
+[line   18]      ├─── Return Type: fn[*struct ArenaNodeCDLL { buffer: [char; 1048576], offset: int, next: *struct ArenaNodeCDLL, prev: *struct ArenaNodeCDLL, }](int) -> bool
+[line   18]      ├─── Params:
+[line   18]      │    ╰─── node: *struct ArenaNodeCDLL { buffer: [char; 1048576], offset: int, next: *struct ArenaNodeCDLL, prev: *struct ArenaNodeCDLL, }
+[line   18]      ╰─── Body: 
+[line   18]           ╰─── Return:
+[line    0]                ╰─── Function: 16844181369236998197_has_space_inner
+[line    0]                     ╰─── Function Expression:
+[line    0]                          ├─── Name: 16844181369236998197_has_space_inner
+[line    0]                          ├─── Return Type: bool
+[line    0]                          ├─── Captures:
+[line    0]                          │    ╰─── node
+[line    0]                          ├─── Params:
+[line    0]                          │    ╰─── size: int
+[line    0]                          ╰─── Body: 
+[line   18]                               ╰─── Return:
+[line   19]                                    ╰─── Binary: LessEqual
+[line   19]                                         ├─── Binary: Plus
+[line   19]                                         │    ├─── Get: "offset"
+[line   19]                                         │    │    ╰─── Deref: 
+[line   19]                                         │    │         ╰─── Variable: node
+[line   19]                                         │    ╰─── Variable: size
+[line   19]                                         ╰─── Literal: 1048576
+[line   22] Function Declaration: 16844181369236998197_insert
+[line   22] ╰─── Function Expression:
+[line   22]      ├─── Name: 16844181369236998197_insert
+[line   22]      ├─── Return Type: fn[*struct ArenaNodeCDLL { buffer: [char; 1048576], offset: int, next: *struct ArenaNodeCDLL, prev: *struct ArenaNodeCDLL, }](*struct ArenaNodeCDLL { buffer: [char; 1048576], offset: int, next: *struct ArenaNodeCDLL, prev: *struct ArenaNodeCDLL, }) -> $4
+[line   22]      ├─── Params:
+[line   22]      │    ╰─── node: *struct ArenaNodeCDLL { buffer: [char; 1048576], offset: int, next: *struct ArenaNodeCDLL, prev: *struct ArenaNodeCDLL, }
+[line   22]      ╰─── Body: 
+[line   22]           ╰─── Return:
+[line    0]                ╰─── Function: 16844181369236998197_insert_inner
+[line    0]                     ╰─── Function Expression:
+[line    0]                          ├─── Name: 16844181369236998197_insert_inner
+[line    0]                          ├─── Return Type: $4
+[line    0]                          ├─── Captures:
+[line    0]                          │    ╰─── node
+[line    0]                          ├─── Params:
+[line    0]                          │    ╰─── new: *struct ArenaNodeCDLL { buffer: [char; 1048576], offset: int, next: *struct ArenaNodeCDLL, prev: *struct ArenaNodeCDLL, }
+[line    0]                          ╰─── Body: 
+[line   23]                               ├─── Expression: 
+[line   23]                               │    ╰─── Assign:
+[line   23]                               │         ├─── Get: "next"
+[line   23]                               │         │    ╰─── Deref: 
+[line   23]                               │         │         ╰─── Variable: new
+[line   23]                               │         ╰─── Get: "next"
+[line   23]                               │              ╰─── Deref: 
+[line   23]                               │                   ╰─── Variable: node
+[line   24]                               ├─── Expression: 
+[line   24]                               │    ╰─── Assign:
+[line   24]                               │         ├─── Get: "prev"
+[line   24]                               │         │    ╰─── Deref: 
+[line   24]                               │         │         ╰─── Variable: new
+[line   24]                               │         ╰─── Variable: node
+[line   25]                               ├─── Expression: 
+[line   25]                               │    ╰─── Assign:
+[line   25]                               │         ├─── Get: "prev"
+[line   25]                               │         │    ╰─── Deref: 
+[line   25]                               │         │         ╰─── Get: "next"
+[line   25]                               │         │              ╰─── Deref: 
+[line   25]                               │         │                   ╰─── Variable: node
+[line   25]                               │         ╰─── Variable: new
+[line   26]                               ╰─── Expression: 
+[line   26]                                    ╰─── Assign:
+[line   26]                                         ├─── Get: "next"
+[line   26]                                         │    ╰─── Deref: 
+[line   26]                                         │         ╰─── Variable: node
+[line   26]                                         ╰─── Variable: new
+[line   29] Function Declaration: 16844181369236998197_remove
+[line   29] ╰─── Function Expression:
+[line   29]      ├─── Name: 16844181369236998197_remove
+[line   29]      ├─── Return Type: fn[*struct ArenaNodeCDLL { buffer: [char; 1048576], offset: int, next: *struct ArenaNodeCDLL, prev: *struct ArenaNodeCDLL, }]() -> $5
+[line   29]      ├─── Params:
+[line   29]      │    ╰─── node: *struct ArenaNodeCDLL { buffer: [char; 1048576], offset: int, next: *struct ArenaNodeCDLL, prev: *struct ArenaNodeCDLL, }
+[line   29]      ╰─── Body: 
+[line   29]           ╰─── Return:
+[line    0]                ╰─── Function: 16844181369236998197_remove_inner
+[line    0]                     ╰─── Function Expression:
+[line    0]                          ├─── Name: 16844181369236998197_remove_inner
+[line    0]                          ├─── Return Type: $5
+[line    0]                          ├─── Captures:
+[line    0]                          │    ╰─── node
+[line    0]                          ╰─── Body: 
+[line   30]                               ├─── Expression: 
+[line   30]                               │    ╰─── Assign:
+[line   30]                               │         ├─── Get: "next"
+[line   30]                               │         │    ╰─── Deref: 
+[line   30]                               │         │         ╰─── Get: "prev"
+[line   30]                               │         │              ╰─── Deref: 
+[line   30]                               │         │                   ╰─── Variable: node
+[line   30]                               │         ╰─── Get: "next"
+[line   30]                               │              ╰─── Deref: 
+[line   30]                               │                   ╰─── Variable: node
+[line   31]                               ╰─── Expression: 
+[line   31]                                    ╰─── Assign:
+[line   31]                                         ├─── Get: "prev"
+[line   31]                                         │    ╰─── Deref: 
+[line   31]                                         │         ╰─── Get: "next"
+[line   31]                                         │              ╰─── Deref: 
+[line   31]                                         │                   ╰─── Variable: node
+[line   31]                                         ╰─── Get: "prev"
+[line   31]                                              ╰─── Deref: 
+[line   31]                                                   ╰─── Variable: node
+[line   38] Function Declaration: create_arena
+[line   38] ╰─── Function Expression:
+[line   38]      ├─── Name: create_arena
+[line   38]      ├─── Return Type: struct Arena { head: *struct ArenaNodeCDLL { buffer: [char; 1048576], offset: int, next: *struct ArenaNodeCDLL, prev: *struct ArenaNodeCDLL, }, }
+[line   38]      ╰─── Body: 
+[line   39]           ├─── Var Declaration: node
+[line   39]           │    ╰───  Initializer
+[line   39]           │         ╰─── Call:
+[line   39]           │              ╰─── Variable: new_node
+[line   39]           ╰─── Return:
+[line   40]                ╰─── StructInitializer: struct Arena {head: *struct ArenaNodeCDLL { buffer: [char; 1048576], offset: int, next: *struct ArenaNodeCDLL, prev: *struct ArenaNodeCDLL, }, }
+[line   40]                     ╰───  head: 
+[line   40]                          ╰─── Variable: node
+[line   43] Function Declaration: 5737668483962445842_alloc
+[line   43] ╰─── Function Expression:
+[line   43]      ├─── Name: 5737668483962445842_alloc
+[line   43]      ├─── Return Type: fn[*struct Arena { head: *struct ArenaNodeCDLL { buffer: [char; 1048576], offset: int, next: *struct ArenaNodeCDLL, prev: *struct ArenaNodeCDLL, }, }](int) -> *nil
+[line   43]      ├─── Params:
+[line   43]      │    ╰─── self: *struct Arena { head: *struct ArenaNodeCDLL { buffer: [char; 1048576], offset: int, next: *struct ArenaNodeCDLL, prev: *struct ArenaNodeCDLL, }, }
+[line   43]      ╰─── Body: 
+[line   43]           ╰─── Return:
+[line    0]                ╰─── Function: 5737668483962445842_alloc_inner
+[line    0]                     ╰─── Function Expression:
+[line    0]                          ├─── Name: 5737668483962445842_alloc_inner
+[line    0]                          ├─── Return Type: *nil
+[line    0]                          ├─── Captures:
+[line    0]                          │    ╰─── self
+[line    0]                          ├─── Params:
+[line    0]                          │    ╰─── size: int
+[line    0]                          ╰─── Body: 
+[line   44]                               ├─── If: 
+[line   44]                               │    ├─── Binary: Greater
+[line   44]                               │    │    ├─── Variable: size
+[line   44]                               │    │    ╰─── Literal: 1048576
+[line   44]                               │    ╰─── Block: 
+[line   45]                               │         ╰─── Expression: 
+[line   45]                               │              ╰─── Call:
+[line   45]                               │                   ├─── Variable: printf
+[line   45]                               │                   ╰─── StringLiteral: "Allocation size exceeds arena node size"
+[line   47]                               ├─── Var Declaration: current
+[line   47]                               │    ╰───  Initializer
+[line   47]                               │         ╰─── Get: "prev"
+[line   47]                               │              ╰─── Deref: 
+[line   47]                               │                   ╰─── Get: "head"
+[line   47]                               │                        ╰─── Deref: 
+[line   47]                               │                             ╰─── Variable: self
+[line   48]                               ├─── If: 
+[line   48]                               │    ├─── Unary: Bang 
+[line   48]                               │    │    ╰─── Call:
+[line   48]                               │    │         ├─── Get: "has_space"
+[line   48]                               │    │         │    ╰─── Deref: 
+[line   48]                               │    │         │         ╰─── Variable: current
+[line   48]                               │    │         ╰─── Variable: size
+[line   48]                               │    ╰─── Block: 
+[line   49]                               │         ├─── Var Declaration: new
+[line   49]                               │         │    ╰───  Initializer
+[line   49]                               │         │         ╰─── Call:
+[line   49]                               │         │              ╰─── Variable: new_node
+[line   50]                               │         ├─── Expression: 
+[line   50]                               │         │    ╰─── Call:
+[line   50]                               │         │         ├─── Get: "insert"
+[line   50]                               │         │         │    ╰─── Deref: 
+[line   50]                               │         │         │         ╰─── Variable: current
+[line   50]                               │         │         ╰─── Variable: new
+[line   51]                               │         ╰─── Expression: 
+[line   51]                               │              ╰─── Assign:
+[line   51]                               │                   ├─── Variable: current
+[line   51]                               │                   ╰─── Variable: new
+[line   53]                               ├─── Var Declaration: ptr
+[line   53]                               │    ╰───  Initializer
+[line   53]                               │         ╰─── Binary: Plus
+[line   53]                               │              ├─── Get: "buffer"
+[line   53]                               │              │    ╰─── Deref: 
+[line   53]                               │              │         ╰─── Variable: current
+[line   53]                               │              ╰─── Get: "offset"
+[line   53]                               │                   ╰─── Deref: 
+[line   53]                               │                        ╰─── Variable: current
+[line   54]                               ├─── Expression: 
+[line   54]                               │    ╰─── Assign:
+[line   54]                               │         ├─── Get: "offset"
+[line   54]                               │         │    ╰─── Deref: 
+[line   54]                               │         │         ╰─── Variable: current
+[line   54]                               │         ╰─── Binary: Plus
+[line   54]                               │              ├─── Get: "offset"
+[line   54]                               │              │    ╰─── Deref: 
+[line   54]                               │              │         ╰─── Variable: current
+[line   54]                               │              ╰─── Variable: size
+[line   54]                               ╰─── Return:
+[line   55]                                    ╰─── Variable: ptr
+[line   58] Function Declaration: 5737668483962445842_destroy
+[line   58] ╰─── Function Expression:
+[line   58]      ├─── Name: 5737668483962445842_destroy
+[line   58]      ├─── Return Type: fn[*struct Arena { head: *struct ArenaNodeCDLL { buffer: [char; 1048576], offset: int, next: *struct ArenaNodeCDLL, prev: *struct ArenaNodeCDLL, }, }]() -> $12
+[line   58]      ├─── Params:
+[line   58]      │    ╰─── self: *struct Arena { head: *struct ArenaNodeCDLL { buffer: [char; 1048576], offset: int, next: *struct ArenaNodeCDLL, prev: *struct ArenaNodeCDLL, }, }
+[line   58]      ╰─── Body: 
+[line   58]           ╰─── Return:
+[line    0]                ╰─── Function: 5737668483962445842_destroy_inner
+[line    0]                     ╰─── Function Expression:
+[line    0]                          ├─── Name: 5737668483962445842_destroy_inner
+[line    0]                          ├─── Return Type: $12
+[line    0]                          ├─── Captures:
+[line    0]                          │    ╰─── self
+[line    0]                          ╰─── Body: 
+[line   59]                               ├─── Var Declaration: current
+[line   59]                               │    ╰───  Initializer
+[line   59]                               │         ╰─── Get: "next"
+[line   59]                               │              ╰─── Deref: 
+[line   59]                               │                   ╰─── Get: "head"
+[line   59]                               │                        ╰─── Deref: 
+[line   59]                               │                             ╰─── Variable: self
+[line   60]                               ├─── While: 
+[line   60]                               │    ├─── Binary: BangEqual
+[line   60]                               │    │    ├─── Variable: current
+[line   60]                               │    │    ╰─── Get: "head"
+[line   60]                               │    │         ╰─── Deref: 
+[line   60]                               │    │              ╰─── Variable: self
+[line   60]                               │    ╰─── Block: 
+[line   61]                               │         ├─── Var Declaration: next
+[line   61]                               │         │    ╰───  Initializer
+[line   61]                               │         │         ╰─── Get: "next"
+[line   61]                               │         │              ╰─── Deref: 
+[line   61]                               │         │                   ╰─── Variable: current
+[line   62]                               │         ├─── Expression: 
+[line   62]                               │         │    ╰─── Call:
+[line   62]                               │         │         ╰─── Get: "remove"
+[line   62]                               │         │              ╰─── Deref: 
+[line   62]                               │         │                   ╰─── Variable: current
+[line   63]                               │         ├─── Expression: 
+[line   63]                               │         │    ╰─── Call:
+[line   63]                               │         │         ├─── Variable: free
+[line   63]                               │         │         ╰─── Variable: current
+[line   64]                               │         ╰─── Expression: 
+[line   64]                               │              ╰─── Assign:
+[line   64]                               │                   ├─── Variable: current
+[line   64]                               │                   ╰─── Variable: next
+[line   66]                               ╰─── Expression: 
+[line   66]                                    ╰─── Call:
+[line   66]                                         ├─── Variable: free
+[line   66]                                         ╰─── Get: "head"
+[line   66]                                              ╰─── Deref: 
+[line   66]                                                   ╰─── Variable: self
+[line    3] Var Declaration: arena
 [line    1] Function Declaration: 7319417400581242251_car
 [line    1] ╰─── Function Expression:
 [line    1]      ├─── Name: 7319417400581242251_car
@@ -76,29 +354,29 @@ expression: result
 [line    8]                     │    ╰─── Variable: vtab
 [line    8]                     ╰───  self: 
 [line    8]                          ╰─── Variable: self
-[line    6] Function Declaration: next
-[line    6] ╰─── Function Expression:
-[line    6]      ├─── Name: next
-[line    6]      ├─── Return Type: int
-[line    6]      ├─── Params:
-[line    6]      │    ╰─── s: *struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }
-[line    6]      ╰─── Body: 
-[line    7]           ├─── Var Declaration: n
-[line    7]           │    ╰───  Initializer
-[line    7]           │         ╰─── Call:
-[line    7]           │              ╰─── Get: "car"
-[line    7]           │                   ╰─── Deref: 
-[line    7]           │                        ╰─── Variable: s
-[line    8]           ├─── Expression: 
-[line    8]           │    ╰─── Assign:
-[line    8]           │         ├─── Deref: 
-[line    8]           │         │    ╰─── Variable: s
-[line    8]           │         ╰─── Call:
-[line    8]           │              ╰─── Get: "cdr"
-[line    8]           │                   ╰─── Deref: 
-[line    8]           │                        ╰─── Variable: s
-[line    8]           ╰─── Return:
-[line    9]                ╰─── Variable: n
+[line   10] Function Declaration: next
+[line   10] ╰─── Function Expression:
+[line   10]      ├─── Name: next
+[line   10]      ├─── Return Type: int
+[line   10]      ├─── Params:
+[line   10]      │    ╰─── s: *struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }
+[line   10]      ╰─── Body: 
+[line   11]           ├─── Var Declaration: n
+[line   11]           │    ╰───  Initializer
+[line   11]           │         ╰─── Call:
+[line   11]           │              ╰─── Get: "car"
+[line   11]           │                   ╰─── Deref: 
+[line   11]           │                        ╰─── Variable: s
+[line   12]           ├─── Expression: 
+[line   12]           │    ╰─── Assign:
+[line   12]           │         ├─── Deref: 
+[line   12]           │         │    ╰─── Variable: s
+[line   12]           │         ╰─── Call:
+[line   12]           │              ╰─── Get: "cdr"
+[line   12]           │                   ╰─── Deref: 
+[line   12]           │                        ╰─── Variable: s
+[line   12]           ╰─── Return:
+[line   13]                ╰─── Variable: n
 [line    1] Function Declaration: 9429440375181068048_car
 [line    1] ╰─── Function Expression:
 [line    1]      ├─── Name: 9429440375181068048_car
@@ -151,14 +429,14 @@ expression: result
 [line    7]                     │    ╰─── Variable: const_stream_stream_vtable
 [line    7]                     ╰───  self: 
 [line    7]                          ╰─── Variable: self
-[line   16] Function Declaration: 9429440375181068048_car
-[line   16] ╰─── Function Expression:
-[line   16]      ├─── Name: 9429440375181068048_car
-[line   16]      ├─── Return Type: fn[*struct const_stream { n: int, }]() -> int
-[line   16]      ├─── Params:
-[line   16]      │    ╰─── self: *struct const_stream { n: int, }
-[line   16]      ╰─── Body: 
-[line   16]           ╰─── Return:
+[line   20] Function Declaration: 9429440375181068048_car
+[line   20] ╰─── Function Expression:
+[line   20]      ├─── Name: 9429440375181068048_car
+[line   20]      ├─── Return Type: fn[*struct const_stream { n: int, }]() -> int
+[line   20]      ├─── Params:
+[line   20]      │    ╰─── self: *struct const_stream { n: int, }
+[line   20]      ╰─── Body: 
+[line   20]           ╰─── Return:
 [line    0]                ╰─── Function: 9429440375181068048_car_inner
 [line    0]                     ╰─── Function Expression:
 [line    0]                          ├─── Name: 9429440375181068048_car_inner
@@ -166,18 +444,18 @@ expression: result
 [line    0]                          ├─── Captures:
 [line    0]                          │    ╰─── self
 [line    0]                          ╰─── Body: 
-[line   16]                               ╰─── Return:
-[line   17]                                    ╰─── Get: "n"
-[line   17]                                         ╰─── Deref: 
-[line   17]                                              ╰─── Variable: self
-[line   20] Function Declaration: 9429440375181068048_cdr
-[line   20] ╰─── Function Expression:
-[line   20]      ├─── Name: 9429440375181068048_cdr
-[line   20]      ├─── Return Type: fn[*struct const_stream { n: int, }]() -> struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }
-[line   20]      ├─── Params:
-[line   20]      │    ╰─── self: *struct const_stream { n: int, }
-[line   20]      ╰─── Body: 
-[line   20]           ╰─── Return:
+[line   20]                               ╰─── Return:
+[line   21]                                    ╰─── Get: "n"
+[line   21]                                         ╰─── Deref: 
+[line   21]                                              ╰─── Variable: self
+[line   24] Function Declaration: 9429440375181068048_cdr
+[line   24] ╰─── Function Expression:
+[line   24]      ├─── Name: 9429440375181068048_cdr
+[line   24]      ├─── Return Type: fn[*struct const_stream { n: int, }]() -> struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }
+[line   24]      ├─── Params:
+[line   24]      │    ╰─── self: *struct const_stream { n: int, }
+[line   24]      ╰─── Body: 
+[line   24]           ╰─── Return:
 [line    0]                ╰─── Function: 9429440375181068048_cdr_inner
 [line    0]                     ╰─── Function Expression:
 [line    0]                          ├─── Name: 9429440375181068048_cdr_inner
@@ -185,10 +463,10 @@ expression: result
 [line    0]                          ├─── Captures:
 [line    0]                          │    ╰─── self
 [line    0]                          ╰─── Body: 
-[line   20]                               ╰─── Return:
-[line   21]                                    ╰─── Call:
-[line   21]                                         ├─── Variable: const_stream_impl_stream
-[line   21]                                         ╰─── Variable: self
+[line   24]                               ╰─── Return:
+[line   25]                                    ╰─── Call:
+[line   25]                                         ├─── Variable: const_stream_impl_stream
+[line   25]                                         ╰─── Variable: self
 [line    1] Function Declaration: 5461205560665788201_car
 [line    1] ╰─── Function Expression:
 [line    1]      ├─── Name: 5461205560665788201_car
@@ -241,14 +519,14 @@ expression: result
 [line    7]                     │    ╰─── Variable: nat_stream_stream_vtable
 [line    7]                     ╰───  self: 
 [line    7]                          ╰─── Variable: self
-[line   28] Function Declaration: 5461205560665788201_car
-[line   28] ╰─── Function Expression:
-[line   28]      ├─── Name: 5461205560665788201_car
-[line   28]      ├─── Return Type: fn[*struct nat_stream { i: int, }]() -> int
-[line   28]      ├─── Params:
-[line   28]      │    ╰─── self: *struct nat_stream { i: int, }
-[line   28]      ╰─── Body: 
-[line   28]           ╰─── Return:
+[line   32] Function Declaration: 5461205560665788201_car
+[line   32] ╰─── Function Expression:
+[line   32]      ├─── Name: 5461205560665788201_car
+[line   32]      ├─── Return Type: fn[*struct nat_stream { i: int, }]() -> int
+[line   32]      ├─── Params:
+[line   32]      │    ╰─── self: *struct nat_stream { i: int, }
+[line   32]      ╰─── Body: 
+[line   32]           ╰─── Return:
 [line    0]                ╰─── Function: 5461205560665788201_car_inner
 [line    0]                     ╰─── Function Expression:
 [line    0]                          ├─── Name: 5461205560665788201_car_inner
@@ -256,18 +534,18 @@ expression: result
 [line    0]                          ├─── Captures:
 [line    0]                          │    ╰─── self
 [line    0]                          ╰─── Body: 
-[line   28]                               ╰─── Return:
-[line   29]                                    ╰─── Get: "i"
-[line   29]                                         ╰─── Deref: 
-[line   29]                                              ╰─── Variable: self
-[line   32] Function Declaration: 5461205560665788201_cdr
-[line   32] ╰─── Function Expression:
-[line   32]      ├─── Name: 5461205560665788201_cdr
-[line   32]      ├─── Return Type: fn[*struct nat_stream { i: int, }]() -> struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }
-[line   32]      ├─── Params:
-[line   32]      │    ╰─── self: *struct nat_stream { i: int, }
-[line   32]      ╰─── Body: 
-[line   32]           ╰─── Return:
+[line   32]                               ╰─── Return:
+[line   33]                                    ╰─── Get: "i"
+[line   33]                                         ╰─── Deref: 
+[line   33]                                              ╰─── Variable: self
+[line   36] Function Declaration: 5461205560665788201_cdr
+[line   36] ╰─── Function Expression:
+[line   36]      ├─── Name: 5461205560665788201_cdr
+[line   36]      ├─── Return Type: fn[*struct nat_stream { i: int, }]() -> struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }
+[line   36]      ├─── Params:
+[line   36]      │    ╰─── self: *struct nat_stream { i: int, }
+[line   36]      ╰─── Body: 
+[line   36]           ╰─── Return:
 [line    0]                ╰─── Function: 5461205560665788201_cdr_inner
 [line    0]                     ╰─── Function Expression:
 [line    0]                          ├─── Name: 5461205560665788201_cdr_inner
@@ -275,29 +553,29 @@ expression: result
 [line    0]                          ├─── Captures:
 [line    0]                          │    ╰─── self
 [line    0]                          ╰─── Body: 
-[line   33]                               ├─── Var Declaration: i
-[line   33]                               │    ╰───  Initializer
-[line   33]                               │         ╰─── Get: "i"
-[line   33]                               │              ╰─── Deref: 
-[line   33]                               │                   ╰─── Variable: self
-[line   34]                               ├─── Var Declaration: s
-[line   34]                               │    ╰───  Initializer
-[line   34]                               │         ╰─── Call:
-[line   34]                               │              ├─── Variable: malloc
-[line   34]                               │              ╰─── Sizeof: struct nat_stream { i: int, }
-[line   35]                               ├─── Expression: 
-[line   35]                               │    ╰─── Assign:
-[line   35]                               │         ├─── Deref: 
-[line   35]                               │         │    ╰─── Variable: s
-[line   35]                               │         ╰─── StructInitializer: struct nat_stream {i: int, }
-[line   35]                               │              ╰───  i: 
-[line   35]                               │                   ╰─── Binary: Plus
-[line   35]                               │                        ├─── Variable: i
-[line   35]                               │                        ╰─── Literal: 1
-[line   35]                               ╰─── Return:
-[line   36]                                    ╰─── Call:
-[line   36]                                         ├─── Variable: nat_stream_impl_stream
-[line   36]                                         ╰─── Variable: s
+[line   37]                               ├─── Var Declaration: i
+[line   37]                               │    ╰───  Initializer
+[line   37]                               │         ╰─── Get: "i"
+[line   37]                               │              ╰─── Deref: 
+[line   37]                               │                   ╰─── Variable: self
+[line   38]                               ├─── Var Declaration: s
+[line   38]                               │    ╰───  Initializer
+[line   38]                               │         ╰─── Call:
+[line   38]                               │              ├─── Variable: malloc
+[line   38]                               │              ╰─── Sizeof: struct nat_stream { i: int, }
+[line   39]                               ├─── Expression: 
+[line   39]                               │    ╰─── Assign:
+[line   39]                               │         ├─── Deref: 
+[line   39]                               │         │    ╰─── Variable: s
+[line   39]                               │         ╰─── StructInitializer: struct nat_stream {i: int, }
+[line   39]                               │              ╰───  i: 
+[line   39]                               │                   ╰─── Binary: Plus
+[line   39]                               │                        ├─── Variable: i
+[line   39]                               │                        ╰─── Literal: 1
+[line   39]                               ╰─── Return:
+[line   40]                                    ╰─── Call:
+[line   40]                                         ├─── Variable: nat_stream_impl_stream
+[line   40]                                         ╰─── Variable: s
 [line    1] Function Declaration: 4605303866116654876_car
 [line    1] ╰─── Function Expression:
 [line    1]      ├─── Name: 4605303866116654876_car
@@ -350,14 +628,14 @@ expression: result
 [line    7]                     │    ╰─── Variable: stream_cons_stream_vtable
 [line    7]                     ╰───  self: 
 [line    7]                          ╰─── Variable: self
-[line   44] Function Declaration: 4605303866116654876_car
-[line   44] ╰─── Function Expression:
-[line   44]      ├─── Name: 4605303866116654876_car
-[line   44]      ├─── Return Type: fn[*struct stream_cons { car: int, cdr: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, }]() -> int
-[line   44]      ├─── Params:
-[line   44]      │    ╰─── self: *struct stream_cons { car: int, cdr: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, }
-[line   44]      ╰─── Body: 
-[line   44]           ╰─── Return:
+[line   48] Function Declaration: 4605303866116654876_car
+[line   48] ╰─── Function Expression:
+[line   48]      ├─── Name: 4605303866116654876_car
+[line   48]      ├─── Return Type: fn[*struct stream_cons { car: int, cdr: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, }]() -> int
+[line   48]      ├─── Params:
+[line   48]      │    ╰─── self: *struct stream_cons { car: int, cdr: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, }
+[line   48]      ╰─── Body: 
+[line   48]           ╰─── Return:
 [line    0]                ╰─── Function: 4605303866116654876_car_inner
 [line    0]                     ╰─── Function Expression:
 [line    0]                          ├─── Name: 4605303866116654876_car_inner
@@ -365,18 +643,18 @@ expression: result
 [line    0]                          ├─── Captures:
 [line    0]                          │    ╰─── self
 [line    0]                          ╰─── Body: 
-[line   44]                               ╰─── Return:
-[line   45]                                    ╰─── Get: "car"
-[line   45]                                         ╰─── Deref: 
-[line   45]                                              ╰─── Variable: self
-[line   48] Function Declaration: 4605303866116654876_cdr
-[line   48] ╰─── Function Expression:
-[line   48]      ├─── Name: 4605303866116654876_cdr
-[line   48]      ├─── Return Type: fn[*struct stream_cons { car: int, cdr: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, }]() -> struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }
-[line   48]      ├─── Params:
-[line   48]      │    ╰─── self: *struct stream_cons { car: int, cdr: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, }
-[line   48]      ╰─── Body: 
-[line   48]           ╰─── Return:
+[line   48]                               ╰─── Return:
+[line   49]                                    ╰─── Get: "car"
+[line   49]                                         ╰─── Deref: 
+[line   49]                                              ╰─── Variable: self
+[line   52] Function Declaration: 4605303866116654876_cdr
+[line   52] ╰─── Function Expression:
+[line   52]      ├─── Name: 4605303866116654876_cdr
+[line   52]      ├─── Return Type: fn[*struct stream_cons { car: int, cdr: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, }]() -> struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }
+[line   52]      ├─── Params:
+[line   52]      │    ╰─── self: *struct stream_cons { car: int, cdr: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, }
+[line   52]      ╰─── Body: 
+[line   52]           ╰─── Return:
 [line    0]                ╰─── Function: 4605303866116654876_cdr_inner
 [line    0]                     ╰─── Function Expression:
 [line    0]                          ├─── Name: 4605303866116654876_cdr_inner
@@ -384,35 +662,35 @@ expression: result
 [line    0]                          ├─── Captures:
 [line    0]                          │    ╰─── self
 [line    0]                          ╰─── Body: 
-[line   48]                               ╰─── Return:
-[line   49]                                    ╰─── Get: "cdr"
-[line   49]                                         ╰─── Deref: 
-[line   49]                                              ╰─── Variable: self
-[line    1] Function Declaration: 8896250655973739750_car
+[line   52]                               ╰─── Return:
+[line   53]                                    ╰─── Get: "cdr"
+[line   53]                                         ╰─── Deref: 
+[line   53]                                              ╰─── Variable: self
+[line    1] Function Declaration: 10071495574893983412_car
 [line    1] ╰─── Function Expression:
-[line    1]      ├─── Name: 8896250655973739750_car
-[line    1]      ├─── Return Type: fn[*struct stream_add { s1: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, s2: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, next: *struct stream_add, }]() -> int
+[line    1]      ├─── Name: 10071495574893983412_car
+[line    1]      ├─── Return Type: fn[*struct stream_add { s1: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, s2: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, }]() -> int
 [line    1]      ├─── Params:
-[line    1]      │    ╰─── self: *struct stream_add { s1: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, s2: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, next: *struct stream_add, }
+[line    1]      │    ╰─── self: *struct stream_add { s1: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, s2: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, }
 [line    1]      ╰─── Body: 
 [line    1]           ╰─── Return:
-[line    0]                ╰─── Function: 8896250655973739750_car_inner
+[line    0]                ╰─── Function: 10071495574893983412_car_inner
 [line    0]                     ╰─── Function Expression:
-[line    0]                          ├─── Name: 8896250655973739750_car_inner
+[line    0]                          ├─── Name: 10071495574893983412_car_inner
 [line    0]                          ├─── Return Type: int
 [line    0]                          ├─── Captures:
 [line    0]                          │    ╰─── self
-[line    1] Function Declaration: 8896250655973739750_cdr
+[line    1] Function Declaration: 10071495574893983412_cdr
 [line    1] ╰─── Function Expression:
-[line    1]      ├─── Name: 8896250655973739750_cdr
-[line    1]      ├─── Return Type: fn[*struct stream_add { s1: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, s2: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, next: *struct stream_add, }]() -> struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }
+[line    1]      ├─── Name: 10071495574893983412_cdr
+[line    1]      ├─── Return Type: fn[*struct stream_add { s1: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, s2: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, }]() -> struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }
 [line    1]      ├─── Params:
-[line    1]      │    ╰─── self: *struct stream_add { s1: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, s2: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, next: *struct stream_add, }
+[line    1]      │    ╰─── self: *struct stream_add { s1: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, s2: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, }
 [line    1]      ╰─── Body: 
 [line    1]           ╰─── Return:
-[line    0]                ╰─── Function: 8896250655973739750_cdr_inner
+[line    0]                ╰─── Function: 10071495574893983412_cdr_inner
 [line    0]                     ╰─── Function Expression:
-[line    0]                          ├─── Name: 8896250655973739750_cdr_inner
+[line    0]                          ├─── Name: 10071495574893983412_cdr_inner
 [line    0]                          ├─── Return Type: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }
 [line    0]                          ├─── Captures:
 [line    0]                          │    ╰─── self
@@ -422,253 +700,214 @@ expression: result
 [line    3]      ├─── Name: stream_add_impl_stream
 [line    3]      ├─── Return Type: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }
 [line    3]      ├─── Params:
-[line    3]      │    ╰─── self: *struct stream_add { s1: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, s2: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, next: *struct stream_add, }
+[line    3]      │    ╰─── self: *struct stream_add { s1: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, s2: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, }
 [line    3]      ╰─── Body: 
 [line    4]           ├─── Expression: 
 [line    4]           │    ╰─── Assign:
 [line    4]           │         ├─── Get: "car"
 [line    4]           │         │    ╰─── Variable: stream_add_stream_vtable
-[line    4]           │         ╰─── Variable: 8896250655973739750_car
+[line    4]           │         ╰─── Variable: 10071495574893983412_car
 [line    5]           ├─── Expression: 
 [line    5]           │    ╰─── Assign:
 [line    5]           │         ├─── Get: "cdr"
 [line    5]           │         │    ╰─── Variable: stream_add_stream_vtable
-[line    5]           │         ╰─── Variable: 8896250655973739750_cdr
+[line    5]           │         ╰─── Variable: 10071495574893983412_cdr
 [line    5]           ╰─── Return:
 [line    7]                ╰─── StructInitializer: struct stream_impl {self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }
 [line    7]                     ├───  vtable: 
 [line    7]                     │    ╰─── Variable: stream_add_stream_vtable
 [line    7]                     ╰───  self: 
 [line    7]                          ╰─── Variable: self
-[line   58] Function Declaration: 8896250655973739750_destroy
-[line   58] ╰─── Function Expression:
-[line   58]      ├─── Name: 8896250655973739750_destroy
-[line   58]      ├─── Return Type: fn[*struct stream_add { s1: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, s2: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, next: *struct stream_add, }]() -> $31
-[line   58]      ├─── Params:
-[line   58]      │    ╰─── self: *struct stream_add { s1: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, s2: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, next: *struct stream_add, }
-[line   58]      ╰─── Body: 
-[line   58]           ╰─── Return:
-[line    0]                ╰─── Function: 8896250655973739750_destroy_inner
+[line   62] Function Declaration: 10071495574893983412_car
+[line   62] ╰─── Function Expression:
+[line   62]      ├─── Name: 10071495574893983412_car
+[line   62]      ├─── Return Type: fn[*struct stream_add { s1: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, s2: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, }]() -> int
+[line   62]      ├─── Params:
+[line   62]      │    ╰─── self: *struct stream_add { s1: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, s2: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, }
+[line   62]      ╰─── Body: 
+[line   62]           ╰─── Return:
+[line    0]                ╰─── Function: 10071495574893983412_car_inner
 [line    0]                     ╰─── Function Expression:
-[line    0]                          ├─── Name: 8896250655973739750_destroy_inner
-[line    0]                          ├─── Return Type: $31
-[line    0]                          ├─── Captures:
-[line    0]                          │    ╰─── self
-[line    0]                          ╰─── Body: 
-[line   59]                               ╰─── If: 
-[line   59]                                    ├─── Binary: BangEqual
-[line   59]                                    │    ├─── Get: "next"
-[line   59]                                    │    │    ╰─── Deref: 
-[line   59]                                    │    │         ╰─── Variable: self
-[line   59]                                    │    ╰─── Cast: $32
-[line   59]                                    │         ╰─── Literal: 0
-[line   59]                                    ╰─── Block: 
-[line   60]                                         ├─── Expression: 
-[line   60]                                         │    ╰─── Call:
-[line   60]                                         │         ╰─── Get: "destroy"
-[line   60]                                         │              ╰─── Deref: 
-[line   60]                                         │                   ╰─── Get: "next"
-[line   60]                                         │                        ╰─── Deref: 
-[line   60]                                         │                             ╰─── Variable: self
-[line   61]                                         ╰─── Expression: 
-[line   61]                                              ╰─── Call:
-[line   61]                                                   ├─── Variable: free
-[line   61]                                                   ╰─── Get: "next"
-[line   61]                                                        ╰─── Deref: 
-[line   61]                                                             ╰─── Variable: self
-[line   65] Function Declaration: 8896250655973739750_car
-[line   65] ╰─── Function Expression:
-[line   65]      ├─── Name: 8896250655973739750_car
-[line   65]      ├─── Return Type: fn[*struct stream_add { s1: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, s2: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, next: *struct stream_add, }]() -> int
-[line   65]      ├─── Params:
-[line   65]      │    ╰─── self: *struct stream_add { s1: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, s2: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, next: *struct stream_add, }
-[line   65]      ╰─── Body: 
-[line   65]           ╰─── Return:
-[line    0]                ╰─── Function: 8896250655973739750_car_inner
-[line    0]                     ╰─── Function Expression:
-[line    0]                          ├─── Name: 8896250655973739750_car_inner
+[line    0]                          ├─── Name: 10071495574893983412_car_inner
 [line    0]                          ├─── Return Type: int
 [line    0]                          ├─── Captures:
 [line    0]                          │    ╰─── self
 [line    0]                          ╰─── Body: 
-[line   65]                               ╰─── Return:
-[line   66]                                    ╰─── Binary: Plus
-[line   66]                                         ├─── Call:
-[line   66]                                         │    ╰─── Get: "car"
-[line   66]                                         │         ╰─── Get: "s1"
-[line   66]                                         │              ╰─── Deref: 
-[line   66]                                         │                   ╰─── Variable: self
-[line   66]                                         ╰─── Call:
-[line   66]                                              ╰─── Get: "car"
-[line   66]                                                   ╰─── Get: "s2"
-[line   66]                                                        ╰─── Deref: 
-[line   66]                                                             ╰─── Variable: self
-[line   69] Function Declaration: 8896250655973739750_cdr
-[line   69] ╰─── Function Expression:
-[line   69]      ├─── Name: 8896250655973739750_cdr
-[line   69]      ├─── Return Type: fn[*struct stream_add { s1: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, s2: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, next: *struct stream_add, }]() -> struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }
-[line   69]      ├─── Params:
-[line   69]      │    ╰─── self: *struct stream_add { s1: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, s2: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, next: *struct stream_add, }
-[line   69]      ╰─── Body: 
-[line   69]           ╰─── Return:
-[line    0]                ╰─── Function: 8896250655973739750_cdr_inner
+[line   62]                               ╰─── Return:
+[line   63]                                    ╰─── Binary: Plus
+[line   63]                                         ├─── Call:
+[line   63]                                         │    ╰─── Get: "car"
+[line   63]                                         │         ╰─── Get: "s1"
+[line   63]                                         │              ╰─── Deref: 
+[line   63]                                         │                   ╰─── Variable: self
+[line   63]                                         ╰─── Call:
+[line   63]                                              ╰─── Get: "car"
+[line   63]                                                   ╰─── Get: "s2"
+[line   63]                                                        ╰─── Deref: 
+[line   63]                                                             ╰─── Variable: self
+[line   66] Function Declaration: 10071495574893983412_cdr
+[line   66] ╰─── Function Expression:
+[line   66]      ├─── Name: 10071495574893983412_cdr
+[line   66]      ├─── Return Type: fn[*struct stream_add { s1: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, s2: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, }]() -> struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }
+[line   66]      ├─── Params:
+[line   66]      │    ╰─── self: *struct stream_add { s1: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, s2: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, }
+[line   66]      ╰─── Body: 
+[line   66]           ╰─── Return:
+[line    0]                ╰─── Function: 10071495574893983412_cdr_inner
 [line    0]                     ╰─── Function Expression:
-[line    0]                          ├─── Name: 8896250655973739750_cdr_inner
+[line    0]                          ├─── Name: 10071495574893983412_cdr_inner
 [line    0]                          ├─── Return Type: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }
 [line    0]                          ├─── Captures:
 [line    0]                          │    ╰─── self
 [line    0]                          ╰─── Body: 
-[line   70]                               ├─── Var Declaration: s1
+[line   67]                               ├─── Var Declaration: s1
+[line   67]                               │    ╰───  Initializer
+[line   67]                               │         ╰─── Call:
+[line   67]                               │              ╰─── Get: "cdr"
+[line   67]                               │                   ╰─── Get: "s1"
+[line   67]                               │                        ╰─── Deref: 
+[line   67]                               │                             ╰─── Variable: self
+[line   68]                               ├─── Var Declaration: s2
+[line   68]                               │    ╰───  Initializer
+[line   68]                               │         ╰─── Call:
+[line   68]                               │              ╰─── Get: "cdr"
+[line   68]                               │                   ╰─── Get: "s2"
+[line   68]                               │                        ╰─── Deref: 
+[line   68]                               │                             ╰─── Variable: self
+[line   70]                               ├─── Var Declaration: add
 [line   70]                               │    ╰───  Initializer
 [line   70]                               │         ╰─── Call:
-[line   70]                               │              ╰─── Get: "cdr"
-[line   70]                               │                   ╰─── Get: "s1"
-[line   70]                               │                        ╰─── Deref: 
-[line   70]                               │                             ╰─── Variable: self
-[line   71]                               ├─── Var Declaration: s2
-[line   71]                               │    ╰───  Initializer
-[line   71]                               │         ╰─── Call:
-[line   71]                               │              ╰─── Get: "cdr"
-[line   71]                               │                   ╰─── Get: "s2"
-[line   71]                               │                        ╰─── Deref: 
-[line   71]                               │                             ╰─── Variable: self
-[line   73]                               ├─── Var Declaration: add
-[line   73]                               │    ╰───  Initializer
-[line   73]                               │         ╰─── Call:
-[line   73]                               │              ├─── Variable: malloc
-[line   73]                               │              ╰─── Sizeof: struct stream_add { s1: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, s2: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, next: *struct stream_add, }
-[line   74]                               ├─── Expression: 
-[line   74]                               │    ╰─── Assign:
-[line   74]                               │         ├─── Deref: 
-[line   74]                               │         │    ╰─── Variable: add
-[line   74]                               │         ╰─── StructInitializer: struct stream_add {s1: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, s2: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, next: *struct stream_add, }
-[line   74]                               │              ├───  s1: 
-[line   74]                               │              │    ╰─── Variable: s1
-[line   74]                               │              ├───  s2: 
-[line   74]                               │              │    ╰─── Variable: s2
-[line   74]                               │              ╰───  next: 
-[line   74]                               │                   ╰─── Literal: 0
-[line   75]                               ├─── Expression: 
-[line   75]                               │    ╰─── Assign:
-[line   75]                               │         ├─── Get: "next"
-[line   75]                               │         │    ╰─── Deref: 
-[line   75]                               │         │         ╰─── Variable: self
-[line   75]                               │         ╰─── Variable: add
-[line   75]                               ╰─── Return:
-[line   77]                                    ╰─── Call:
-[line   77]                                         ├─── Variable: stream_add_impl_stream
-[line   77]                                         ╰─── Variable: add
-[line   80] Function Declaration: cons
+[line   70]                               │              ├─── Variable: malloc
+[line   70]                               │              ╰─── Sizeof: struct stream_add { s1: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, s2: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, }
+[line   71]                               ├─── Expression: 
+[line   71]                               │    ╰─── Assign:
+[line   71]                               │         ├─── Deref: 
+[line   71]                               │         │    ╰─── Variable: add
+[line   71]                               │         ╰─── StructInitializer: struct stream_add {s1: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, s2: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, }
+[line   71]                               │              ├───  s1: 
+[line   71]                               │              │    ╰─── Variable: s1
+[line   71]                               │              ╰───  s2: 
+[line   71]                               │                   ╰─── Variable: s2
+[line   71]                               ╰─── Return:
+[line   73]                                    ╰─── Call:
+[line   73]                                         ├─── Variable: stream_add_impl_stream
+[line   73]                                         ╰─── Variable: add
+[line   76] Function Declaration: cons
+[line   76] ╰─── Function Expression:
+[line   76]      ├─── Name: cons
+[line   76]      ├─── Return Type: struct stream_cons { car: int, cdr: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, }
+[line   76]      ├─── Params:
+[line   76]      │    ├─── n: int
+[line   76]      │    ╰─── s: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }
+[line   76]      ╰─── Body: 
+[line   76]           ╰─── Return:
+[line   77]                ╰─── StructInitializer: struct stream_cons {car: int, cdr: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, }
+[line   77]                     ├───  car: 
+[line   77]                     │    ╰─── Variable: n
+[line   77]                     ╰───  cdr: 
+[line   77]                          ╰─── Variable: s
+[line   80] Function Declaration: add
 [line   80] ╰─── Function Expression:
-[line   80]      ├─── Name: cons
-[line   80]      ├─── Return Type: struct stream_cons { car: int, cdr: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, }
+[line   80]      ├─── Name: add
+[line   80]      ├─── Return Type: struct stream_add { s1: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, s2: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, }
 [line   80]      ├─── Params:
-[line   80]      │    ├─── n: int
-[line   80]      │    ╰─── s: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }
+[line   80]      │    ├─── s1: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }
+[line   80]      │    ╰─── s2: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }
 [line   80]      ╰─── Body: 
 [line   80]           ╰─── Return:
-[line   81]                ╰─── StructInitializer: struct stream_cons {car: int, cdr: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, }
-[line   81]                     ├───  car: 
-[line   81]                     │    ╰─── Variable: n
-[line   81]                     ╰───  cdr: 
-[line   81]                          ╰─── Variable: s
-[line   84] Function Declaration: add
+[line   81]                ╰─── StructInitializer: struct stream_add {s1: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, s2: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, }
+[line   81]                     ├───  s1: 
+[line   81]                     │    ╰─── Variable: s1
+[line   81]                     ╰───  s2: 
+[line   81]                          ╰─── Variable: s2
+[line   84] Function Declaration: main
 [line   84] ╰─── Function Expression:
-[line   84]      ├─── Name: add
-[line   84]      ├─── Return Type: struct stream_add { s1: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, s2: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, next: *struct stream_add, }
-[line   84]      ├─── Params:
-[line   84]      │    ├─── s1: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }
-[line   84]      │    ├─── s2: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }
-[line   84]      │    ╰─── next: *struct stream_add { s1: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, s2: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, next: *struct stream_add, }
+[line   84]      ├─── Name: main
+[line   84]      ├─── Return Type: int
 [line   84]      ╰─── Body: 
-[line   84]           ╰─── Return:
-[line   85]                ╰─── StructInitializer: struct stream_add {s1: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, s2: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, next: *struct stream_add, }
-[line   85]                     ├───  s1: 
-[line   85]                     │    ╰─── Variable: s1
-[line   85]                     ├───  s2: 
-[line   85]                     │    ╰─── Variable: s2
-[line   85]                     ╰───  next: 
-[line   85]                          ╰─── Variable: next
-[line   88] Function Declaration: main
-[line   88] ╰─── Function Expression:
-[line   88]      ├─── Name: main
-[line   88]      ├─── Return Type: int
-[line   88]      ╰─── Body: 
-[line   90]           ├─── Var Declaration: fibs
-[line   91]           ├─── Var Declaration: fibs_cdr
-[line   93]           ├─── Var Declaration: add
-[line   93]           │    ╰───  Initializer
+[line   85]           ├─── Expression: 
+[line   85]           │    ╰─── Assign:
+[line   85]           │         ├─── Variable: arena
+[line   85]           │         ╰─── Call:
+[line   85]           │              ╰─── Variable: create_arena
+[line   87]           ├─── Var Declaration: fibs
+[line   88]           ├─── Var Declaration: fibs_cdr
+[line   90]           ├─── Var Declaration: add0
+[line   90]           │    ╰───  Initializer
+[line   90]           │         ╰─── Call:
+[line   90]           │              ├─── Get: "alloc"
+[line   90]           │              │    ╰─── Variable: arena
+[line   90]           │              ╰─── Sizeof: struct stream_add { s1: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, s2: struct stream_impl { self: *nil, vtable: struct stream_vtable { car: fn[](*nil) -> fn[*nil]() -> int, cdr: fn[](*nil) -> fn[*nil]() -> struct stream_impl, }, }, }
+[line   91]           ├─── Expression: 
+[line   91]           │    ╰─── Assign:
+[line   91]           │         ├─── Deref: 
+[line   91]           │         │    ╰─── Variable: add0
+[line   91]           │         ╰─── Call:
+[line   91]           │              ├─── Variable: add
+[line   91]           │              ├─── Call:
+[line   91]           │              │    ├─── Variable: impl_stream
+[line   91]           │              │    ╰─── Ref: 
+[line   91]           │              │         ╰─── Variable: fibs
+[line   91]           │              ╰─── Call:
+[line   91]           │                   ├─── Variable: impl_stream
+[line   91]           │                   ╰─── Ref: 
+[line   91]           │                        ╰─── Variable: fibs_cdr
+[line   92]           ├─── Expression: 
+[line   92]           │    ╰─── Assign:
+[line   92]           │         ├─── Variable: fibs_cdr
+[line   92]           │         ╰─── Call:
+[line   92]           │              ├─── Variable: cons
+[line   92]           │              ├─── Literal: 1
+[line   92]           │              ╰─── Call:
+[line   92]           │                   ├─── Variable: impl_stream
+[line   92]           │                   ╰─── Variable: add0
+[line   93]           ├─── Expression: 
+[line   93]           │    ╰─── Assign:
+[line   93]           │         ├─── Variable: fibs
 [line   93]           │         ╰─── Call:
-[line   93]           │              ├─── Variable: add
-[line   93]           │              ├─── Call:
-[line   93]           │              │    ├─── Variable: impl_stream
-[line   93]           │              │    ╰─── Ref: 
-[line   93]           │              │         ╰─── Variable: fibs
-[line   93]           │              ├─── Call:
-[line   93]           │              │    ├─── Variable: impl_stream
-[line   93]           │              │    ╰─── Ref: 
-[line   93]           │              │         ╰─── Variable: fibs_cdr
-[line   93]           │              ╰─── Literal: 0
-[line   94]           ├─── Var Declaration: add0
-[line   94]           │    ╰───  Initializer
-[line   94]           │         ╰─── Variable: add
-[line   95]           ├─── Expression: 
-[line   95]           │    ╰─── Assign:
-[line   95]           │         ├─── Variable: fibs_cdr
+[line   93]           │              ├─── Variable: cons
+[line   93]           │              ├─── Literal: 0
+[line   93]           │              ╰─── Call:
+[line   93]           │                   ├─── Variable: impl_stream
+[line   93]           │                   ╰─── Ref: 
+[line   93]           │                        ╰─── Variable: fibs_cdr
+[line   95]           ├─── Var Declaration: s
+[line   95]           │    ╰───  Initializer
 [line   95]           │         ╰─── Call:
-[line   95]           │              ├─── Variable: cons
-[line   95]           │              ├─── Literal: 1
-[line   95]           │              ╰─── Call:
-[line   95]           │                   ├─── Variable: impl_stream
-[line   95]           │                   ╰─── Ref: 
-[line   95]           │                        ╰─── Variable: add
-[line   96]           ├─── Expression: 
-[line   96]           │    ╰─── Assign:
-[line   96]           │         ├─── Variable: fibs
-[line   96]           │         ╰─── Call:
-[line   96]           │              ├─── Variable: cons
-[line   96]           │              ├─── Literal: 0
-[line   96]           │              ╰─── Call:
-[line   96]           │                   ├─── Variable: impl_stream
-[line   96]           │                   ╰─── Ref: 
-[line   96]           │                        ╰─── Variable: fibs_cdr
-[line   98]           ├─── Var Declaration: s
-[line   98]           │    ╰───  Initializer
-[line   98]           │         ╰─── Call:
-[line   98]           │              ├─── Variable: impl_stream
-[line   98]           │              ╰─── Ref: 
-[line   98]           │                   ╰─── Variable: fibs
-[line  100]           ├─── Var Declaration: ret
-[line  100]           │    ╰───  Initializer
-[line  100]           │         ╰─── Literal: 0
-[line  102]           ├─── For: 
-[line  102]           │    ├─── Var Declaration: i
-[line  102]           │    │    ╰───  Initializer
-[line  102]           │    │         ╰─── Literal: 0
-[line  102]           │    ├─── Binary: Less
-[line  102]           │    │    ├─── Variable: i
-[line  102]           │    │    ╰─── Literal: 30
-[line  102]           │    ├─── Assign:
-[line  102]           │    │    ├─── Variable: i
-[line  102]           │    │    ╰─── Binary: Plus
-[line  102]           │    │         ├─── Variable: i
-[line  102]           │    │         ╰─── Literal: 1
-[line  102]           │    ╰─── Block: 
-[line  103]           │         ├─── Var Declaration: n
-[line  103]           │         │    ╰───  Initializer
-[line  103]           │         │         ╰─── Call:
-[line  103]           │         │              ├─── Variable: next
-[line  103]           │         │              ╰─── Ref: 
-[line  103]           │         │                   ╰─── Variable: s
-[line  104]           │         ╰─── Expression: 
-[line  104]           │              ╰─── Assign:
-[line  104]           │                   ├─── Variable: ret
-[line  104]           │                   ╰─── Binary: Plus
-[line  104]           │                        ├─── Variable: ret
-[line  104]           │                        ╰─── Variable: n
-[line  107]           ├─── Expression: 
-[line  107]           │    ╰─── Call:
-[line  107]           │         ╰─── Get: "destroy"
-[line  107]           │              ╰─── Variable: add0
-[line  107]           ╰─── Return:
-[line  109]                ╰─── Variable: ret
+[line   95]           │              ├─── Variable: impl_stream
+[line   95]           │              ╰─── Ref: 
+[line   95]           │                   ╰─── Variable: fibs
+[line   97]           ├─── Var Declaration: ret
+[line   97]           │    ╰───  Initializer
+[line   97]           │         ╰─── Literal: 0
+[line   99]           ├─── For: 
+[line   99]           │    ├─── Var Declaration: i
+[line   99]           │    │    ╰───  Initializer
+[line   99]           │    │         ╰─── Literal: 0
+[line   99]           │    ├─── Binary: Less
+[line   99]           │    │    ├─── Variable: i
+[line   99]           │    │    ╰─── Literal: 30
+[line   99]           │    ├─── Assign:
+[line   99]           │    │    ├─── Variable: i
+[line   99]           │    │    ╰─── Binary: Plus
+[line   99]           │    │         ├─── Variable: i
+[line   99]           │    │         ╰─── Literal: 1
+[line   99]           │    ╰─── Block: 
+[line  100]           │         ├─── Var Declaration: n
+[line  100]           │         │    ╰───  Initializer
+[line  100]           │         │         ╰─── Call:
+[line  100]           │         │              ├─── Variable: next
+[line  100]           │         │              ╰─── Ref: 
+[line  100]           │         │                   ╰─── Variable: s
+[line  101]           │         ╰─── Expression: 
+[line  101]           │              ╰─── Assign:
+[line  101]           │                   ├─── Variable: ret
+[line  101]           │                   ╰─── Binary: Plus
+[line  101]           │                        ├─── Variable: ret
+[line  101]           │                        ╰─── Variable: n
+[line  104]           ├─── Expression: 
+[line  104]           │    ╰─── Call:
+[line  104]           │         ╰─── Get: "destroy"
+[line  104]           │              ╰─── Variable: arena
+[line  104]           ╰─── Return:
+[line  106]                ╰─── Variable: ret

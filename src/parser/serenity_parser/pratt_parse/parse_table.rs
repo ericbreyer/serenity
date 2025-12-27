@@ -1,8 +1,7 @@
 use std::ops::Deref;
 
-use crate::lexer;
-
 use super::{ParseRule, Precedence, SerenityParser};
+use crate::lexer;
 
 pub struct ParseTable([ParseRule; lexer::TokenType::num_variants()]);
 

@@ -62,11 +62,13 @@ impl Display for ValueType {
                 s
             }
             ValueType::SelfStructRef(s, _) => format!("struct {}", s),
-            ValueType::GenericParam(n, c) => if c.is_empty() {
-                format!("<{n}>")
-            } else {
-                format!("<{n}: {:?}>", c)
-            },
+            ValueType::GenericParam(n, c) => {
+                if c.is_empty() {
+                    format!("<{n}>")
+                } else {
+                    format!("<{n}: {:?}>", c)
+                }
+            }
             ValueType::Err => "err".to_owned(),
             ValueType::TypeVar(i) => format!("${i}"),
         })

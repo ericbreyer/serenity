@@ -40,7 +40,8 @@ impl<'ctx> LLVMFunctionCompiler<'_, 'ctx> {
     }
 
     /// Construct the LLVM type of a closure from a prototype
-    /// A closure is a struct containing the captures and a pointer to the function
+    /// A closure is a struct containing the captures and a pointer to the
+    /// function
     ///
     /// # Arguments
     /// * `self` - The LLVMFunctionCompiler
@@ -61,7 +62,7 @@ impl<'ctx> LLVMFunctionCompiler<'_, 'ctx> {
                         self.get_variable(capture)
                             .unwrap()
                             .1
-                            .llvm(self.context, &*self.generics_in_scope.borrow())
+                            .llvm(self.context, &self.generics_in_scope.borrow())
                     })
                     .collect::<Result<Vec<_>>>()?
                     .as_slice(),
@@ -77,8 +78,8 @@ impl<'ctx> LLVMFunctionCompiler<'_, 'ctx> {
     }
 
     /// Construct the LLVM type of a function from a prototype
-    /// A function is a pointer to a function with the captures as the first arguments
-    /// and the function arguments as the rest
+    /// A function is a pointer to a function with the captures as the first
+    /// arguments and the function arguments as the rest
     ///
     /// # Arguments
     /// * `self` - The LLVMFunctionCompiler
@@ -96,20 +97,20 @@ impl<'ctx> LLVMFunctionCompiler<'_, 'ctx> {
         Ok(prototype
             .return_type
             .substitute(&*self.generics_in_scope.borrow())
-            .llvm(self.context, &*self.generics_in_scope.borrow())
+            .llvm(self.context, &self.generics_in_scope.borrow())
             .context("Function return type")?
             .fn_type(
                 prototype
                     .captures
                     .iter()
                     .map(|capture| self.get_variable(capture).unwrap().1)
-                    .map(|t| t.llvm(self.context, &*self.generics_in_scope.borrow()))
+                    .map(|t| t.llvm(self.context, &self.generics_in_scope.borrow()))
                     .map(|t| Ok(BasicMetadataTypeEnum::from(t?)))
                     .chain(prototype.params.iter().map(|(_s, t, _)| {
                         Ok(BasicMetadataTypeEnum::from(
                             t.substitute(&*self.generics_in_scope.borrow())
                                 .decay()
-                                .llvm(self.context, &*self.generics_in_scope.borrow())?,
+                                .llvm(self.context, &self.generics_in_scope.borrow())?,
                         ))
                     }))
                     .collect::<Result<Vec<_>>>()?

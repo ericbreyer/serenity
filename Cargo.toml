@@ -1,3 +1,8 @@
+[workspace]
+members = [
+    ".",
+]
+
 [package]
 name = "serenity"
 version = "0.1.0"
@@ -11,7 +16,7 @@ trie-rs = "0.4"
 num_enum = "*"
 getopts = "0.2"
 tracing = {version = "0.1.40", features = ["release_max_level_off"]}
-tracing-subscriber = "0.3.18"
+tracing-subscriber = "0.3.22"
 tracing-appender = "0.2.3"
 strum = "0.27"
 strum_macros = "0.27"
@@ -23,6 +28,7 @@ arena-alloc = "0.1.2"
 [dev-dependencies]
 insta = { version = "1.39.0", features = ["yaml", "filters"] }
 test-case = "*"
+lazy_static = "1.4.0"
 
 [profile.release]
 debug = true

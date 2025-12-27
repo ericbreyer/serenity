@@ -1,3 +1,7 @@
+include "arena_alloc.ser";
+
+let arena: struct Arena;
+
 type stream interface {
     car: fn() -> int,
     cdr: fn() -> impl stream,
@@ -52,15 +56,8 @@ fun (self : * struct stream_cons) cdr() -> impl stream {
 type stream_add struct {
     s1: impl stream,
     s2: impl stream,
-    next: *struct stream_add,
 } implements stream;
 
-fn (self : * struct stream_add) destroy() {
-    if (self->next != cast(0)) {
-        self->next->destroy();
-        free(self->next);
-    }
-}
 
 fun (self : * struct stream_add) car() -> int {
     return self->s1.car() + self->s2.car();
@@ -71,8 +68,7 @@ fun (self : * struct stream_add) cdr() -> impl stream {
     let s2 = self->s2.cdr();
 
     let add: *struct stream_add = malloc(sizeof(struct stream_add));
-    *add = struct stream_add { s1: s1, s2: s2, next: 0 };
-    self->next = add;
+    *add = struct stream_add { s1: s1, s2: s2 };
 
     return stream_add_impl_stream(add);
 }
@@ -81,18 +77,19 @@ fn cons(n: int, s: impl stream) -> struct stream_cons {
     return struct stream_cons { car: n, cdr: s };
 }
 
-fn add(s1: impl stream, s2: impl stream, next: *struct stream_add) -> struct stream_add {
-    return struct stream_add { s1: s1, s2: s2, next: next };
+fn add(s1: impl stream, s2: impl stream) -> struct stream_add {
+    return struct stream_add { s1: s1, s2: s2};
 }
 
 fn main() -> int {
+    arena = create_arena();
     // (define fibs (stream-cons 0 (stream-cons 1 (stream-add fibs (stream-cdr fibs)))))
     let fibs;
     let fibs_cdr;
     
-    let add = add(impl_stream(&fibs), impl_stream(&fibs_cdr), 0);
-    let add0 = add;
-    fibs_cdr = cons(1, impl_stream(&add));
+    let add0: *struct stream_add = arena.alloc(sizeof(struct stream_add));
+    *add0 = add(impl_stream(&fibs), impl_stream(&fibs_cdr));
+    fibs_cdr = cons(1, impl_stream(add0));
     fibs = cons(0, impl_stream(&fibs_cdr));
 
     let s = impl_stream(&fibs);
@@ -104,7 +101,7 @@ fn main() -> int {
         ret = ret + n;
     }
     
-    add0.destroy();
+    arena.destroy();
 
     return ret;
 }

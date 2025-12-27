@@ -1,0 +1,28 @@
+---
+source: tests/integration_test.rs
+expression: result
+---
+[line    1] Function Declaration: main
+[line    1] ╰─── Function Expression:
+[line    1]      ├─── Name: main
+[line    1]      ├─── Return Type: int
+[line    1]      ╰─── Body: 
+[line    2]           ├─── Expression: 
+[line    2]           │    ╰─── Call:
+[line    2]           │         ├─── Variable: printf
+[line    2]           │         ╰─── StringLiteral: "Hello, World!\n"
+[line    3]           ├─── Var Declaration: p
+[line    3]           │    ╰───  Initializer
+[line    3]           │         ╰─── Call:
+[line    3]           │              ├─── Variable: malloc
+[line    3]           │              ╰─── Literal: 100
+[line    4]           ├─── Expression: 
+[line    4]           │    ╰─── Call:
+[line    4]           │         ├─── Variable: free
+[line    4]           │         ╰─── Variable: p
+[line    5]           ├─── Expression: 
+[line    5]           │    ╰─── Call:
+[line    5]           │         ├─── Variable: usleep
+[line    5]           │         ╰─── Literal: 1000
+[line    5]           ╰─── Return:
+[line    7]                ╰─── Literal: 1

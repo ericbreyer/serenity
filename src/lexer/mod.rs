@@ -1,4 +1,5 @@
 use std::fmt::Debug;
+
 use strum::EnumCount as _;
 use strum_macros::{Display, EnumCount};
 use trie_rs::{Trie, TrieBuilder};
@@ -86,7 +87,7 @@ impl TokenType {
     }
 }
 
-const KEYWORDS: [(&str, TokenType); 35] = [
+const KEYWORDS: [(&str, TokenType); 34] = [
     ("and", TokenType::And),
     ("struct", TokenType::Struct),
     ("else", TokenType::Else),
@@ -97,7 +98,6 @@ const KEYWORDS: [(&str, TokenType); 35] = [
     ("if", TokenType::If),
     ("nil", TokenType::SimpleType),
     ("or", TokenType::Or),
-    // ("print", TokenType::Print),
     ("return", TokenType::Return),
     ("super", TokenType::Super),
     ("this", TokenType::This),
@@ -109,7 +109,6 @@ const KEYWORDS: [(&str, TokenType); 35] = [
     ("break", TokenType::Break),
     ("continue", TokenType::Continue),
     ("lambda", TokenType::Lambda),
-    ("λ", TokenType::Lambda),
     ("uint", TokenType::SimpleType),
     ("int", TokenType::SimpleType),
     ("float", TokenType::SimpleType),
@@ -389,5 +388,262 @@ impl Lexer {
             return KEYWORDS.iter().find(|(k, _)| k == &lexeme).unwrap().1;
         };
         TokenType::Identifier
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn lex_all(source: &str) -> Vec<Token> {
+        let mut lexer = Lexer::new(source.into());
+        let mut tokens = Vec::new();
+        loop {
+            let token = lexer.scan_token();
+            let is_eof = token.is_eof();
+            tokens.push(token);
+            if is_eof {
+                break;
+            }
+        }
+        tokens
+    }
+
+    #[test]
+    fn test_simple_number() {
+        let tokens = lex_all("42");
+        assert_eq!(tokens.len(), 2);
+        assert_eq!(tokens[0].token_type, TokenType::Number);
+        assert_eq!(tokens[0].lexeme, "42".into());
+        assert_eq!(tokens[1].token_type, TokenType::Eof);
+    }
+
+    #[test]
+    fn test_float_number() {
+        let tokens = lex_all("3.14");
+        assert_eq!(tokens[0].token_type, TokenType::Number);
+        assert_eq!(tokens[0].lexeme, "3.14".into());
+    }
+
+    #[test]
+    fn test_unsigned_integer() {
+        let tokens = lex_all("42u");
+        assert_eq!(tokens[0].token_type, TokenType::Number);
+        assert_eq!(tokens[0].lexeme, "42u".into());
+    }
+
+    #[test]
+    fn test_identifier() {
+        let tokens = lex_all("variable_name");
+        assert_eq!(tokens[0].token_type, TokenType::Identifier);
+        assert_eq!(tokens[0].lexeme, "variable_name".into());
+    }
+
+    #[test]
+    fn test_keywords() {
+        let keywords_to_test = vec![
+            ("fun", TokenType::Fun),
+            ("fn", TokenType::Fun),
+            ("let", TokenType::Var),
+            ("var", TokenType::Var),
+            ("if", TokenType::If),
+            ("else", TokenType::Else),
+            ("while", TokenType::While),
+            ("for", TokenType::For),
+            ("return", TokenType::Return),
+            ("true", TokenType::True),
+            ("false", TokenType::False),
+            ("struct", TokenType::Struct),
+            ("interface", TokenType::Interface),
+            ("impl", TokenType::Impl),
+        ];
+
+        for (keyword, expected_type) in keywords_to_test {
+            let tokens = lex_all(keyword);
+            assert_eq!(
+                tokens[0].token_type, expected_type,
+                "Keyword '{}' should lex as {:?}",
+                keyword, expected_type
+            );
+        }
+    }
+
+    #[test]
+    fn test_operators() {
+        let tests = vec![
+            ("+", TokenType::Plus),
+            ("-", TokenType::Minus),
+            ("*", TokenType::Star),
+            ("/", TokenType::Slash),
+            ("%", TokenType::Percent),
+            ("!", TokenType::Bang),
+            ("!=", TokenType::BangEqual),
+            ("=", TokenType::Equal),
+            ("==", TokenType::EqualEqual),
+            ("<", TokenType::Less),
+            ("<=", TokenType::LessEqual),
+            (">", TokenType::Greater),
+            (">=", TokenType::GreaterEqual),
+            ("&", TokenType::Amp),
+            ("|", TokenType::Pipe),
+            ("||", TokenType::Or),
+            ("->", TokenType::RightArrow),
+        ];
+
+        for (op, expected_type) in tests {
+            let tokens = lex_all(op);
+            assert_eq!(
+                tokens[0].token_type, expected_type,
+                "Operator '{}' should lex as {:?}",
+                op, expected_type
+            );
+        }
+    }
+
+    #[test]
+    fn test_delimiters() {
+        let tests = vec![
+            ("(", TokenType::LeftParen),
+            (")", TokenType::RightParen),
+            ("{", TokenType::LeftBrace),
+            ("}", TokenType::RightBrace),
+            ("[", TokenType::LeftBracket),
+            ("]", TokenType::RightBracket),
+            (";", TokenType::Semicolon),
+            (",", TokenType::Comma),
+            (".", TokenType::Dot),
+            (":", TokenType::Colon),
+            ("::", TokenType::DoubleColon),
+            ("?", TokenType::QuestionMark),
+        ];
+
+        for (delim, expected_type) in tests {
+            let tokens = lex_all(delim);
+            assert_eq!(
+                tokens[0].token_type, expected_type,
+                "Delimiter '{}' should lex as {:?}",
+                delim, expected_type
+            );
+        }
+    }
+
+    #[test]
+    fn test_string_literal() {
+        let tokens = lex_all(r#""hello world""#);
+        assert_eq!(tokens[0].token_type, TokenType::String);
+        assert_eq!(tokens[0].lexeme, r#""hello world""#.into());
+    }
+
+    #[test]
+    fn test_char_literal() {
+        let tokens = lex_all("'a'");
+        assert_eq!(tokens[0].token_type, TokenType::Char);
+        assert_eq!(tokens[0].lexeme, "'a'".into());
+    }
+
+    #[test]
+    fn test_char_escape() {
+        let tokens = lex_all(r"'\n'");
+        assert_eq!(tokens[0].token_type, TokenType::Char);
+    }
+
+    #[test]
+    fn test_unterminated_string() {
+        let tokens = lex_all(r#""unterminated"#);
+        assert_eq!(tokens[0].token_type, TokenType::Error);
+    }
+
+    #[test]
+    fn test_unterminated_char() {
+        let tokens = lex_all(r"'a");
+        assert_eq!(tokens[0].token_type, TokenType::Error);
+    }
+
+    #[test]
+    fn test_line_tracking() {
+        let tokens = lex_all("x\ny\nz");
+        assert_eq!(tokens[0].line, 1);
+        assert_eq!(tokens[1].line, 2);
+        assert_eq!(tokens[2].line, 3);
+    }
+
+    #[test]
+    fn test_comment_skipping() {
+        let tokens = lex_all("x // comment\ny");
+        assert_eq!(tokens[0].token_type, TokenType::Identifier);
+        assert_eq!(tokens[0].lexeme, "x".into());
+        assert_eq!(tokens[1].token_type, TokenType::Identifier);
+        assert_eq!(tokens[1].lexeme, "y".into());
+        assert_eq!(tokens[2].token_type, TokenType::Eof);
+    }
+
+    #[test]
+    fn test_whitespace_skipping() {
+        let tokens = lex_all("  x  \t  y  ");
+        assert_eq!(tokens[0].lexeme, "x".into());
+        assert_eq!(tokens[1].lexeme, "y".into());
+        assert_eq!(tokens[2].token_type, TokenType::Eof);
+    }
+
+    #[test]
+    fn test_lambda_keyword() {
+        let tokens_lambda = lex_all("lambda");
+        assert_eq!(tokens_lambda[0].token_type, TokenType::Lambda);
+    }
+
+    #[test]
+    fn test_parenthesis_brace_combo() {
+        let tokens = lex_all("({})");
+        assert_eq!(tokens[0].token_type, TokenType::LeftParenBrace);
+        assert_eq!(tokens[1].token_type, TokenType::RightParenBrace);
+    }
+
+    #[test]
+    fn test_complex_expression() {
+        let tokens = lex_all("let x: int = 42; x + 10");
+        assert_eq!(tokens[0].token_type, TokenType::Var); // let
+        assert_eq!(tokens[1].lexeme, "x".into());
+        assert_eq!(tokens[2].token_type, TokenType::Colon);
+        assert_eq!(tokens[3].token_type, TokenType::SimpleType); // int
+        assert_eq!(tokens[4].token_type, TokenType::Equal);
+        assert_eq!(tokens[5].token_type, TokenType::Number); // 42
+        assert_eq!(tokens[6].token_type, TokenType::Semicolon);
+    }
+
+    #[test]
+    fn test_multiple_operators() {
+        let tokens = lex_all("a <= b && c >= d");
+        assert_eq!(tokens[0].lexeme, "a".into());
+        assert_eq!(tokens[1].token_type, TokenType::LessEqual);
+        assert_eq!(tokens[2].lexeme, "b".into());
+        assert_eq!(tokens[3].token_type, TokenType::Amp);
+        assert_eq!(tokens[4].token_type, TokenType::Amp);
+        assert_eq!(tokens[5].lexeme, "c".into());
+        assert_eq!(tokens[6].token_type, TokenType::GreaterEqual);
+        assert_eq!(tokens[7].lexeme, "d".into());
+    }
+
+    #[test]
+    fn test_all_simple_types() {
+        let simple_types = vec!["int", "uint", "float", "bool", "char", "nil"];
+        for simple_type in simple_types {
+            let tokens = lex_all(simple_type);
+            assert_eq!(tokens[0].token_type, TokenType::SimpleType);
+        }
+    }
+
+    #[test]
+    fn test_underscore_in_identifier() {
+        let tokens = lex_all("_private_var");
+        assert_eq!(tokens[0].token_type, TokenType::Identifier);
+        assert_eq!(tokens[0].lexeme, "_private_var".into());
+    }
+
+    #[test]
+    fn test_type_keyword() {
+        let tokens = lex_all("type MyType");
+        assert_eq!(tokens[0].token_type, TokenType::Type);
+        assert_eq!(tokens[1].token_type, TokenType::Identifier);
+        assert_eq!(tokens[1].lexeme, "MyType".into());
     }
 }

@@ -4,8 +4,10 @@ expression: result
 ---
 ; ModuleID = 'main'
 source_filename = "main"
+target datalayout = "e-m:o-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-n32:64-S128-Fn32"
+target triple = "arm64-apple-darwin24.6.0"
 
-@main = global { ptr } { ptr @main_i64 }
+@"main#closure_wrapper" = global { ptr } { ptr @main_i64 }
 
 declare i8 @printf(ptr, ...)
 
@@ -14,6 +16,8 @@ declare ptr @malloc(i64)
 declare i8 @free(ptr)
 
 declare i8 @usleep(i64)
+
+declare i8 @exit(i64)
 
 define i64 @main_i64() {
 entry:
@@ -24,17 +28,17 @@ entry:
   %struct_init = alloca { i64, ptr }, align 8
   %head = alloca { i64, ptr }, align 8
   %field = getelementptr inbounds nuw { i64, ptr }, ptr %struct_init, i32 0, i32 0
-  store i64 10, ptr %field, align 4
+  store i64 10, ptr %field, align 8
   %field1 = getelementptr inbounds nuw { i64, ptr }, ptr %struct_init, i32 0, i32 1
-  store i64 0, ptr %field1, align 4
+  store i64 0, ptr %field1, align 8
   %struct_init2 = load { i64, ptr }, ptr %struct_init, align 8
   store { i64, ptr } %struct_init2, ptr %head, align 8
   store ptr %head, ptr %current, align 8
-  store i64 0, ptr %i, align 4
+  store i64 0, ptr %i, align 8
   br label %loop_10
 
-loop_10:                                          ; preds = %body_10, %entry
-  %rval = load i64, ptr %i, align 4
+loop_10:                                          ; preds = %increment_10, %entry
+  %rval = load i64, ptr %i, align 8
   %lttmp = icmp slt i64 %rval, 10
   br i1 %lttmp, label %body_10, label %merge_10
 
@@ -44,41 +48,47 @@ body_10:                                          ; preds = %loop_10
   %rval4 = load ptr, ptr %current, align 8
   %field5 = getelementptr inbounds nuw { i64, ptr }, ptr %rval4, i32 0, i32 1
   store ptr %calltmp, ptr %field5, align 8
-  %rval6 = load i64, ptr %i, align 4
+  %rval6 = load i64, ptr %i, align 8
   %subtmp = sub i64 9, %rval6
   %rval7 = load ptr, ptr %current, align 8
   %field8 = getelementptr inbounds nuw { i64, ptr }, ptr %rval7, i32 0, i32 1
   %rval9 = load ptr, ptr %field8, align 8
   %field10 = getelementptr inbounds nuw { i64, ptr }, ptr %rval9, i32 0, i32 0
-  store i64 %subtmp, ptr %field10, align 4
+  store i64 %subtmp, ptr %field10, align 8
   %rval11 = load ptr, ptr %current, align 8
   %field12 = getelementptr inbounds nuw { i64, ptr }, ptr %rval11, i32 0, i32 1
   %rval13 = load ptr, ptr %field12, align 8
   store ptr %rval13, ptr %current, align 8
-  %rval14 = load i64, ptr %i, align 4
+  br label %increment_10
+
+increment_10:                                     ; preds = %body_10
+  %rval14 = load i64, ptr %i, align 8
   %addtmp = add i64 %rval14, 1
-  store i64 %addtmp, ptr %i, align 4
+  store i64 %addtmp, ptr %i, align 8
   br label %loop_10
 
 merge_10:                                         ; preds = %loop_10
-  store i64 0, ptr %sum, align 4
+  store i64 0, ptr %sum, align 8
   store ptr %head, ptr %current15, align 8
   br label %loop_17
 
-loop_17:                                          ; preds = %body_17, %merge_10
+loop_17:                                          ; preds = %increment_17, %merge_10
   %rval16 = load ptr, ptr %current15, align 8
   %field17 = getelementptr inbounds nuw { i64, ptr }, ptr %rval16, i32 0, i32 0
-  %rval18 = load i64, ptr %field17, align 4
+  %rval18 = load i64, ptr %field17, align 8
   %neqtmp = icmp ne i64 %rval18, 0
   br i1 %neqtmp, label %body_17, label %merge_17
 
 body_17:                                          ; preds = %loop_17
-  %rval19 = load i64, ptr %sum, align 4
+  %rval19 = load i64, ptr %sum, align 8
   %rval20 = load ptr, ptr %current15, align 8
   %field21 = getelementptr inbounds nuw { i64, ptr }, ptr %rval20, i32 0, i32 0
-  %rval22 = load i64, ptr %field21, align 4
+  %rval22 = load i64, ptr %field21, align 8
   %addtmp23 = add i64 %rval19, %rval22
-  store i64 %addtmp23, ptr %sum, align 4
+  store i64 %addtmp23, ptr %sum, align 8
+  br label %increment_17
+
+increment_17:                                     ; preds = %body_17
   %rval24 = load ptr, ptr %current15, align 8
   %field25 = getelementptr inbounds nuw { i64, ptr }, ptr %rval24, i32 0, i32 1
   %rval26 = load ptr, ptr %field25, align 8
@@ -86,6 +96,13 @@ body_17:                                          ; preds = %loop_17
   br label %loop_17
 
 merge_17:                                         ; preds = %loop_17
-  %rval27 = load i64, ptr %sum, align 4
+  %rval27 = load i64, ptr %sum, align 8
   ret i64 %rval27
+}
+
+define i32 @main(i32 %0, ptr %1) {
+entry:
+  %ret64 = call i64 @main_i64()
+  %ret32 = trunc i64 %ret64 to i32
+  ret i32 %ret32
 }

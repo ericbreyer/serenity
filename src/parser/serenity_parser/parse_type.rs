@@ -1,8 +1,7 @@
 use indexmap::IndexMap;
 
-use crate::typing::{Closure, Constraint, UValueType};
-
 use super::*;
+use crate::typing::{Closure, Constraint, UValueType};
 
 impl SerenityParser {
     pub fn parse_type(
@@ -23,7 +22,7 @@ impl SerenityParser {
         let trailing_star = self.match_token(TokenType::Star);
 
         if trailing_star || leading_star {
-            if trailing_star == leading_star {
+            if trailing_star && leading_star {
                 self.error("Cannot have both leading and trailing '*'.");
                 return ValueType::Err.intern();
             }
@@ -66,7 +65,10 @@ impl SerenityParser {
 
         if self.match_token(TokenType::Identifier) {
             let name = self.previous.lexeme.clone();
-            if let Some((s, c)) = type_params.and_then(|tp| tp.contains_key(&name).then(|| (name.clone(), tp.get(&name).unwrap().clone()))) {
+            if let Some((s, c)) = type_params.and_then(|tp| {
+                tp.contains_key(&name)
+                    .then(|| (name.clone(), tp.get(&name).unwrap().clone()))
+            }) {
                 return ValueType::GenericParam(s.clone(), c).intern();
             }
         }
@@ -122,7 +124,8 @@ impl SerenityParser {
                 self.consume(TokenType::Greater, "Expect '>' after type parameters.");
                 params
             } else {
-                // if the struct has no type parameters, return an empty vec as the type parameters
+                // if the struct has no type parameters, return an empty vec as the type
+                // parameters
                 Vec::new()
             };
 
@@ -156,7 +159,8 @@ impl SerenityParser {
                 }
                 type_params
             } else {
-                // if the struct has no type parameters, return an empty hashmap as the type parameters
+                // if the struct has no type parameters, return an empty hashmap as the type
+                // parameters
                 HashMap::new()
             };
             return ValueType::Struct(Box::new(s.clone()))

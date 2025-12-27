@@ -7,13 +7,12 @@ use std::{
 
 use anyhow::{Context as _, Result};
 use arena_alloc::Arena;
+pub use closure::*;
+pub use custom_struct::*;
 use indexmap::IndexMap;
 use inkwell::{context::Context, types::BasicType as _, AddressSpace};
 
 use crate::prelude::*;
-
-pub use closure::*;
-pub use custom_struct::*;
 
 mod closure;
 mod custom_struct;
@@ -48,15 +47,14 @@ pub enum ValueType {
 }
 
 impl ValueType {
-
     pub fn satisfies_constraints(
         &'static self,
-        constraint: &Box<[Constraint]>,
+        constraint: &[Constraint],
         generics: &ScopedMap<SharedString, UValueType>,
     ) -> bool {
-                        if constraint.is_empty() {
-                    return true;
-                }
+        if constraint.is_empty() {
+            return true;
+        }
         let subedself = self.substitute(generics);
         match subedself {
             Self::Struct(s) => {
@@ -66,7 +64,7 @@ impl ValueType {
                             return false;
                         }
                     }
-                }                
+                }
                 true
             }
             _ => false,
@@ -233,12 +231,227 @@ impl From<SharedString> for ValueType {
                         if c.is_empty() {
                             Constraint(None)
                         } else {
-                            Constraint(Some(c.to_string().into())) 
-                        }})
+                            Constraint(Some(c.to_string().into()))
+                        }
+                    })
                     .collect::<Vec<_>>();
                 Self::GenericParam(name.into(), constraints.into_boxed_slice())
             }
-            s =>{Self::GenericParam(s.into(), Box::new([]))},
+            s => Self::GenericParam(s.into(), Box::new([])),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_basic_types_creation() {
+        let int_type = ValueType::Integer;
+        let float_type = ValueType::Float;
+        let bool_type = ValueType::Bool;
+        let char_type = ValueType::Char;
+        let nil_type = ValueType::Nil;
+
+        assert_eq!(format!("{}", int_type), "int");
+        assert_eq!(format!("{}", float_type), "float");
+        assert_eq!(format!("{}", bool_type), "bool");
+        assert_eq!(format!("{}", char_type), "char");
+        assert_eq!(format!("{}", nil_type), "nil");
+    }
+
+    #[test]
+    fn test_type_from_string() {
+        let int_type = ValueType::from(SharedString::from("int"));
+        let float_type = ValueType::from(SharedString::from("float"));
+        let bool_type = ValueType::from(SharedString::from("bool"));
+        let char_type = ValueType::from(SharedString::from("char"));
+        let nil_type = ValueType::from(SharedString::from("nil"));
+
+        assert!(matches!(int_type, ValueType::Integer));
+        assert!(matches!(float_type, ValueType::Float));
+        assert!(matches!(bool_type, ValueType::Bool));
+        assert!(matches!(char_type, ValueType::Char));
+        assert!(matches!(nil_type, ValueType::Nil));
+    }
+
+    #[test]
+    fn test_generic_param_from_string() {
+        let generic_type = ValueType::from(SharedString::from("T"));
+        assert!(matches!(generic_type, ValueType::GenericParam(_, _)));
+    }
+
+    #[test]
+    fn test_type_var_from_string() {
+        let type_var = ValueType::from(SharedString::from("$0"));
+        assert!(matches!(type_var, ValueType::TypeVar(0)));
+    }
+
+    #[test]
+    fn test_constraint_creation() {
+        let constraint_some = Constraint(Some("Iterator".into()));
+        let constraint_none = Constraint(None);
+
+        assert!(constraint_some.0.is_some());
+        assert!(constraint_none.0.is_none());
+    }
+
+    #[test]
+    fn test_constraint_equality() {
+        let c1 = Constraint(Some("Iterator".into()));
+        let c2 = Constraint(Some("Iterator".into()));
+        let c3 = Constraint(None);
+
+        assert_eq!(c1, c2);
+        assert_ne!(c1, c3);
+    }
+
+    #[test]
+    fn test_value_type_equality_basic() {
+        let int1 = ValueType::Integer;
+        let int2 = ValueType::Integer;
+        let float = ValueType::Float;
+
+        assert_eq!(int1, int2);
+        assert_ne!(int1, float);
+    }
+
+    #[test]
+    fn test_err_type() {
+        let err_type = ValueType::Err;
+        assert_eq!(format!("{}", err_type), "err");
+    }
+
+    #[test]
+    fn test_id_str_generation() {
+        let int_type = ValueType::Integer;
+        let id_str = int_type.id_str();
+        assert!(!id_str.is_empty());
+    }
+
+    #[test]
+    fn test_different_types_different_id_str() {
+        let int_type = ValueType::Integer;
+        let float_type = ValueType::Float;
+
+        let int_id = int_type.id_str();
+        let float_id = float_type.id_str();
+
+        assert_ne!(int_id, float_id);
+    }
+
+    #[test]
+    fn test_type_soft_compare() {
+        let int1 = ValueType::Integer;
+        let int2 = ValueType::Integer;
+        let float = ValueType::Float;
+
+        assert!(int1.soft_compare(&int2));
+        assert!(!int1.soft_compare(&float));
+    }
+
+    #[test]
+    fn test_type_display() {
+        let types = vec![
+            (ValueType::Integer, "int"),
+            (ValueType::Float, "float"),
+            (ValueType::Bool, "bool"),
+            (ValueType::Char, "char"),
+            (ValueType::Nil, "nil"),
+            (ValueType::Err, "err"),
+        ];
+
+        for (value_type, expected) in types {
+            assert_eq!(format!("{}", value_type), expected);
+        }
+    }
+
+    #[test]
+    fn test_value_type_debug() {
+        let int_type = ValueType::Integer;
+        let debug_str = format!("{:?}", int_type);
+        assert!(!debug_str.is_empty());
+    }
+
+    #[test]
+    fn test_multiple_generic_params() {
+        let generic = ValueType::from(SharedString::from("T:Iterator:Clone"));
+        if let ValueType::GenericParam(name, constraints) = generic {
+            assert_eq!(name, "T".into());
+            assert_eq!(constraints.len(), 2);
+        } else {
+            panic!("Expected GenericParam");
+        }
+    }
+
+    #[test]
+    fn test_constraint_with_none() {
+        let type_str = SharedString::from("T:");
+        let generic = ValueType::from(type_str);
+        if let ValueType::GenericParam(_, constraints) = generic {
+            assert!(!constraints.is_empty());
+        } else {
+            panic!("Expected GenericParam");
+        }
+    }
+
+    #[test]
+    fn test_type_clone() {
+        let original = ValueType::Integer;
+        let cloned = original.clone();
+        assert_eq!(original, cloned);
+    }
+
+    #[test]
+    fn test_primitive_types_distinct() {
+        let types = vec![
+            ValueType::Integer,
+            ValueType::Float,
+            ValueType::Bool,
+            ValueType::Char,
+            ValueType::Nil,
+            ValueType::Err,
+        ];
+
+        for i in 0..types.len() {
+            for j in (i + 1)..types.len() {
+                assert_ne!(types[i], types[j]);
+            }
+        }
+    }
+
+    #[test]
+    fn test_generic_param_display() {
+        let generic = ValueType::GenericParam("T".into(), Box::new([]));
+        let display_str = format!("{}", generic);
+        assert!(display_str.contains("T"));
+    }
+
+    #[test]
+    fn test_err_type_from_string() {
+        let err = ValueType::from(SharedString::from("err"));
+        assert!(matches!(err, ValueType::Err));
+    }
+
+    #[test]
+    fn test_type_var_display() {
+        let type_var = ValueType::TypeVar(42);
+        let display_str = format!("{}", type_var);
+        assert_eq!(display_str, "$42");
+    }
+
+    #[test]
+    fn test_constraint_clone() {
+        let original = Constraint(Some("Trait".into()));
+        let cloned = original.clone();
+        assert_eq!(original, cloned);
+    }
+
+    #[test]
+    fn test_constraint_debug() {
+        let c = Constraint(Some("Iterator".into()));
+        let debug_str = format!("{:?}", c);
+        assert!(!debug_str.is_empty());
     }
 }

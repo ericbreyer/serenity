@@ -1,0 +1,44 @@
+---
+source: tests/integration_test.rs
+expression: result
+---
+; ModuleID = 'main'
+source_filename = "main"
+target datalayout = "e-m:o-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-n32:64-S128-Fn32"
+target triple = "arm64-apple-darwin24.6.0"
+
+@"main#closure_wrapper" = global { ptr } { ptr @main_i64 }
+@str = private unnamed_addr constant [15 x i8] c"Hello, World!\0A\00", align 1
+
+declare i8 @printf(ptr, ...)
+
+declare ptr @malloc(i64)
+
+declare i8 @free(ptr)
+
+declare i8 @usleep(i64)
+
+declare i8 @exit(i64)
+
+define i64 @main_i64() {
+entry:
+  %p = alloca ptr, align 8
+  %rval = load ptr, ptr @printf, align 8
+  %calltmp = call i8 (ptr, ...) @printf(ptr @str)
+  %rval1 = load ptr, ptr @malloc, align 8
+  %calltmp2 = call ptr @malloc(i64 100)
+  store ptr %calltmp2, ptr %p, align 8
+  %rval3 = load ptr, ptr @free, align 8
+  %rval4 = load ptr, ptr %p, align 8
+  %calltmp5 = call i8 @free(ptr %rval4)
+  %rval6 = load ptr, ptr @usleep, align 8
+  %calltmp7 = call i8 @usleep(i64 1000)
+  ret i64 1
+}
+
+define i32 @main(i32 %0, ptr %1) {
+entry:
+  %ret64 = call i64 @main_i64()
+  %ret32 = trunc i64 %ret64 to i32
+  ret i32 %ret32
+}

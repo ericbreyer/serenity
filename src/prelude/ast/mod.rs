@@ -1,5 +1,5 @@
 use core::fmt;
-use std::{cell::RefCell, collections::HashMap, fmt::Debug, rc::Rc};
+use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
 mod to_str;
 
@@ -80,6 +80,20 @@ pub enum ASTNode {
     Statement(Statement),
     Expression(Expression),
     Declaration(Declaration),
+}
+
+impl ASTNode {
+    pub fn is_empty(&self) -> bool {
+        matches!(self, ASTNode::Empty)
+    }
+
+    pub fn vec_of(&self) -> Vec<ASTNode> {
+        if self.is_empty() {
+            vec![]
+        } else {
+            vec![self.clone()]
+        }
+    }
 }
 
 impl<T, V> Acceptor<T, V> for ASTNode
@@ -822,7 +836,7 @@ pub struct VarDeclaration {
 }
 
 #[derive(Clone)]
-pub struct ArrayDeclaration {
+pub struct _ArrayDeclaration {
     pub name: SharedString,
     pub elements: Vec<Expression>,
     pub elem_tipe: Option<UValueType>,
@@ -832,7 +846,7 @@ pub struct ArrayDeclaration {
 #[derive(Clone, Debug)]
 pub struct InstantiateAs {
     pub name: SharedString,
-    pub types: Vec<UValueType>,
+    pub types: IndexMap<SharedString, UValueType>,
 }
 
 #[derive(Clone, Debug)]
@@ -887,5 +901,652 @@ where
 {
     fn accept(&self, visitor: &V) -> T {
         visitor.visit_function_declaration(self)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::value_literals::Value;
+
+    #[test]
+    fn test_ast_node_is_empty() {
+        let empty = ASTNode::Empty;
+        assert!(empty.is_empty());
+
+        let stmt = ASTNode::Statement(Statement::Break(BreakStatement { line_no: 1 }));
+        assert!(!stmt.is_empty());
+    }
+
+    #[test]
+    fn test_ast_node_vec_of_empty() {
+        let empty = ASTNode::Empty;
+        let vec = empty.vec_of();
+        assert_eq!(vec.len(), 0);
+    }
+
+    #[test]
+    fn test_ast_node_vec_of_non_empty() {
+        let stmt = ASTNode::Statement(Statement::Break(BreakStatement { line_no: 1 }));
+        let vec = stmt.vec_of();
+        assert_eq!(vec.len(), 1);
+    }
+
+    #[test]
+    fn test_block_statement_creation() {
+        let block = BlockStatement {
+            statements: vec![],
+            line_no: 10,
+        };
+        assert_eq!(block.statements.len(), 0);
+        assert_eq!(block.line_no, 10);
+    }
+
+    #[test]
+    fn test_if_statement_creation() {
+        let condition = Expression::Literal(LiteralExpression {
+            value: Value::Bool(true),
+            line_no: 5,
+        });
+        let then_branch = Statement::Break(BreakStatement { line_no: 6 });
+
+        let if_stmt = IfStatement {
+            condition: Box::new(condition),
+            then_branch: Box::new(then_branch),
+            else_branch: None,
+            line_no: 5,
+        };
+
+        assert!(if_stmt.else_branch.is_none());
+        assert_eq!(if_stmt.line_no, 5);
+    }
+
+    #[test]
+    fn test_if_statement_with_else() {
+        let condition = Expression::Literal(LiteralExpression {
+            value: Value::Bool(false),
+            line_no: 5,
+        });
+        let then_branch = Statement::Break(BreakStatement { line_no: 6 });
+        let else_branch = Statement::Continue(ContinueStatement { line_no: 8 });
+
+        let if_stmt = IfStatement {
+            condition: Box::new(condition),
+            then_branch: Box::new(then_branch),
+            else_branch: Some(Box::new(else_branch)),
+            line_no: 5,
+        };
+
+        assert!(if_stmt.else_branch.is_some());
+    }
+
+    #[test]
+    fn test_while_statement_creation() {
+        let condition = Expression::Literal(LiteralExpression {
+            value: Value::Bool(true),
+            line_no: 10,
+        });
+        let body = Statement::Break(BreakStatement { line_no: 11 });
+
+        let while_stmt = WhileStatement {
+            condition: Box::new(condition),
+            body: Box::new(body),
+            line_no: 10,
+        };
+
+        assert_eq!(while_stmt.line_no, 10);
+    }
+
+    #[test]
+    fn test_for_statement_creation() {
+        let for_stmt = ForStatement {
+            init: None,
+            condition: None,
+            increment: None,
+            body: Box::new(Statement::Break(BreakStatement { line_no: 15 })),
+            line_no: 14,
+        };
+
+        assert!(for_stmt.init.is_none());
+        assert!(for_stmt.condition.is_none());
+        assert!(for_stmt.increment.is_none());
+    }
+
+    #[test]
+    fn test_for_statement_complete() {
+        let init = ASTNode::Declaration(Declaration::Var(VarDeclaration {
+            name: "i".into(),
+            tipe: ValueType::Integer.intern(),
+            initializer: Some(Box::new(Expression::Literal(LiteralExpression {
+                value: Value::Integer(0),
+                line_no: 20,
+            }))),
+            mutable: true,
+            line_no: 20,
+        }));
+
+        let condition = Expression::Literal(LiteralExpression {
+            value: Value::Bool(true),
+            line_no: 20,
+        });
+
+        let increment = Expression::Literal(LiteralExpression {
+            value: Value::Integer(1),
+            line_no: 20,
+        });
+
+        let for_stmt = ForStatement {
+            init: Some(Box::new(init)),
+            condition: Some(Box::new(condition)),
+            increment: Some(Box::new(increment)),
+            body: Box::new(Statement::Break(BreakStatement { line_no: 21 })),
+            line_no: 20,
+        };
+
+        assert!(for_stmt.init.is_some());
+        assert!(for_stmt.condition.is_some());
+        assert!(for_stmt.increment.is_some());
+    }
+
+    #[test]
+    fn test_break_statement_creation() {
+        let break_stmt = BreakStatement { line_no: 42 };
+        assert_eq!(break_stmt.line_no, 42);
+    }
+
+    #[test]
+    fn test_continue_statement_creation() {
+        let continue_stmt = ContinueStatement { line_no: 43 };
+        assert_eq!(continue_stmt.line_no, 43);
+    }
+
+    #[test]
+    fn test_return_statement_with_value() {
+        let return_stmt = ReturnStatement {
+            value: Some(Box::new(Expression::Literal(LiteralExpression {
+                value: Value::Integer(42),
+                line_no: 50,
+            }))),
+            line_no: 50,
+        };
+
+        assert!(return_stmt.value.is_some());
+    }
+
+    #[test]
+    fn test_return_statement_without_value() {
+        let return_stmt = ReturnStatement {
+            value: None,
+            line_no: 51,
+        };
+
+        assert!(return_stmt.value.is_none());
+    }
+
+    #[test]
+    fn test_expression_statement_creation() {
+        let expr_stmt = ExpressionStatement {
+            expr: Box::new(Expression::Literal(LiteralExpression {
+                value: Value::Integer(100),
+                line_no: 60,
+            })),
+            line_no: 60,
+        };
+
+        assert_eq!(expr_stmt.line_no, 60);
+    }
+
+    #[test]
+    fn test_literal_expression_integer() {
+        let lit = LiteralExpression {
+            value: Value::Integer(42),
+            line_no: 70,
+        };
+        assert_eq!(lit.value, Value::Integer(42));
+        assert_eq!(lit.line_no, 70);
+    }
+
+    #[test]
+    fn test_literal_expression_float() {
+        let lit = LiteralExpression {
+            value: Value::Float(3.14),
+            line_no: 71,
+        };
+        assert_eq!(lit.value, Value::Float(3.14));
+    }
+
+    #[test]
+    fn test_literal_expression_bool() {
+        let lit = LiteralExpression {
+            value: Value::Bool(true),
+            line_no: 72,
+        };
+        assert_eq!(lit.value, Value::Bool(true));
+    }
+
+    #[test]
+    fn test_string_literal_expression() {
+        let str_lit = StringLiteralExpression {
+            value: "hello".into(),
+            line_no: 80,
+        };
+        assert_eq!(str_lit.value, SharedString::from("hello"));
+    }
+
+    #[test]
+    fn test_unary_expression_creation() {
+        let unary = UnaryExpression {
+            operator: TokenType::Minus,
+            operand: Box::new(Expression::Literal(LiteralExpression {
+                value: Value::Integer(5),
+                line_no: 85,
+            })),
+            line_no: 85,
+        };
+        assert_eq!(unary.operator, TokenType::Minus);
+    }
+
+    #[test]
+    fn test_binary_expression_creation() {
+        let binary = BinaryExpression {
+            left: Box::new(Expression::Literal(LiteralExpression {
+                value: Value::Integer(1),
+                line_no: 90,
+            })),
+            operator: TokenType::Plus,
+            right: Box::new(Expression::Literal(LiteralExpression {
+                value: Value::Integer(2),
+                line_no: 90,
+            })),
+            line_no: 90,
+        };
+        assert_eq!(binary.operator, TokenType::Plus);
+    }
+
+    #[test]
+    fn test_eval_constexpr_literal_integer() {
+        let expr = Expression::Literal(LiteralExpression {
+            value: Value::Integer(42),
+            line_no: 100,
+        });
+        assert_eq!(expr.eval_constexpr(), Some(Value::Integer(42)));
+    }
+
+    #[test]
+    fn test_eval_constexpr_unary_minus_integer() {
+        let expr = Expression::Unary(UnaryExpression {
+            operator: TokenType::Minus,
+            operand: Box::new(Expression::Literal(LiteralExpression {
+                value: Value::Integer(5),
+                line_no: 110,
+            })),
+            line_no: 110,
+        });
+        assert_eq!(expr.eval_constexpr(), Some(Value::Integer(-5)));
+    }
+
+    #[test]
+    fn test_eval_constexpr_unary_not_bool() {
+        let expr = Expression::Unary(UnaryExpression {
+            operator: TokenType::Bang,
+            operand: Box::new(Expression::Literal(LiteralExpression {
+                value: Value::Bool(true),
+                line_no: 115,
+            })),
+            line_no: 115,
+        });
+        assert_eq!(expr.eval_constexpr(), Some(Value::Bool(false)));
+    }
+
+    #[test]
+    fn test_eval_constexpr_binary_addition() {
+        let expr = Expression::Binary(BinaryExpression {
+            left: Box::new(Expression::Literal(LiteralExpression {
+                value: Value::Integer(10),
+                line_no: 120,
+            })),
+            operator: TokenType::Plus,
+            right: Box::new(Expression::Literal(LiteralExpression {
+                value: Value::Integer(20),
+                line_no: 120,
+            })),
+            line_no: 120,
+        });
+        assert_eq!(expr.eval_constexpr(), Some(Value::Integer(30)));
+    }
+
+    #[test]
+    fn test_eval_constexpr_binary_subtraction() {
+        let expr = Expression::Binary(BinaryExpression {
+            left: Box::new(Expression::Literal(LiteralExpression {
+                value: Value::Integer(20),
+                line_no: 125,
+            })),
+            operator: TokenType::Minus,
+            right: Box::new(Expression::Literal(LiteralExpression {
+                value: Value::Integer(5),
+                line_no: 125,
+            })),
+            line_no: 125,
+        });
+        assert_eq!(expr.eval_constexpr(), Some(Value::Integer(15)));
+    }
+
+    #[test]
+    fn test_eval_constexpr_binary_multiplication() {
+        let expr = Expression::Binary(BinaryExpression {
+            left: Box::new(Expression::Literal(LiteralExpression {
+                value: Value::Integer(3),
+                line_no: 130,
+            })),
+            operator: TokenType::Star,
+            right: Box::new(Expression::Literal(LiteralExpression {
+                value: Value::Integer(7),
+                line_no: 130,
+            })),
+            line_no: 130,
+        });
+        assert_eq!(expr.eval_constexpr(), Some(Value::Integer(21)));
+    }
+
+    #[test]
+    fn test_eval_constexpr_binary_division() {
+        let expr = Expression::Binary(BinaryExpression {
+            left: Box::new(Expression::Literal(LiteralExpression {
+                value: Value::Integer(20),
+                line_no: 135,
+            })),
+            operator: TokenType::Slash,
+            right: Box::new(Expression::Literal(LiteralExpression {
+                value: Value::Integer(4),
+                line_no: 135,
+            })),
+            line_no: 135,
+        });
+        assert_eq!(expr.eval_constexpr(), Some(Value::Integer(5)));
+    }
+
+    #[test]
+    fn test_eval_constexpr_binary_float_addition() {
+        let expr = Expression::Binary(BinaryExpression {
+            left: Box::new(Expression::Literal(LiteralExpression {
+                value: Value::Float(1.5),
+                line_no: 140,
+            })),
+            operator: TokenType::Plus,
+            right: Box::new(Expression::Literal(LiteralExpression {
+                value: Value::Float(2.5),
+                line_no: 140,
+            })),
+            line_no: 140,
+        });
+        assert_eq!(expr.eval_constexpr(), Some(Value::Float(4.0)));
+    }
+
+    #[test]
+    fn test_eval_constexpr_comparison_greater() {
+        let expr = Expression::Binary(BinaryExpression {
+            left: Box::new(Expression::Literal(LiteralExpression {
+                value: Value::Integer(10),
+                line_no: 145,
+            })),
+            operator: TokenType::Greater,
+            right: Box::new(Expression::Literal(LiteralExpression {
+                value: Value::Integer(5),
+                line_no: 145,
+            })),
+            line_no: 145,
+        });
+        assert_eq!(expr.eval_constexpr(), Some(Value::Bool(true)));
+    }
+
+    #[test]
+    fn test_eval_constexpr_comparison_less() {
+        let expr = Expression::Binary(BinaryExpression {
+            left: Box::new(Expression::Literal(LiteralExpression {
+                value: Value::Integer(3),
+                line_no: 150,
+            })),
+            operator: TokenType::Less,
+            right: Box::new(Expression::Literal(LiteralExpression {
+                value: Value::Integer(8),
+                line_no: 150,
+            })),
+            line_no: 150,
+        });
+        assert_eq!(expr.eval_constexpr(), Some(Value::Bool(true)));
+    }
+
+    #[test]
+    fn test_eval_constexpr_equality() {
+        let expr = Expression::Binary(BinaryExpression {
+            left: Box::new(Expression::Literal(LiteralExpression {
+                value: Value::Integer(42),
+                line_no: 155,
+            })),
+            operator: TokenType::EqualEqual,
+            right: Box::new(Expression::Literal(LiteralExpression {
+                value: Value::Integer(42),
+                line_no: 155,
+            })),
+            line_no: 155,
+        });
+        assert_eq!(expr.eval_constexpr(), Some(Value::Bool(true)));
+    }
+
+    #[test]
+    fn test_eval_constexpr_inequality() {
+        let expr = Expression::Binary(BinaryExpression {
+            left: Box::new(Expression::Literal(LiteralExpression {
+                value: Value::Integer(42),
+                line_no: 160,
+            })),
+            operator: TokenType::BangEqual,
+            right: Box::new(Expression::Literal(LiteralExpression {
+                value: Value::Integer(10),
+                line_no: 160,
+            })),
+            line_no: 160,
+        });
+        assert_eq!(expr.eval_constexpr(), Some(Value::Bool(true)));
+    }
+
+    #[test]
+    fn test_eval_constexpr_logical_and() {
+        let expr = Expression::Binary(BinaryExpression {
+            left: Box::new(Expression::Literal(LiteralExpression {
+                value: Value::Bool(true),
+                line_no: 165,
+            })),
+            operator: TokenType::And,
+            right: Box::new(Expression::Literal(LiteralExpression {
+                value: Value::Bool(true),
+                line_no: 165,
+            })),
+            line_no: 165,
+        });
+        assert_eq!(expr.eval_constexpr(), Some(Value::Bool(true)));
+    }
+
+    #[test]
+    fn test_eval_constexpr_logical_or() {
+        let expr = Expression::Binary(BinaryExpression {
+            left: Box::new(Expression::Literal(LiteralExpression {
+                value: Value::Bool(false),
+                line_no: 170,
+            })),
+            operator: TokenType::Or,
+            right: Box::new(Expression::Literal(LiteralExpression {
+                value: Value::Bool(true),
+                line_no: 170,
+            })),
+            line_no: 170,
+        });
+        assert_eq!(expr.eval_constexpr(), Some(Value::Bool(true)));
+    }
+
+    #[test]
+    fn test_eval_constexpr_non_constant_returns_none() {
+        use std::{cell::RefCell, rc::Rc};
+        let token = Rc::new(RefCell::new(Token {
+            token_type: TokenType::Identifier,
+            lexeme: "x".into(),
+            line: 180,
+        }));
+        let expr = Expression::Variable(VariableExpression {
+            token,
+            line_no: 180,
+        });
+        assert_eq!(expr.eval_constexpr(), None);
+    }
+
+    #[test]
+    fn test_deref_expression_creation() {
+        let deref = DerefExpression {
+            operand: Box::new(Expression::Literal(LiteralExpression {
+                value: Value::Integer(42),
+                line_no: 190,
+            })),
+            line_no: 190,
+        };
+        assert_eq!(deref.line_no, 190);
+    }
+
+    #[test]
+    fn test_ref_expression_creation() {
+        use std::{cell::RefCell, rc::Rc};
+        let token = Rc::new(RefCell::new(Token {
+            token_type: TokenType::Identifier,
+            lexeme: "x".into(),
+            line: 195,
+        }));
+        let ref_expr = RefExpression {
+            operand: Box::new(Expression::Variable(VariableExpression {
+                token,
+                line_no: 195,
+            })),
+            line_no: 195,
+        };
+        assert_eq!(ref_expr.line_no, 195);
+    }
+
+    #[test]
+    fn test_index_expression_creation() {
+        use std::{cell::RefCell, rc::Rc};
+        let token = Rc::new(RefCell::new(Token {
+            token_type: TokenType::Identifier,
+            lexeme: "arr".into(),
+            line: 200,
+        }));
+        let index = IndexExpression {
+            array: Box::new(Expression::Variable(VariableExpression {
+                token,
+                line_no: 200,
+            })),
+            index: Box::new(Expression::Literal(LiteralExpression {
+                value: Value::Integer(0),
+                line_no: 200,
+            })),
+            line_no: 200,
+        };
+        assert_eq!(index.line_no, 200);
+    }
+
+    #[test]
+    fn test_var_declaration_mutable() {
+        let var_decl = VarDeclaration {
+            name: "x".into(),
+            tipe: ValueType::Integer.intern(),
+            initializer: Some(Box::new(Expression::Literal(LiteralExpression {
+                value: Value::Integer(42),
+                line_no: 210,
+            }))),
+            mutable: true,
+            line_no: 210,
+        };
+
+        assert!(var_decl.mutable);
+        assert_eq!(var_decl.name, SharedString::from("x"));
+        assert!(var_decl.initializer.is_some());
+    }
+
+    #[test]
+    fn test_var_declaration_immutable() {
+        let var_decl = VarDeclaration {
+            name: "y".into(),
+            tipe: ValueType::Float.intern(),
+            initializer: None,
+            mutable: false,
+            line_no: 215,
+        };
+
+        assert!(!var_decl.mutable);
+        assert!(var_decl.initializer.is_none());
+    }
+
+    #[test]
+    fn test_variable_expression_creation() {
+        use std::{cell::RefCell, rc::Rc};
+        let token = Rc::new(RefCell::new(Token {
+            token_type: TokenType::Identifier,
+            lexeme: "myVar".into(),
+            line: 220,
+        }));
+        let var_expr = VariableExpression {
+            token: token.clone(),
+            line_no: 220,
+        };
+        assert_eq!(var_expr.token.borrow().lexeme, SharedString::from("myVar"));
+    }
+
+    #[test]
+    fn test_assign_expression_creation() {
+        use std::{cell::RefCell, rc::Rc};
+        let token = Rc::new(RefCell::new(Token {
+            token_type: TokenType::Identifier,
+            lexeme: "x".into(),
+            line: 225,
+        }));
+        let assign = AssignExpression {
+            variable: Box::new(Expression::Variable(VariableExpression {
+                token,
+                line_no: 225,
+            })),
+            value: Box::new(Expression::Literal(LiteralExpression {
+                value: Value::Integer(100),
+                line_no: 225,
+            })),
+            line_no: 225,
+        };
+        assert_eq!(assign.line_no, 225);
+    }
+
+    #[test]
+    fn test_cast_expression_creation() {
+        let cast = CastExpression {
+            expression: Box::new(Expression::Literal(LiteralExpression {
+                value: Value::Float(3.14),
+                line_no: 230,
+            })),
+            target_type: ValueType::Integer.intern(),
+            line_no: 230,
+        };
+        assert_eq!(cast.target_type, ValueType::Integer.intern());
+    }
+
+    #[test]
+    fn test_double_colon_expression_creation() {
+        let double_colon = DoubleColonExpression {
+            typ: ValueType::Integer.intern(),
+            acessor: "method".into(),
+            line_no: 235,
+        };
+        assert_eq!(double_colon.acessor, SharedString::from("method"));
+    }
+
+    #[test]
+    fn test_expression_empty() {
+        let empty_expr = Expression::Empty;
+        assert!(matches!(empty_expr, Expression::Empty));
     }
 }

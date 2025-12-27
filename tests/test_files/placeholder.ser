@@ -1,0 +1,11 @@
+fn add(x: int, y: int) -> int {
+    return x + y;
+}
+
+fn main() -> int {
+    let x = 2;
+    let add2 = add(x, _);
+    let add22 = lambda[x](y: int) -> int { return add(x, y); };
+    let result = add2(3) + add22(4);
+    return result;
+}

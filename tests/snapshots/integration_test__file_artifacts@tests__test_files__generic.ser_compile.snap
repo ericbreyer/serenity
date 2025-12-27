@@ -4,8 +4,10 @@ expression: result
 ---
 ; ModuleID = 'main'
 source_filename = "main"
+target datalayout = "e-m:o-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-n32:64-S128-Fn32"
+target triple = "arm64-apple-darwin24.6.0"
 
-@main = global { ptr } { ptr @main_i64 }
+@"main#closure_wrapper" = global { ptr } { ptr @main_i64 }
 
 declare i8 @printf(ptr, ...)
 
@@ -14,6 +16,8 @@ declare ptr @malloc(i64)
 declare i8 @free(ptr)
 
 declare i8 @usleep(i64)
+
+declare i8 @exit(i64)
 
 define i64 @main_i64() {
 entry:
@@ -27,8 +31,15 @@ entry:
   %struct_init2 = load { double, double }, ptr %struct_init, align 8
   store { double, double } %struct_init2, ptr %s_conc, align 8
   %field3 = getelementptr inbounds nuw { i64, double }, ptr %s_conc2, i32 0, i32 0
-  store i64 6, ptr %field3, align 4
+  store i64 6, ptr %field3, align 8
   %field4 = getelementptr inbounds nuw { i64, double }, ptr %s_conc2, i32 0, i32 0
-  %rval = load i64, ptr %field4, align 4
+  %rval = load i64, ptr %field4, align 8
   ret i64 %rval
+}
+
+define i32 @main(i32 %0, ptr %1) {
+entry:
+  %ret64 = call i64 @main_i64()
+  %ret32 = trunc i64 %ret64 to i32
+  ret i32 %ret32
 }

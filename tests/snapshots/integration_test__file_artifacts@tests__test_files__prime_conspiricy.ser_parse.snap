@@ -217,69 +217,57 @@ expression: result
 [line   60]           │         │    │                        ├─── Variable: i
 [line   60]           │         │    │                        ╰─── Literal: 7
 [line   60]           │         │    ╰─── Block: 
-[line   61]           │         │         ├─── Expression: 
-[line   61]           │         │         │    ╰─── Assign:
-[line   61]           │         │         │         ├─── Variable: i
-[line   61]           │         │         │         ╰─── Binary: Plus
-[line   61]           │         │         │              ├─── Variable: i
-[line   61]           │         │         │              ╰─── Literal: 1
-[line   61]           │         │         ╰─── Continue
-[line   64]           │         ╰─── For: 
-[line   64]           │              ├─── Var Declaration: j
-[line   64]           │              │    ╰───  Initializer
-[line   64]           │              │         ╰─── Literal: 0
-[line   64]           │              ├─── Binary: Less
-[line   64]           │              │    ├─── Variable: j
-[line   64]           │              │    ╰─── Literal: 10
-[line   64]           │              ├─── Assign:
-[line   64]           │              │    ├─── Variable: j
-[line   64]           │              │    ╰─── Binary: Plus
-[line   64]           │              │         ├─── Variable: j
-[line   64]           │              │         ╰─── Literal: 1
-[line   64]           │              ╰─── Block: 
-[line   65]           │                   ├─── If: 
-[line   65]           │                   │    ├─── Logical: And 
-[line   65]           │                   │    │    ├─── Binary: BangEqual
-[line   65]           │                   │    │    │    ├─── Variable: j
-[line   65]           │                   │    │    │    ╰─── Literal: 1
-[line   65]           │                   │    │    ╰─── Logical: And 
-[line   65]           │                   │    │         ├─── Binary: BangEqual
-[line   65]           │                   │    │         │    ├─── Variable: j
-[line   65]           │                   │    │         │    ╰─── Literal: 3
-[line   65]           │                   │    │         ╰─── Logical: And 
-[line   65]           │                   │    │              ├─── Binary: BangEqual
-[line   65]           │                   │    │              │    ├─── Variable: j
-[line   65]           │                   │    │              │    ╰─── Literal: 5
-[line   65]           │                   │    │              ╰─── Binary: BangEqual
-[line   65]           │                   │    │                   ├─── Variable: j
-[line   65]           │                   │    │                   ╰─── Literal: 7
-[line   65]           │                   │    ╰─── Block: 
-[line   66]           │                   │         ├─── Expression: 
-[line   66]           │                   │         │    ╰─── Assign:
-[line   66]           │                   │         │         ├─── Variable: j
-[line   66]           │                   │         │         ╰─── Binary: Plus
-[line   66]           │                   │         │              ├─── Variable: j
-[line   66]           │                   │         │              ╰─── Literal: 1
-[line   66]           │                   │         ╰─── Continue
-[line   69]           │                   ╰─── Expression: 
-[line   69]           │                        ╰─── Assign:
-[line   69]           │                             ├─── Variable: result
-[line   69]           │                             ╰─── Binary: Plus
-[line   69]           │                                  ├─── Variable: result
-[line   69]           │                                  ╰─── Binary: Star
-[line   69]           │                                       ├─── Binary: Star
-[line   69]           │                                       │    ├─── Index:
-[line   69]           │                                       │    │    ├─── Index:
-[line   69]           │                                       │    │    │    ├─── Variable: transitions
-[line   69]           │                                       │    │    │    ╰─── Variable: i
-[line   69]           │                                       │    │    ╰─── Variable: j
-[line   69]           │                                       │    ╰─── Call:
-[line   69]           │                                       │         ├─── Variable: pow
-[line   69]           │                                       │         ├─── Literal: 2
-[line   69]           │                                       │         ╰─── Variable: i
-[line   69]           │                                       ╰─── Call:
-[line   69]           │                                            ├─── Variable: pow
-[line   69]           │                                            ├─── Literal: 3
-[line   69]           │                                            ╰─── Variable: j
-[line   71]           ╰─── Return:
-[line   73]                ╰─── Variable: result
+[line   60]           │         │         ╰─── Continue
+[line   63]           │         ╰─── For: 
+[line   63]           │              ├─── Var Declaration: j
+[line   63]           │              │    ╰───  Initializer
+[line   63]           │              │         ╰─── Literal: 0
+[line   63]           │              ├─── Binary: Less
+[line   63]           │              │    ├─── Variable: j
+[line   63]           │              │    ╰─── Literal: 10
+[line   63]           │              ├─── Assign:
+[line   63]           │              │    ├─── Variable: j
+[line   63]           │              │    ╰─── Binary: Plus
+[line   63]           │              │         ├─── Variable: j
+[line   63]           │              │         ╰─── Literal: 1
+[line   63]           │              ╰─── Block: 
+[line   64]           │                   ├─── If: 
+[line   64]           │                   │    ├─── Logical: And 
+[line   64]           │                   │    │    ├─── Binary: BangEqual
+[line   64]           │                   │    │    │    ├─── Variable: j
+[line   64]           │                   │    │    │    ╰─── Literal: 1
+[line   64]           │                   │    │    ╰─── Logical: And 
+[line   64]           │                   │    │         ├─── Binary: BangEqual
+[line   64]           │                   │    │         │    ├─── Variable: j
+[line   64]           │                   │    │         │    ╰─── Literal: 3
+[line   64]           │                   │    │         ╰─── Logical: And 
+[line   64]           │                   │    │              ├─── Binary: BangEqual
+[line   64]           │                   │    │              │    ├─── Variable: j
+[line   64]           │                   │    │              │    ╰─── Literal: 5
+[line   64]           │                   │    │              ╰─── Binary: BangEqual
+[line   64]           │                   │    │                   ├─── Variable: j
+[line   64]           │                   │    │                   ╰─── Literal: 7
+[line   64]           │                   │    ╰─── Block: 
+[line   64]           │                   │         ╰─── Continue
+[line   67]           │                   ╰─── Expression: 
+[line   67]           │                        ╰─── Assign:
+[line   67]           │                             ├─── Variable: result
+[line   67]           │                             ╰─── Binary: Plus
+[line   67]           │                                  ├─── Variable: result
+[line   67]           │                                  ╰─── Binary: Star
+[line   67]           │                                       ├─── Binary: Star
+[line   67]           │                                       │    ├─── Index:
+[line   67]           │                                       │    │    ├─── Index:
+[line   67]           │                                       │    │    │    ├─── Variable: transitions
+[line   67]           │                                       │    │    │    ╰─── Variable: i
+[line   67]           │                                       │    │    ╰─── Variable: j
+[line   67]           │                                       │    ╰─── Call:
+[line   67]           │                                       │         ├─── Variable: pow
+[line   67]           │                                       │         ├─── Literal: 2
+[line   67]           │                                       │         ╰─── Variable: i
+[line   67]           │                                       ╰─── Call:
+[line   67]           │                                            ├─── Variable: pow
+[line   67]           │                                            ├─── Literal: 3
+[line   67]           │                                            ╰─── Variable: j
+[line   69]           ╰─── Return:
+[line   71]                ╰─── Variable: result

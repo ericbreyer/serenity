@@ -1,3 +1,7 @@
+include "arena_alloc.ser";
+
+let arena: struct Arena;
+
 type generator interface {
     next: fn() -> int,
 };
@@ -20,9 +24,9 @@ fun (self : * struct identity) next() -> int {
     return self->gen.next();
 }
 
-type filter struct {
+type<C> filter struct {
     gen: impl generator,
-    pred: fn[int](int) -> bool,
+    pred: fn[C](int) -> bool,
 } implements generator;
 
 fun (self : * struct filter) next() -> int {
@@ -34,23 +38,36 @@ fun (self : * struct filter) next() -> int {
     return i;
 }
 
+const NPRIMES = 100;
+
 type seive struct {
     gen: impl generator,
 } implements generator;
+
+fun divides(a: int, b: int) -> bool {
+    return float(a / b) == #a/#b;
+}
+fun<C> not(pred: fn[C](int) -> bool) -> fn[fn[C](int) -> bool](int) -> bool {
+    return lambda[pred](x: int) -> bool {
+        return !pred(x);
+    };
+}
 
 fun (self : * struct seive) next() -> int {
     var gen = self->gen;
     var i = gen.next();
 
-    let pred = lambda[i](x: int) -> bool { return float(x / i) != #x/#i; }; 
-    let f: *struct filter = malloc(sizeof(struct filter));
-    *f = struct filter { gen: self->gen, pred: pred };
-    self->gen = filter_impl_generator(f);
+    let pred = divides(_, i);
+    let pred = not(pred);
+    let filter: *struct filter = arena.alloc(sizeof(struct filter));
+    *filter = struct filter { gen: self->gen, pred: pred };
+    self->gen = filter_impl_generator(filter);
     return i;
 }
 
-const NPRIMES = 100;
+
 fn main() -> int {
+    arena = create_arena(); 
     var nats = struct nat_gen { i: 2 };
 
     var gen = struct seive { gen: nat_gen_impl_generator(&nats)};
@@ -60,5 +77,7 @@ fn main() -> int {
         let p = gen.next();
         prod = prod * p;
     }
+
+    arena.destroy();
     return prod;
 }

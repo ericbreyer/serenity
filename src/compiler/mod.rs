@@ -1,6 +1,4 @@
-
 use anyhow::Result;
-
 use inkwell::{context::Context, module::Module};
 use llvm_compiler::LLVMCompiler;
 use tracing::info;
@@ -47,6 +45,12 @@ mod ffi_funcs {
                 args: Box::new([ValueType::Integer.intern()]),
                 va: false,
             },
+            FfiFunc {
+                name: "exit",
+                ret: ValueType::Nil.intern(),
+                args: Box::new([ValueType::Integer.intern()]),
+                va: false,
+            },
         ])
     }
 }
@@ -83,8 +87,7 @@ pub fn compile(context: &Context, mut pr: ParseResult) -> Result<Module<'_>> {
         0
     };
 
-    pr.ast
-        .roots.sort_by_key(is_prototype);
+    pr.ast.roots.sort_by_key(is_prototype);
 
     for ast in &pr.ast.roots {
         typechecker.compile(ast)?;
@@ -99,16 +102,16 @@ pub fn compile(context: &Context, mut pr: ParseResult) -> Result<Module<'_>> {
 
     info!("Compilation complete");
 
-    Ok(compiler.module())
+    compiler.module()
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::parser::{Parser, SerenityParser};
-
     use inkwell::context::Context;
     use test_case::test_case;
+
+    use super::*;
+    use crate::parser::{Parser, SerenityParser};
 
     #[test_case(r##"
     fn main() -> int {
@@ -119,7 +122,7 @@ mod tests {
     fn test_compile(input: &str, expected: usize) {
         let context = Context::create();
 
-        let pr = SerenityParser::parse(input.into(), "test_compile".into()).unwrap();
+        let pr = SerenityParser::parse(input.into(), "test_compile".into(), vec![]).unwrap();
 
         let result = compile(&context, pr);
         if result.is_err() {

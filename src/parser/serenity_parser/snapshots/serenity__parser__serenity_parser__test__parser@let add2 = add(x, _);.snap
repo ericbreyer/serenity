@@ -1,0 +1,20 @@
+---
+source: src/parser/serenity_parser/test.rs
+expression: ast
+---
+[line    1] Var Declaration: add2
+[line    1] ╰───  Initializer
+[line    1]      ╰─── Function: anon9223372036854775807
+[line    1]           ╰─── Function Expression:
+[line    1]                ├─── Name: anon9223372036854775807
+[line    1]                ├─── Return Type: $2
+[line    1]                ├─── Captures:
+[line    1]                │    ╰─── x
+[line    1]                ├─── Params:
+[line    1]                │    ╰─── arg0: $1
+[line    1]                ╰─── Body: 
+[line    1]                     ╰─── Return:
+[line    1]                          ╰─── Call:
+[line    1]                               ├─── Variable: add
+[line    1]                               ├─── Variable: x
+[line    1]                               ╰─── Variable: arg0

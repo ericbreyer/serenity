@@ -1,16 +1,21 @@
 mod half_expression;
 mod parse_table;
 use std::{
-    collections::HashMap, rc::Rc, sync::atomic::{AtomicUsize, Ordering}
+    rc::Rc,
+    sync::atomic::{AtomicUsize, Ordering},
 };
 
 use half_expression::HalfExpression;
 use indexmap::IndexMap;
 pub use parse_table::ParseTable;
 
-use crate::{lexer::TokenType, prelude::*, typing::{Constraint, UValueType}, value_literals::Value};
-
 use super::{Precedence, SerenityParser};
+use crate::{
+    lexer::TokenType,
+    prelude::*,
+    typing::{Constraint, UValueType},
+    value_literals::Value,
+};
 
 type PrefixParseFn = fn(&mut SerenityParser, bool) -> Expression;
 type InfixParseFn = fn(&mut SerenityParser, bool) -> HalfExpression;
@@ -341,7 +346,21 @@ impl SerenityParser {
 
     fn call(&mut self, _: bool) -> HalfExpression {
         let nodes = self.argument_list();
-        HalfExpression::Call(nodes)
+        // detect underscore placeholders; if present, produce a PartialCall
+        let mut placeholders: Vec<usize> = Vec::new();
+        for (i, n) in nodes.iter().enumerate() {
+            if let Expression::Variable(VariableExpression { token, .. }) = n {
+                if token.borrow().lexeme == ("_".into()) {
+                    placeholders.push(i);
+                }
+            }
+        }
+
+        if placeholders.is_empty() {
+            HalfExpression::Call(nodes)
+        } else {
+            HalfExpression::PartialCall(nodes, placeholders)
+        }
     }
 
     fn argument_list(&mut self) -> Vec<Expression> {
@@ -429,9 +448,9 @@ impl SerenityParser {
                 return Expression::Empty;
             };
             token.borrow_mut().lexeme = format!("{}_{}", t.id_str(), token.borrow().lexeme).into();
-            return Expression::Variable(VariableExpression { token, line_no });
+            Expression::Variable(VariableExpression { token, line_no })
         } else {
-            return Expression::Empty;
+            Expression::Empty
         }
     }
 }

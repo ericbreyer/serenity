@@ -1,6 +1,6 @@
 use std::{
     env::args,
-    io::{self},
+    io::{self, stdout, Write},
 };
 
 use anyhow::Result;
@@ -26,8 +26,9 @@ fn main() -> Result<()> {
     opts.optflag("s", "scan", "scan only");
     opts.optflag("p", "parse", "parse only");
     opts.optflag("t", "typecheck", "typecheck only");
-    opts.optflag("c", "compile", "compile only");
+    opts.optflagopt("c", "compile", "compile only", "PATH");
     opts.optflag("r", "run", "run (default)");
+    opts.optopt("i", "include-path", "additional include path", "PATH");
 
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => m,
@@ -67,27 +68,35 @@ fn main() -> Result<()> {
         return Ok(());
     };
 
+    let include_paths: Vec<String> = matches.opt_str("i").map(|s| vec![s]).unwrap_or_default();
+
     if matches.opt_present("p") {
-        let ast = serenity::parse(&file_name)?;
+        let ast = serenity::parse(&file_name, include_paths.clone())?;
         println!("{}", ast);
         return Ok(());
     };
 
     if matches.opt_present("c") {
-        let ir = serenity::compile(&file_name)?;
-        println!("{}", ir);
+        let compiled_path = matches.opt_str("c").unwrap_or_default();
+        let mut out: Box<dyn Write> = if compiled_path.is_empty() {
+            Box::new(stdout())
+        } else {
+            Box::new(std::fs::File::create(compiled_path)?)
+        };
+        let ir = serenity::compile(&file_name, include_paths.clone())?;
+        write!(out, "{}", ir)?;
         return Ok(());
     };
 
     if matches.opt_present("t") {
-        let ast = serenity::typecheck(&file_name)?;
+        let ast = serenity::typecheck(&file_name, include_paths.clone())?;
         println!("{}", ast);
         return Ok(());
     };
 
     if run {
         let mut out = Vec::new();
-        let code = run_file(&file_name, &mut out).unwrap();
+        let code = run_file(&file_name, include_paths.clone(), &mut out).unwrap();
         println!("{}", code);
         return Ok(());
     };

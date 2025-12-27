@@ -4,9 +4,11 @@ expression: result
 ---
 ; ModuleID = 'main'
 source_filename = "main"
+target datalayout = "e-m:o-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-n32:64-S128-Fn32"
+target triple = "arm64-apple-darwin24.6.0"
 
-@mod = global { ptr } { ptr @"mod_i64i64->i64" }
-@main = global { ptr } { ptr @main_i64 }
+@"mod#closure_wrapper" = global { ptr } { ptr @"mod_i64i64->i64" }
+@"main#closure_wrapper" = global { ptr } { ptr @main_i64 }
 
 declare i8 @printf(ptr, ...)
 
@@ -16,17 +18,19 @@ declare i8 @free(ptr)
 
 declare i8 @usleep(i64)
 
+declare i8 @exit(i64)
+
 define i64 @"mod_i64i64->i64"(i64 %0, i64 %1) {
 entry:
   %j = alloca i64, align 8
   %i = alloca i64, align 8
-  store i64 %0, ptr %i, align 4
-  store i64 %1, ptr %j, align 4
-  %rval = load i64, ptr %i, align 4
-  %rval1 = load i64, ptr %i, align 4
-  %rval2 = load i64, ptr %j, align 4
+  store i64 %0, ptr %i, align 8
+  store i64 %1, ptr %j, align 8
+  %rval = load i64, ptr %i, align 8
+  %rval1 = load i64, ptr %i, align 8
+  %rval2 = load i64, ptr %j, align 8
   %divtmp = sdiv i64 %rval1, %rval2
-  %rval3 = load i64, ptr %j, align 4
+  %rval3 = load i64, ptr %j, align 8
   %multmp = mul i64 %divtmp, %rval3
   %subtmp = sub i64 %rval, %multmp
   ret i64 %subtmp
@@ -36,28 +40,35 @@ define i64 @main_i64() {
 entry:
   %calltmp3 = alloca i64, align 8
   %num = alloca i64, align 8
-  store i64 1, ptr %num, align 4
+  store i64 1, ptr %num, align 8
   br label %loop_7
 
 loop_7:                                           ; preds = %body_7, %entry
-  %rval = load { ptr }, ptr @mod, align 8
-  %rval1 = load i64, ptr %num, align 4
-  %rval2 = load i64, ptr %num, align 4
+  %rval = load { ptr }, ptr @"mod#closure_wrapper", align 8
+  %rval1 = load i64, ptr %num, align 8
+  %rval2 = load i64, ptr %num, align 8
   %multmp = mul i64 %rval1, %rval2
   %fnptr = extractvalue { ptr } %rval, 0
   %calltmp = call i64 %fnptr(i64 %multmp, i64 1000000)
-  store i64 %calltmp, ptr %calltmp3, align 4
-  %rval4 = load i64, ptr %calltmp3, align 4
+  store i64 %calltmp, ptr %calltmp3, align 8
+  %rval4 = load i64, ptr %calltmp3, align 8
   %neqtmp = icmp ne i64 %rval4, 269696
   br i1 %neqtmp, label %body_7, label %merge_7
 
 body_7:                                           ; preds = %loop_7
-  %rval5 = load i64, ptr %num, align 4
+  %rval5 = load i64, ptr %num, align 8
   %addtmp = add i64 %rval5, 1
-  store i64 %addtmp, ptr %num, align 4
+  store i64 %addtmp, ptr %num, align 8
   br label %loop_7
 
 merge_7:                                          ; preds = %loop_7
-  %rval6 = load i64, ptr %num, align 4
+  %rval6 = load i64, ptr %num, align 8
   ret i64 %rval6
+}
+
+define i32 @main(i32 %0, ptr %1) {
+entry:
+  %ret64 = call i64 @main_i64()
+  %ret32 = trunc i64 %ret64 to i32
+  ret i32 %ret32
 }

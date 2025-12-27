@@ -64,7 +64,8 @@ impl ValueType {
             }
 
             // Type vars
-            // If the type var already has a substitution, unify the substitution with the other type
+            // If the type var already has a substitution, unify the substitution with the other
+            // type
             (ValueType::TypeVar(x), t) | (t, ValueType::TypeVar(x))
                 if SUBSTITUTIONS.with_borrow(|v| v[*x]) != &ValueType::TypeVar(*x) =>
             {
@@ -193,8 +194,8 @@ impl ValueType {
     ///
     /// It also takes an optional hashmap of generic substitutions. If a generic
     /// parameter is found in the type, it is substituted with the corresponding
-    /// value in the hashmap. If the generic parameter is not found in the hashmap,
-    /// it is left as is.
+    /// value in the hashmap. If the generic parameter is not found in the
+    /// hashmap, it is left as is.
     pub fn substitute<'a>(
         &'static self,
         generics: impl Into<Option<&'a ScopedMap<SharedString, UValueType>>>,
@@ -256,14 +257,14 @@ impl ValueType {
                 }
 
                 Self::Struct(Box::new(CustomStruct {
-                                    name: s.name.clone(),
-                                    fields: RefCell::new(new_fields),
-                                    embed: s.embed.clone(),
-                                    methods: s.methods.clone(),
-                                    parametric_methods: s.parametric_methods.clone(),
-                                    type_vars: s.type_vars.borrow().clone().into(),
-                                    implements: s.implements.clone(),
-                                }))
+                    name: s.name.clone(),
+                    fields: RefCell::new(new_fields),
+                    embed: s.embed.clone(),
+                    methods: s.methods.clone(),
+                    parametric_methods: s.parametric_methods.clone(),
+                    type_vars: s.type_vars.borrow().clone().into(),
+                    implements: s.implements.clone(),
+                }))
                 .intern()
             }
             ValueType::SelfStructRef(s, v) => Self::SelfStructRef(
@@ -298,7 +299,6 @@ impl ValueType {
         &'static self,
         generics: &mut HashMap<SharedString, UValueType>,
     ) -> UValueType {
-        
         match self {
             Self::GenericParam(s, c) => {
                 if let Some(v) = generics.get(s) {
@@ -306,7 +306,10 @@ impl ValueType {
                 } else {
                     let tv = ValueType::new_type_var(c.clone());
                     generics.insert(s.clone(), tv);
-                    println!("Instantiated generic {s} {c:?} to {tv} {:?}", tv.get_constraints());
+                    println!(
+                        "Instantiated generic {s} {c:?} to {tv} {:?}",
+                        tv.get_constraints()
+                    );
                     tv
                 }
             }
@@ -353,14 +356,14 @@ impl ValueType {
                 }
 
                 Self::Struct(Box::new(CustomStruct {
-                                    name: s.name.clone(),
-                                    fields: RefCell::new(new_fields),
-                                    embed: s.embed.clone(),
-                                    methods: s.methods.clone(),
-                                    parametric_methods: s.parametric_methods.clone(),
-                                    type_vars: IndexMap::new().into(),
-                                    implements: s.implements.clone(),
-                                }))
+                    name: s.name.clone(),
+                    fields: RefCell::new(new_fields),
+                    embed: s.embed.clone(),
+                    methods: s.methods.clone(),
+                    parametric_methods: s.parametric_methods.clone(),
+                    type_vars: IndexMap::new().into(),
+                    implements: s.implements.clone(),
+                }))
                 .intern()
             }
             Self::SelfStructRef(s, v) => {
@@ -372,5 +375,549 @@ impl ValueType {
             }
             _ => self,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::prelude::ScopedMap;
+
+    #[test]
+    fn test_new_type_var_creates_unique_ids() {
+        let tv1 = ValueType::new_type_var(vec![].into_boxed_slice());
+        let tv2 = ValueType::new_type_var(vec![].into_boxed_slice());
+
+        match (tv1, tv2) {
+            (ValueType::TypeVar(id1), ValueType::TypeVar(id2)) => {
+                assert_ne!(id1, id2, "Type vars should have unique IDs");
+            }
+            _ => panic!("Expected TypeVar"),
+        }
+    }
+
+    #[test]
+    fn test_new_type_var_with_constraints() {
+        let constraints = vec![Constraint(Some("Numeric".into()))].into_boxed_slice();
+        let tv = ValueType::new_type_var(constraints.clone());
+
+        match tv {
+            ValueType::TypeVar(id) => {
+                let retrieved = CONSTRAINTS.with_borrow(|c| c.get(*id).cloned());
+                assert!(retrieved.is_some());
+                assert_eq!(retrieved.unwrap().len(), constraints.len());
+            }
+            _ => panic!("Expected TypeVar"),
+        }
+    }
+
+    #[test]
+    fn test_unify_identical_type_vars() {
+        let tv = ValueType::new_type_var(vec![].into_boxed_slice());
+        let generics = ScopedMap::new();
+
+        let result = ValueType::unify(tv, tv, &generics);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_unify_pointer_with_integer() {
+        let ptr = ValueType::Pointer(ValueType::Integer.intern(), false).intern();
+        let int = ValueType::Integer.intern();
+        let generics = ScopedMap::new();
+
+        let result = ValueType::unify(ptr, int, &generics);
+        assert!(result.is_ok(), "Pointer and Integer should unify");
+    }
+
+    #[test]
+    fn test_unify_integer_with_pointer() {
+        let int = ValueType::Integer.intern();
+        let ptr = ValueType::Pointer(ValueType::Integer.intern(), false).intern();
+        let generics = ScopedMap::new();
+
+        let result = ValueType::unify(int, ptr, &generics);
+        assert!(result.is_ok(), "Integer and Pointer should unify");
+    }
+
+    #[test]
+    fn test_unify_type_var_with_concrete_type() {
+        let tv = ValueType::new_type_var(vec![].into_boxed_slice());
+        let int = ValueType::Integer.intern();
+        let generics = ScopedMap::new();
+
+        let result = ValueType::unify(tv, int, &generics);
+        assert!(result.is_ok());
+
+        // Check that the type var was substituted
+        let substituted = tv.substitute(&generics);
+        assert_eq!(substituted, int);
+    }
+
+    #[test]
+    fn test_unify_concrete_type_with_type_var() {
+        let tv = ValueType::new_type_var(vec![].into_boxed_slice());
+        let int = ValueType::Integer.intern();
+        let generics = ScopedMap::new();
+
+        let result = ValueType::unify(int, tv, &generics);
+        assert!(result.is_ok());
+
+        // Check that the type var was substituted
+        let substituted = tv.substitute(&generics);
+        assert_eq!(substituted, int);
+    }
+
+    #[test]
+    fn test_unify_occurs_check_prevents_infinite_types() {
+        let tv = ValueType::new_type_var(vec![].into_boxed_slice());
+        let ptr_to_tv = ValueType::Pointer(tv, false).intern();
+        let generics = ScopedMap::new();
+
+        let result = ValueType::unify(tv, ptr_to_tv, &generics);
+        assert!(
+            result.is_err(),
+            "Occurs check should prevent infinite types"
+        );
+    }
+
+    #[test]
+    fn test_unify_pointers_with_nil() {
+        let ptr1 = ValueType::Pointer(ValueType::Integer.intern(), false).intern();
+        let nil_ptr = ValueType::Pointer(ValueType::Nil.intern(), false).intern();
+        let generics = ScopedMap::new();
+
+        let result = ValueType::unify(ptr1, nil_ptr, &generics);
+        assert!(result.is_ok(), "Pointer should unify with nil pointer");
+    }
+
+    #[test]
+    fn test_unify_nil_with_pointers() {
+        let nil_ptr = ValueType::Pointer(ValueType::Nil.intern(), false).intern();
+        let ptr1 = ValueType::Pointer(ValueType::Float.intern(), false).intern();
+        let generics = ScopedMap::new();
+
+        let result = ValueType::unify(nil_ptr, ptr1, &generics);
+        assert!(result.is_ok(), "Nil pointer should unify with any pointer");
+    }
+
+    #[test]
+    fn test_unify_compatible_pointers() {
+        let ptr1 = ValueType::Pointer(ValueType::Integer.intern(), false).intern();
+        let ptr2 = ValueType::Pointer(ValueType::Integer.intern(), false).intern();
+        let generics = ScopedMap::new();
+
+        let result = ValueType::unify(ptr1, ptr2, &generics);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_unify_incompatible_pointers() {
+        let ptr1 = ValueType::Pointer(ValueType::Integer.intern(), false).intern();
+        let ptr2 = ValueType::Pointer(ValueType::Float.intern(), false).intern();
+        let generics = ScopedMap::new();
+
+        let result = ValueType::unify(ptr1, ptr2, &generics);
+        assert!(
+            result.is_err(),
+            "Incompatible pointer types should not unify"
+        );
+    }
+
+    #[test]
+    fn test_unify_lvalues() {
+        let lval1 = ValueType::LValue(ValueType::Integer.intern(), false).intern();
+        let lval2 = ValueType::LValue(ValueType::Integer.intern(), false).intern();
+        let generics = ScopedMap::new();
+
+        let result = ValueType::unify(lval1, lval2, &generics);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_unify_arrays_same_size() {
+        let arr1 = ValueType::Array(ValueType::Integer.intern(), Some(5)).intern();
+        let arr2 = ValueType::Array(ValueType::Integer.intern(), Some(5)).intern();
+        let generics = ScopedMap::new();
+
+        let result = ValueType::unify(arr1, arr2, &generics);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_unify_arrays_different_sizes() {
+        let arr1 = ValueType::Array(ValueType::Integer.intern(), Some(5)).intern();
+        let arr2 = ValueType::Array(ValueType::Integer.intern(), Some(10)).intern();
+        let generics = ScopedMap::new();
+
+        let result = ValueType::unify(arr1, arr2, &generics);
+        assert!(
+            result.is_err(),
+            "Arrays with different sizes should not unify"
+        );
+    }
+
+    #[test]
+    fn test_unify_arrays_unknown_size_with_known() {
+        let arr1 = ValueType::Array(ValueType::Integer.intern(), None).intern();
+        let arr2 = ValueType::Array(ValueType::Integer.intern(), Some(10)).intern();
+        let generics = ScopedMap::new();
+
+        let result = ValueType::unify(arr1, arr2, &generics);
+        assert!(
+            result.is_ok(),
+            "Array with unknown size should unify with known size"
+        );
+    }
+
+    #[test]
+    fn test_unify_closures_different_arg_count() {
+        let closure1 = ValueType::Closure(Closure::new(
+            vec![ValueType::Integer.intern()].into_boxed_slice(),
+            vec![].into_boxed_slice(),
+            ValueType::Integer.intern(),
+            BTreeMap::new(),
+        ))
+        .intern();
+
+        let closure2 = ValueType::Closure(Closure::new(
+            vec![ValueType::Integer.intern(), ValueType::Float.intern()].into_boxed_slice(),
+            vec![].into_boxed_slice(),
+            ValueType::Integer.intern(),
+            BTreeMap::new(),
+        ))
+        .intern();
+
+        let generics = ScopedMap::new();
+        let result = ValueType::unify(closure1, closure2, &generics);
+        assert!(
+            result.is_err(),
+            "Closures with different arg counts should not unify"
+        );
+    }
+
+    #[test]
+    fn test_unify_closures_different_upval_count() {
+        let closure1 = ValueType::Closure(Closure::new(
+            vec![ValueType::Integer.intern()].into_boxed_slice(),
+            vec![ValueType::Integer.intern()].into_boxed_slice(),
+            ValueType::Integer.intern(),
+            BTreeMap::new(),
+        ))
+        .intern();
+
+        let closure2 = ValueType::Closure(Closure::new(
+            vec![ValueType::Integer.intern()].into_boxed_slice(),
+            vec![].into_boxed_slice(),
+            ValueType::Integer.intern(),
+            BTreeMap::new(),
+        ))
+        .intern();
+
+        let generics = ScopedMap::new();
+        let result = ValueType::unify(closure1, closure2, &generics);
+        assert!(
+            result.is_err(),
+            "Closures with different upval counts should not unify"
+        );
+    }
+
+    #[test]
+    fn test_unify_closures_compatible() {
+        let closure1 = ValueType::Closure(Closure::new(
+            vec![ValueType::Integer.intern()].into_boxed_slice(),
+            vec![].into_boxed_slice(),
+            ValueType::Integer.intern(),
+            BTreeMap::new(),
+        ))
+        .intern();
+
+        let closure2 = ValueType::Closure(Closure::new(
+            vec![ValueType::Integer.intern()].into_boxed_slice(),
+            vec![].into_boxed_slice(),
+            ValueType::Integer.intern(),
+            BTreeMap::new(),
+        ))
+        .intern();
+
+        let generics = ScopedMap::new();
+        let result = ValueType::unify(closure1, closure2, &generics);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_occurs_in_simple_type_var() {
+        let tv1 = ValueType::new_type_var(vec![].into_boxed_slice());
+
+        match tv1 {
+            ValueType::TypeVar(id1) => {
+                assert!(ValueType::occurs_in(*id1, tv1));
+            }
+            _ => panic!("Expected TypeVar"),
+        }
+    }
+
+    #[test]
+    fn test_occurs_in_pointer() {
+        let tv = ValueType::new_type_var(vec![].into_boxed_slice());
+        let ptr = ValueType::Pointer(tv, false).intern();
+
+        match tv {
+            ValueType::TypeVar(id) => {
+                assert!(ValueType::occurs_in(*id, ptr));
+            }
+            _ => panic!("Expected TypeVar"),
+        }
+    }
+
+    #[test]
+    fn test_occurs_in_array() {
+        let tv = ValueType::new_type_var(vec![].into_boxed_slice());
+        let arr = ValueType::Array(tv, Some(10)).intern();
+
+        match tv {
+            ValueType::TypeVar(id) => {
+                assert!(ValueType::occurs_in(*id, arr));
+            }
+            _ => panic!("Expected TypeVar"),
+        }
+    }
+
+    #[test]
+    fn test_occurs_in_closure_args() {
+        let tv = ValueType::new_type_var(vec![].into_boxed_slice());
+        let closure = ValueType::Closure(Closure::new(
+            vec![tv].into_boxed_slice(),
+            vec![].into_boxed_slice(),
+            ValueType::Integer.intern(),
+            BTreeMap::new(),
+        ))
+        .intern();
+
+        match tv {
+            ValueType::TypeVar(id) => {
+                assert!(ValueType::occurs_in(*id, closure));
+            }
+            _ => panic!("Expected TypeVar"),
+        }
+    }
+
+    #[test]
+    fn test_occurs_in_closure_ret() {
+        let tv = ValueType::new_type_var(vec![].into_boxed_slice());
+        let closure = ValueType::Closure(Closure::new(
+            vec![].into_boxed_slice(),
+            vec![].into_boxed_slice(),
+            tv,
+            BTreeMap::new(),
+        ))
+        .intern();
+
+        match tv {
+            ValueType::TypeVar(id) => {
+                assert!(ValueType::occurs_in(*id, closure));
+            }
+            _ => panic!("Expected TypeVar"),
+        }
+    }
+
+    #[test]
+    fn test_substitute_primitives() {
+        let generics = ScopedMap::new();
+
+        assert_eq!(
+            ValueType::Integer.substitute(&generics),
+            ValueType::Integer.intern()
+        );
+        assert_eq!(
+            ValueType::Float.substitute(&generics),
+            ValueType::Float.intern()
+        );
+        assert_eq!(
+            ValueType::Bool.substitute(&generics),
+            ValueType::Bool.intern()
+        );
+        assert_eq!(
+            ValueType::Char.substitute(&generics),
+            ValueType::Char.intern()
+        );
+        assert_eq!(
+            ValueType::Nil.substitute(&generics),
+            ValueType::Nil.intern()
+        );
+    }
+
+    #[test]
+    fn test_substitute_pointer() {
+        let generics = ScopedMap::new();
+        let ptr = ValueType::Pointer(ValueType::Integer.intern(), false).intern();
+
+        let result = ptr.substitute(&generics);
+        assert_eq!(result, ptr);
+    }
+
+    #[test]
+    fn test_substitute_array() {
+        let generics = ScopedMap::new();
+        let arr = ValueType::Array(ValueType::Float.intern(), Some(5)).intern();
+
+        let result = arr.substitute(&generics);
+        assert_eq!(result, arr);
+    }
+
+    #[test]
+    fn test_substitute_generic_param() {
+        let mut generics = ScopedMap::new();
+        let param_name: SharedString = "T".into();
+        generics.set(param_name.clone(), ValueType::Integer.intern());
+
+        let generic_param =
+            ValueType::GenericParam(param_name.clone(), vec![].into_boxed_slice()).intern();
+        let result = generic_param.substitute(&generics);
+
+        assert_eq!(result, ValueType::Integer.intern());
+    }
+
+    #[test]
+    fn test_substitute_generic_param_not_in_scope() {
+        let generics = ScopedMap::new();
+        let param_name: SharedString = "T".into();
+
+        let generic_param = ValueType::GenericParam(param_name, vec![].into_boxed_slice()).intern();
+        let result = generic_param.substitute(&generics);
+
+        // Should return itself when not found
+        assert_eq!(result, generic_param);
+    }
+
+    #[test]
+    fn test_substitute_type_var_with_substitution() {
+        let tv = ValueType::new_type_var(vec![].into_boxed_slice());
+        let generics = ScopedMap::new();
+
+        // Set up a substitution
+        ValueType::unify(tv, ValueType::Integer.intern(), &generics).unwrap();
+
+        let result = tv.substitute(&generics);
+        assert_eq!(result, ValueType::Integer.intern());
+    }
+
+    #[test]
+    fn test_substitute_closure() {
+        let mut generics = ScopedMap::new();
+        let param_name: SharedString = "T".into();
+        generics.set(param_name.clone(), ValueType::Integer.intern());
+
+        let generic_param = ValueType::GenericParam(param_name, vec![].into_boxed_slice()).intern();
+        let closure = ValueType::Closure(Closure::new(
+            vec![generic_param].into_boxed_slice(),
+            vec![].into_boxed_slice(),
+            generic_param,
+            BTreeMap::new(),
+        ))
+        .intern();
+
+        let result = closure.substitute(&generics);
+
+        match result {
+            ValueType::Closure(c) => {
+                assert_eq!(c.args[0], ValueType::Integer.intern());
+                assert_eq!(c.ret, ValueType::Integer.intern());
+            }
+            _ => panic!("Expected Closure"),
+        }
+    }
+
+    #[test]
+    fn test_instantiate_generic_new_type_var() {
+        let mut generics = HashMap::new();
+        let param_name: SharedString = "T".into();
+
+        let generic_param =
+            ValueType::GenericParam(param_name.clone(), vec![].into_boxed_slice()).intern();
+        let result = generic_param.instantiate_generic(&mut generics);
+
+        // Should create a new type var
+        assert!(matches!(result, ValueType::TypeVar(_)));
+        assert!(generics.contains_key(&param_name));
+    }
+
+    #[test]
+    fn test_instantiate_generic_reuses_existing() {
+        let mut generics = HashMap::new();
+        let param_name: SharedString = "T".into();
+
+        let generic_param =
+            ValueType::GenericParam(param_name.clone(), vec![].into_boxed_slice()).intern();
+        let result1 = generic_param.instantiate_generic(&mut generics);
+        let result2 = generic_param.instantiate_generic(&mut generics);
+
+        // Should reuse the same type var
+        assert_eq!(result1, result2);
+    }
+
+    #[test]
+    fn test_instantiate_generic_pointer() {
+        let mut generics = HashMap::new();
+        let param_name: SharedString = "T".into();
+
+        let generic_param =
+            ValueType::GenericParam(param_name.clone(), vec![].into_boxed_slice()).intern();
+        let ptr = ValueType::Pointer(generic_param, false).intern();
+        let result = ptr.instantiate_generic(&mut generics);
+
+        match result {
+            ValueType::Pointer(inner, _) => {
+                assert!(matches!(inner, ValueType::TypeVar(_)));
+            }
+            _ => panic!("Expected Pointer"),
+        }
+    }
+
+    #[test]
+    fn test_instantiate_generic_array() {
+        let mut generics = HashMap::new();
+        let param_name: SharedString = "T".into();
+
+        let generic_param =
+            ValueType::GenericParam(param_name.clone(), vec![].into_boxed_slice()).intern();
+        let arr = ValueType::Array(generic_param, Some(10)).intern();
+        let result = arr.instantiate_generic(&mut generics);
+
+        match result {
+            ValueType::Array(inner, size) => {
+                assert!(matches!(inner, ValueType::TypeVar(_)));
+                assert_eq!(*size, Some(10));
+            }
+            _ => panic!("Expected Array"),
+        }
+    }
+
+    #[test]
+    fn test_unify_mismatched_primitives() {
+        let generics = ScopedMap::new();
+
+        let result = ValueType::unify(
+            ValueType::Integer.intern(),
+            ValueType::Float.intern(),
+            &generics,
+        );
+        assert!(result.is_err(), "Integer and Float should not unify");
+    }
+
+    #[test]
+    fn test_unify_chain_type_vars() {
+        let tv1 = ValueType::new_type_var(vec![].into_boxed_slice());
+        let tv2 = ValueType::new_type_var(vec![].into_boxed_slice());
+        let generics = ScopedMap::new();
+
+        // Unify tv1 with tv2
+        ValueType::unify(tv1, tv2, &generics).unwrap();
+        // Then unify tv2 with Integer
+        ValueType::unify(tv2, ValueType::Integer.intern(), &generics).unwrap();
+
+        // Both should now substitute to Integer
+        assert_eq!(tv1.substitute(&generics), ValueType::Integer.intern());
+        assert_eq!(tv2.substitute(&generics), ValueType::Integer.intern());
     }
 }

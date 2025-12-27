@@ -1,0 +1,67 @@
+---
+source: tests/integration_test.rs
+expression: result
+---
+[line    1] Function Declaration: add
+[line    1] ╰─── Function Expression:
+[line    1]      ├─── Name: add
+[line    1]      ├─── Return Type: int
+[line    1]      ├─── Params:
+[line    1]      │    ├─── x: int
+[line    1]      │    ╰─── y: int
+[line    1]      ╰─── Body: 
+[line    1]           ╰─── Return:
+[line    2]                ╰─── Binary: Plus
+[line    2]                     ├─── Variable: x
+[line    2]                     ╰─── Variable: y
+[line    5] Function Declaration: main
+[line    5] ╰─── Function Expression:
+[line    5]      ├─── Name: main
+[line    5]      ├─── Return Type: int
+[line    5]      ╰─── Body: 
+[line    6]           ├─── Var Declaration: x
+[line    6]           │    ╰───  Initializer
+[line    6]           │         ╰─── Literal: 2
+[line    7]           ├─── Var Declaration: add2
+[line    7]           │    ╰───  Initializer
+[line    7]           │         ╰─── Function: anon9223372036854775807
+[line    7]           │              ╰─── Function Expression:
+[line    7]           │                   ├─── Name: anon9223372036854775807
+[line    7]           │                   ├─── Return Type: $5
+[line    7]           │                   ├─── Captures:
+[line    7]           │                   │    ╰─── x
+[line    7]           │                   ├─── Params:
+[line    7]           │                   │    ╰─── arg0: $4
+[line    7]           │                   ╰─── Body: 
+[line    7]           │                        ╰─── Return:
+[line    7]           │                             ╰─── Call:
+[line    7]           │                                  ├─── Variable: add
+[line    7]           │                                  ├─── Variable: x
+[line    7]           │                                  ╰─── Variable: arg0
+[line    8]           ├─── Var Declaration: add22
+[line    8]           │    ╰───  Initializer
+[line    0]           │         ╰─── Function: anon0
+[line    0]           │              ╰─── Function Expression:
+[line    0]           │                   ├─── Name: anon0
+[line    0]           │                   ├─── Return Type: int
+[line    0]           │                   ├─── Captures:
+[line    0]           │                   │    ╰─── x
+[line    0]           │                   ├─── Params:
+[line    0]           │                   │    ╰─── y: int
+[line    0]           │                   ╰─── Body: 
+[line    8]           │                        ╰─── Return:
+[line    8]           │                             ╰─── Call:
+[line    8]           │                                  ├─── Variable: add
+[line    8]           │                                  ├─── Variable: x
+[line    8]           │                                  ╰─── Variable: y
+[line    9]           ├─── Var Declaration: result
+[line    9]           │    ╰───  Initializer
+[line    9]           │         ╰─── Binary: Plus
+[line    9]           │              ├─── Call:
+[line    9]           │              │    ├─── Variable: add2
+[line    9]           │              │    ╰─── Literal: 3
+[line    9]           │              ╰─── Call:
+[line    9]           │                   ├─── Variable: add22
+[line    9]           │                   ╰─── Literal: 4
+[line    9]           ╰─── Return:
+[line   10]                ╰─── Variable: result

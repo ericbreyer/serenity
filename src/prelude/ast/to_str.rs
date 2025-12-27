@@ -1,11 +1,10 @@
 use std::cell::RefCell;
 
-use crate::{prelude::shared_strings::SharedString, typing::Constraint};
-
 use super::{
     ASTNode, Acceptor, Declaration, DeclarationVisitor, Expression, ExpressionVisitor,
     FunctionExpression, NodeVisitor, Prototype, Statement, StatementVisitor,
 };
+use crate::{prelude::shared_strings::SharedString, typing::Constraint};
 
 const PIPE_END_CHAR: &str = "╰";
 const PIPE_CHAR: &str = "│";
@@ -604,7 +603,7 @@ impl DeclarationVisitor<String> for ToStrVisitor<'_> {
             s.push('<');
             for (i, (t, c)) in declaration.type_params.iter().enumerate() {
                 s.push_str(t);
-                if c.len() > 0 {
+                if !c.is_empty() {
                     s.push(':');
                     for (j, constraint) in c.iter().enumerate() {
                         if let Constraint(Some(c)) = constraint {
@@ -749,16 +748,17 @@ impl Prototype {
 #[cfg(test)]
 mod test {
 
-    use std::collections::HashMap;
     use std::rc::Rc;
 
-    use super::*;
-    use crate::lexer::{Token, TokenType};
-    use crate::prelude::*;
     use indexmap::IndexMap;
     use insta::assert_snapshot;
-
     use test_case::test_case;
+
+    use super::*;
+    use crate::{
+        lexer::{Token, TokenType},
+        prelude::*,
+    };
 
     #[test_case(Expression::Literal(LiteralExpression {
         line_no: 1,
