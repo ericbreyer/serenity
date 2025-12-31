@@ -13,6 +13,11 @@
 //! [`Crafting Interpreters`]: https://craftinginterpreters.com/
 
 // #![warn(clippy::too_many_lines)]
+#![warn(clippy::pedantic)]
+#![allow(clippy::must_use_candidate)]
+#![allow(clippy::missing_errors_doc)]
+#![allow(clippy::missing_panics_doc)]
+#![allow(clippy::too_many_lines)]
 
 use anyhow::{Context, Result};
 use tracing::{info, level_filters::LevelFilter, subscriber::DefaultGuard};
@@ -98,7 +103,7 @@ pub fn scan(path: &str) -> Result<Vec<String>> {
             break;
         }
     }
-    Ok(tokens.into_iter().map(|t| format!("{:?}", t)).collect())
+    Ok(tokens.into_iter().map(|t| format!("{t:?}")).collect())
 }
 
 pub fn parse(path: &str, include_paths: Vec<String>) -> Result<String> {
@@ -106,7 +111,7 @@ pub fn parse(path: &str, include_paths: Vec<String>) -> Result<String> {
     let parser = SerenityParser::parse(source.into(), path.into(), include_paths)
         .context("Failed to parse file")?;
     let ast = parser.ast;
-    Ok(format!("{:?}", ast))
+    Ok(format!("{ast:?}"))
 }
 
 pub fn compile(path: &str, include_paths: Vec<String>) -> Result<String> {
@@ -129,7 +134,7 @@ pub fn typecheck(path: &str, include_paths: Vec<String>) -> Result<String> {
     println!("{:?}", parsed.ast);
     let ast = compiler::typecheck(parsed)?;
 
-    Ok(format!("{:?}", ast))
+    Ok(format!("{ast:?}"))
 }
 
 pub fn run_file(
@@ -166,8 +171,8 @@ pub fn run_file(
 
         let out = main.call();
 
-        info!("Exited with code {}", out);
-        writeln!(output, "Exited with code {}", out)?;
+        info!("Exited with code {out}");
+        writeln!(output, "Exited with code {out}")?;
         out
     };
 
@@ -191,7 +196,7 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_nanos();
-        path.push(format!("serenity_{}_{}.ser", name, nanos));
+        path.push(format!("serenity_{name}_{nanos}.ser"));
         path
     }
 
@@ -211,11 +216,11 @@ mod tests {
 
     #[test]
     fn test_scan_and_parse_roundtrip() {
-        let program = r#"
+        let program = r"
             fn main() -> int {
                 return 1 + 2;
             }
-        "#;
+        ";
         let path = write_program(program);
 
         let tokens = scan(path.to_str().unwrap()).unwrap();
@@ -227,11 +232,11 @@ mod tests {
 
     #[test]
     fn test_compile_and_run_file() {
-        let program = r#"
+        let program = r"
             fn main() -> int {
                 return 42;
             }
-        "#;
+        ";
         let path = write_program(program);
 
         let module_ir = compile(path.to_str().unwrap(), vec![]).unwrap();
@@ -247,10 +252,10 @@ mod tests {
 
     #[test]
     fn test_typecheck_smoke() {
-        let program = r#"
+        let program = r"
             fn id(x: int) -> int { return x; }
             fn main() -> int { return id(7); }
-        "#;
+        ";
         let path = write_program(program);
 
         let typed = typecheck(path.to_str().unwrap(), vec![]).unwrap();

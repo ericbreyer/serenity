@@ -4,7 +4,7 @@ impl<'ctx> LLVMFunctionCompiler<'_, 'ctx> {
     /// Construct the serenity type of a function from a prototype
     ///
     /// # Arguments
-    /// * `self` - The LLVMFunctionCompiler
+    /// * `self` - The `LLVMFunctionCompiler`
     /// * `prototype` - The prototype of the function
     ///
     /// # Returns
@@ -44,7 +44,7 @@ impl<'ctx> LLVMFunctionCompiler<'_, 'ctx> {
     /// function
     ///
     /// # Arguments
-    /// * `self` - The LLVMFunctionCompiler
+    /// * `self` - The `LLVMFunctionCompiler`
     /// * `prototype` - The prototype of the function
     ///
     /// # Returns
@@ -82,7 +82,7 @@ impl<'ctx> LLVMFunctionCompiler<'_, 'ctx> {
     /// arguments and the function arguments as the rest
     ///
     /// # Arguments
-    /// * `self` - The LLVMFunctionCompiler
+    /// * `self` - The `LLVMFunctionCompiler`
     /// * `prototype` - The prototype of the function
     ///
     /// # Returns

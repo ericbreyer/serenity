@@ -1,4 +1,7 @@
-use super::*;
+use super::{
+    Constraint, Context, Debug, Hash, HashSet, IndexMap, RefCell, Result, ScopedMap, SharedString,
+    UValueType, ValueType,
+};
 
 #[derive(Clone)]
 pub struct CustomStruct {
@@ -27,7 +30,7 @@ impl Debug for CustomStruct {
         write!(f, "struct")?;
         write!(f, " {}", self.name)?;
         if let Some(embed) = &self.embed {
-            write!(f, " {}", embed)?;
+            write!(f, " {embed}")?;
         }
         write!(f, " {{")?;
         let bg = self.fields.borrow();

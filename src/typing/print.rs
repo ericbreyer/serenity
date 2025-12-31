@@ -1,4 +1,6 @@
-use super::*;
+use std::fmt::Write;
+
+use super::{Closure, Debug, Display, ValueType};
 
 impl Display for ValueType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -40,13 +42,13 @@ impl Display for ValueType {
                 s.push_str(&ret.to_string());
                 s
             }
-            ValueType::Pointer(t, _) => format!("*{}", t),
-            ValueType::LValue(t, _) => format!("&{}", t),
+            ValueType::Pointer(t, _) => format!("*{t}"),
+            ValueType::LValue(t, _) => format!("&{t}"),
             ValueType::Array(t, s) => {
                 if let Some(s) = s {
-                    format!("[{}; {}]", t, s)
+                    format!("[{t}; {s}]")
                 } else {
-                    format!("[{}]", t)
+                    format!("[{t}]")
                 }
             }
             ValueType::Struct(st) => {
@@ -56,17 +58,17 @@ impl Display for ValueType {
                 s.push_str(" { ");
                 let bg = st.fields.borrow();
                 for (k, v) in bg.iter() {
-                    s.push_str(&format!("{}: {}, ", k, v.value));
+                    write!(s, "{k}: {}, ", v.value).unwrap();
                 }
                 s.push('}');
                 s
             }
-            ValueType::SelfStructRef(s, _) => format!("struct {}", s),
+            ValueType::SelfStructRef(s, _) => format!("struct {s}"),
             ValueType::GenericParam(n, c) => {
                 if c.is_empty() {
                     format!("<{n}>")
                 } else {
-                    format!("<{n}: {:?}>", c)
+                    format!("<{n}: {c:?}>")
                 }
             }
             ValueType::Err => "err".to_owned(),
@@ -77,6 +79,6 @@ impl Display for ValueType {
 
 impl Debug for ValueType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self)
+        write!(f, "{self}")
     }
 }

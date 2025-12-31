@@ -113,21 +113,23 @@ mod tests {
     use super::*;
     use crate::parser::{Parser, SerenityParser};
 
-    #[test_case(r##"
+    #[test_case(r"
     fn main() -> int {
         let x;
         x = 2;
         return x;
-    }"##, 2; "infer")]
+    }", 2; "infer")]
     fn test_compile(input: &str, expected: usize) {
         let context = Context::create();
 
         let pr = SerenityParser::parse(input.into(), "test_compile".into(), vec![]).unwrap();
 
         let result = compile(&context, pr);
-        if result.is_err() {
-            panic!("Failed to compile {:?}", result.err().unwrap());
-        }
+        assert!(
+            result.is_ok(),
+            "Failed to compile {:?}",
+            result.err().unwrap()
+        );
 
         unsafe {
             let jit = result
@@ -138,7 +140,7 @@ mod tests {
                 .get_function::<unsafe extern "C" fn() -> i64>("main_i64")
                 .unwrap();
             let out = main.call();
-            assert_eq!(out, expected as i64);
+            assert_eq!(out, expected.cast_signed().try_into().unwrap());
         }
     }
 }

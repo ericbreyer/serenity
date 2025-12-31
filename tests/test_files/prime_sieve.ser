@@ -38,8 +38,6 @@ fun (self : * struct filter) next() -> int {
     return i;
 }
 
-const NPRIMES = 100;
-
 type seive struct {
     gen: impl generator,
 } implements generator;
@@ -65,6 +63,7 @@ fun (self : * struct seive) next() -> int {
     return i;
 }
 
+const NPRIMES = 100;
 
 fn main() -> int {
     arena = create_arena(); 

@@ -32,12 +32,12 @@ impl SerenityParser {
     //----------------------------//
 
     pub(super) fn parse_precedence(&mut self, precedence: Precedence) -> Expression {
-        if self.current.token_type == TokenType::Struct {
+        if self.current.tok_type == TokenType::Struct {
             return self.type_expression();
         }
 
         self.advance();
-        let prefix_rule = &self.parse_table[self.previous.token_type as usize].prefix;
+        let prefix_rule = &self.parse_table[self.previous.tok_type as usize].prefix;
         if prefix_rule.is_none() {
             self.error("Expect expression.");
             return Expression::Empty;
@@ -47,14 +47,15 @@ impl SerenityParser {
 
         let mut node = prefix_rule.unwrap()(self, can_assign);
 
-        while precedence <= self.parse_table[self.current.token_type as usize].precedence {
+        while precedence <= self.parse_table[self.current.tok_type as usize].precedence {
             let _ = self.previous.lexeme.clone();
             self.advance();
-            let infix_rule = &self.parse_table[self.previous.token_type as usize].infix;
+            let infix_rule = &self.parse_table[self.previous.tok_type as usize].infix;
 
-            let hnode = infix_rule.unwrap_or_else(|| {
-                panic!("token {:?} has no infix rule", self.previous.token_type)
-            })(self, can_assign);
+            let hnode = infix_rule
+                .unwrap_or_else(|| panic!("token {:?} has no infix rule", self.previous.tok_type))(
+                self, can_assign,
+            );
             node = hnode.fill(node, self.previous.line);
         }
 
@@ -141,7 +142,7 @@ impl SerenityParser {
                 ANON_ID.with(|ai| ai.fetch_add(1, Ordering::Relaxed))
             )
             .as_str(),
-            IndexMap::new( /* No type params for anonymous functions */ ),
+            &IndexMap::new( /* No type params for anonymous functions */ ),
         );
         Expression::Function(func_expr)
     }
@@ -149,7 +150,7 @@ impl SerenityParser {
     pub(super) fn function(
         &mut self,
         name: &str,
-        type_params: IndexMap<SharedString, Box<[Constraint]>>,
+        type_params: &IndexMap<SharedString, Box<[Constraint]>>,
     ) -> FunctionExpression {
         let mut captures = Vec::new();
 
@@ -167,7 +168,7 @@ impl SerenityParser {
         let mut params = Vec::new();
         self.consume(TokenType::LeftParen, "Expect '(' after function name.");
         let mut param_types: Vec<UValueType> = Vec::new();
-        if self.current.token_type != TokenType::RightParen {
+        if self.current.tok_type != TokenType::RightParen {
             loop {
                 let mutable = self.match_token(TokenType::Mut);
 
@@ -176,7 +177,7 @@ impl SerenityParser {
                 }
                 let name = self.previous.lexeme.clone();
                 self.consume(TokenType::Colon, "Expect ':' after parameter name.");
-                let p_type = self.parse_type(None, Some(&type_params), mutable);
+                let p_type = self.parse_type(None, Some(type_params), mutable);
 
                 if let ValueType::Array(_, _) = *p_type {
                     self.warn("Passing arrays by value may be expensive");
@@ -194,7 +195,7 @@ impl SerenityParser {
         self.consume(TokenType::RightParen, "Expect ')' after parameters.");
         let mut return_type = ValueType::new_type_var(Box::new([]));
         if self.match_token(TokenType::RightArrow) {
-            return_type = self.parse_type(None, Some(&type_params), false);
+            return_type = self.parse_type(None, Some(type_params), false);
         }
         param_types.push(return_type);
 
@@ -283,7 +284,7 @@ impl SerenityParser {
 
     fn unary(&mut self, _: bool) -> Expression {
         let line_no = self.previous.line;
-        let operator = self.previous.token_type;
+        let operator = self.previous.tok_type;
         // Compile the operand.
         let expr = self.parse_precedence(Precedence::Unary);
 
@@ -334,7 +335,7 @@ impl SerenityParser {
     }
 
     fn binary(&mut self, _: bool) -> HalfExpression {
-        let operator_type = self.previous.token_type;
+        let operator_type = self.previous.tok_type;
 
         // Compile the right operand.
         let rule = &self.parse_table[operator_type as usize];
@@ -366,7 +367,7 @@ impl SerenityParser {
     fn argument_list(&mut self) -> Vec<Expression> {
         let mut arg_count = 0;
         let mut nodes = Vec::new();
-        if self.current.token_type != TokenType::RightParen {
+        if self.current.tok_type != TokenType::RightParen {
             loop {
                 let expr = self.expression();
                 nodes.push(expr);
@@ -378,7 +379,7 @@ impl SerenityParser {
                 if !self.match_token(TokenType::Comma) {
                     break;
                 }
-                if self.current.token_type == TokenType::RightParen {
+                if self.current.tok_type == TokenType::RightParen {
                     break;
                 }
             }
@@ -389,7 +390,7 @@ impl SerenityParser {
 
     fn literal(&mut self, _: bool) -> Expression {
         let line = self.previous.line;
-        match self.previous.token_type {
+        match self.previous.tok_type {
             TokenType::False => Expression::Literal(LiteralExpression {
                 value: Value::Bool(false),
                 line_no: line,
@@ -435,12 +436,12 @@ impl SerenityParser {
     }
 
     fn type_expression(&mut self) -> Expression {
-        let was_struct = self.current.token_type == TokenType::Struct;
+        let was_struct = self.current.tok_type == TokenType::Struct;
         let t = self.parse_type(None, None, false);
 
-        if was_struct && self.current.token_type == TokenType::LeftBrace {
+        if was_struct && self.current.tok_type == TokenType::LeftBrace {
             self.struct_initializer(t)
-        } else if self.current.token_type == TokenType::DoubleColon {
+        } else if self.current.tok_type == TokenType::DoubleColon {
             self.advance();
             let Expression::Variable(VariableExpression { token, line_no }) =
                 self.parse_precedence(Precedence::Call)

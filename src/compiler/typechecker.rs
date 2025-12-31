@@ -44,7 +44,7 @@ impl Typechecker {
         } = ffi;
 
         self.variables.borrow_mut().set(
-            name.to_string().into(),
+            (*name).to_string().into(),
             (ValueType::ExternalFn(ret, (*name).into()).intern(), false),
         );
     }
@@ -60,7 +60,9 @@ impl Typechecker {
             parametric_functions: HashMap::new().into(),
         };
 
-        ffi_funcs.iter().for_each(|f| c.register_ffi_function(f));
+        for ffi in ffi_funcs {
+            c.register_ffi_function(ffi);
+        }
 
         c
     }
@@ -118,15 +120,15 @@ impl ExprResultInner {
         Self(serenity_type)
     }
 
-    fn rvalue(self) -> ExprResult {
+    fn rvalue(self) -> ExprResultInner {
         match self.0 {
             ValueType::LValue(ref t, _) => match t {
-                ValueType::Array(a, _) => Ok(ExprResultInner::new(
-                    ValueType::Pointer(a, false).intern().substitute(None),
-                )),
-                _ => Ok(ExprResultInner::new(t.substitute(None))),
+                ValueType::Array(a, _) => {
+                    ExprResultInner::new(ValueType::Pointer(a, false).intern().substitute(None))
+                }
+                _ => ExprResultInner::new(t.substitute(None)),
             },
-            _ => Ok(self),
+            _ => self,
         }
     }
 }
@@ -163,8 +165,7 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
             .operand
             .accept(self)
             .context("unary operand")?
-            .rvalue()
-            .context("rvalue")?;
+            .rvalue();
 
         Ok(ExprResultInner::new(match expression.operator {
             TokenType::Minus => match operand_t.0 {
@@ -185,8 +186,7 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
             .operand
             .accept(self)
             .context("Deref expression operand")?
-            .rvalue()
-            .context("Rvalue")?;
+            .rvalue();
         let ValueType::Pointer(t, m) = *expr else {
             return Err(anyhow::anyhow!("Invalid deref expression"));
         };
@@ -209,27 +209,23 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
             .array
             .accept(self)
             .context("Index expression array")?
-            .rvalue()?;
+            .rvalue();
         let index = expression
             .index
             .accept(self)
             .context("Index expression index")?
-            .rvalue()
-            .context("Rvalue")?;
+            .rvalue();
         ValueType::unify(
             ValueType::Integer.intern(),
             index.0,
             &self.generics_in_scope.borrow(),
         )?;
 
-        let (t, m) = match pointer.0 {
-            ValueType::Pointer(a, m) => (a, m),
-            _ => {
-                return Err(anyhow::anyhow!(
-                    "Invalid index expression array type was {:?}",
-                    pointer
-                ))
-            }
+        let ValueType::Pointer(t, m) = pointer.0 else {
+            return Err(anyhow::anyhow!(
+                "Invalid index expression array type was {:?}",
+                pointer
+            ));
         };
 
         Ok(ExprResultInner::new(ValueType::LValue(t, *m).intern()))
@@ -240,13 +236,12 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
             .left
             .accept(self)
             .context("Left hand side of binary expression")?;
-        let lhs = lhs_ptr.clone().rvalue().context("Rvalue")?;
+        let lhs = lhs_ptr.clone().rvalue();
         let rhs = expression
             .right
             .accept(self)
             .context("Right hand side of binary expression")?
-            .rvalue()
-            .context("Rvalue")?;
+            .rvalue();
 
         if matches!(*lhs, ValueType::Array(_, _) | ValueType::Pointer(_, _)) {
             ValueType::unify(
@@ -326,8 +321,7 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
             .condition
             .accept(self)
             .context("Ternary expression condition")?
-            .rvalue()
-            .context("Rvalue")?;
+            .rvalue();
         ValueType::unify(
             ValueType::Bool.intern(),
             cond.0,
@@ -343,14 +337,12 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
             .then_branch
             .accept(self)
             .context("Ternary expression then")?
-            .rvalue()
-            .context("Rvalue")?;
+            .rvalue();
         let rhs = expression
             .else_branch
             .accept(self)
             .context("Ternary expression else")?
-            .rvalue()
-            .context("Rvalue")?;
+            .rvalue();
 
         ValueType::unify(lhs.0, rhs.0, &self.generics_in_scope.borrow()).context(format!(
             "Ternary expression unification {:?} = {:?}",
@@ -372,14 +364,14 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
                 }
             }
             return Ok(ExprResultInner::new(ValueType::LValue(t, m).intern()));
-        };
+        }
 
         if let Some(declaration) = self.parametric_functions.borrow().get(name) {
             let mut maping = HashMap::new();
             // Pre-populate the mapping with a fresh type-var for every declared
             // type parameter so that instantiation preserves declaration order
             // and length even if a param doesn't appear in the signature.
-            for (tp, _) in declaration.type_params.iter() {
+            for (tp, _) in &declaration.type_params {
                 maping.insert(tp.clone(), ValueType::new_type_var(Box::new([])));
             }
 
@@ -397,7 +389,7 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
 
             // Build types map in the same order as declaration.type_params
             let mut types_map: IndexMap<_, _> = IndexMap::new();
-            for (k, _) in declaration.type_params.iter() {
+            for (k, _) in &declaration.type_params {
                 types_map.insert(
                     k.clone(),
                     *maping.get(k).expect("type param instantiation missing"),
@@ -406,7 +398,7 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
             let id = {
                 use std::hash::Hasher;
                 let mut hasher = std::collections::hash_map::DefaultHasher::new();
-                for (k, v) in types_map.iter() {
+                for (k, v) in &types_map {
                     k.hash(&mut hasher);
                     v.id_str().hash(&mut hasher);
                 }
@@ -451,8 +443,7 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
                     ASTNode::Expression(*expression.value.clone())
                 )
             })?
-            .rvalue()
-            .context("Rvalue")?;
+            .rvalue();
         let lhs = expression
             .variable
             .accept(self)
@@ -480,8 +471,7 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
             .left
             .accept(self)
             .context("Logical expression lhs")?
-            .rvalue()
-            .context("Rvalue")?;
+            .rvalue();
 
         ValueType::unify(
             ValueType::Bool.intern(),
@@ -498,8 +488,7 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
             .right
             .accept(self)
             .context("Logical expression rhs")?
-            .rvalue()
-            .context("Rvalue")?;
+            .rvalue();
 
         ValueType::unify(
             ValueType::Bool.intern(),
@@ -520,17 +509,11 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
             .callee
             .accept(self)
             .context("Evaluate Calee")?
-            .rvalue()
-            .context("Rvalue Calee")?;
+            .rvalue();
         let args = expression
             .arguments
             .iter()
-            .map(|arg| {
-                arg.accept(self)
-                    .context("Argument")?
-                    .rvalue()
-                    .context("Rvalue")
-            })
+            .map(|arg| Ok(arg.accept(self).context("Argument")?.rvalue()))
             .collect::<Result<Vec<_>>>()?;
         let arg_types = args.iter().map(|a| a.0).collect::<Vec<_>>();
         let fn_type = callee.0.instantiate_generic(&mut HashMap::new());
@@ -590,7 +573,7 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
                     ));
                 }
                 'a: {
-                    for c in cs.iter() {
+                    for c in cs {
                         let impler_str = format!("{}_impl", c.0.as_ref().unwrap()).into();
                         if let Some(t) = self.types.get(&impler_str) {
                             break 'a Box::new(t.clone());
@@ -627,7 +610,7 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
                         token: Rc::new(
                             Token {
                                 lexeme: method_name.clone(),
-                                token_type: TokenType::Identifier,
+                                tok_type: TokenType::Identifier,
                                 line: 0,
                             }
                             .into(),
@@ -656,7 +639,7 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
 
                 // Build types map in the same order as g_method.type_params
                 let mut types_map: IndexMap<_, _> = IndexMap::new();
-                for (k, _) in g_method.type_params.iter() {
+                for (k, _) in &g_method.type_params {
                     types_map.insert(
                         k.clone(),
                         *maping.get(k).expect("type param instantiation missing"),
@@ -683,7 +666,7 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
                         token: Rc::new(
                             Token {
                                 lexeme: method_name.clone(),
-                                token_type: TokenType::Identifier,
+                                tok_type: TokenType::Identifier,
                                 line: 0,
                             }
                             .into(),
@@ -713,7 +696,7 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
 
     fn visit_function_expression(&self, expression: &FunctionExpression) -> ExprResult {
         let fn_type = self.function_type_serenity(&expression.prototype);
-        let r_type = self.function_body(expression.prototype.clone(), &expression.body)?;
+        let r_type = self.function_body(&expression.prototype, expression.body.as_ref())?;
 
         ValueType::unify(
             expression.prototype.return_type,
@@ -733,8 +716,7 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
             .expression
             .accept(self)
             .context("Cast expression operand")?
-            .rvalue()
-            .context("Rvalue")?;
+            .rvalue();
 
         // ValueType::unify(expr.0, expression.target_type,
         // &self.generics_in_scope.borrow())?;
@@ -746,7 +728,7 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
         &self,
         expression: &StructInitializerExpression,
     ) -> ExprResult {
-        for (name, expr) in expression.fields.iter() {
+        for (name, expr) in &expression.fields {
             let t = expression
                 .struct_type
                 .fields
@@ -754,7 +736,7 @@ impl ExpressionVisitor<ExprResult> for Typechecker {
                 .get(name)
                 .map(|f| f.value)
                 .ok_or_else(|| anyhow::anyhow!("Field {} not found in struct", name))?;
-            let expr_t = expr.accept(self)?.rvalue()?;
+            let expr_t = expr.accept(self)?.rvalue();
             ValueType::unify(t.decay(), expr_t.0, &self.generics_in_scope.borrow()).context(
                 format!(
                     "Struct initializer expression unification {:?} = {:?}",
@@ -795,24 +777,24 @@ impl Typechecker {
 
     fn function_body(
         &self,
-        prototype: Prototype,
-        body: &Option<Vec<ASTNode>>,
+        prototype: &Prototype,
+        body: Option<&Vec<ASTNode>>,
     ) -> Result<UValueType> {
         let args = &prototype.params;
         let caps = &prototype.captures;
 
         self.variables.borrow_mut().begin_scope();
 
-        for s in caps.iter() {
+        for s in caps {
             let arg_type_serenity = self.get_variable(s).unwrap();
             self.set_variable(s, arg_type_serenity.0, arg_type_serenity.1);
         }
 
-        for &(ref s, t, m) in args.iter() {
+        for &(ref s, t, m) in args {
             self.set_variable(s, t.decay(), m);
         }
 
-        let ret = if let Some(body) = &body {
+        let ret = if let Some(body) = body {
             let fc = self.compile_function();
             for statement in body {
                 statement.accept(&fc).context("Function body")?;
@@ -843,7 +825,7 @@ impl DeclarationVisitor<Result<()>> for Typechecker {
         let var_type = declaration.tipe;
 
         if let Some(init) = &declaration.initializer {
-            let init_type = init.accept(self)?.rvalue()?;
+            let init_type = init.accept(self)?.rvalue();
             ValueType::unify(var_type, init_type.0, &self.generics_in_scope.borrow()).context(
                 format!(
                     "Var declaration unification {:?} = {:?}",
@@ -859,7 +841,8 @@ impl DeclarationVisitor<Result<()>> for Typechecker {
     fn visit_function_declaration(&self, declaration: &FunctionDeclaration) -> Result<()> {
         match &declaration.generic_instantiations {
             FunctionGenerics::Parametric(_) => {
-                self.visit_polymorphic_function_declaration(declaration)
+                self.visit_polymorphic_function_declaration(declaration);
+                Ok(())
             }
             FunctionGenerics::Monomorphic(mappings) => {
                 self.visit_monomorphic_function_declaration(declaration, mappings)
@@ -868,15 +851,10 @@ impl DeclarationVisitor<Result<()>> for Typechecker {
     }
 }
 impl Typechecker {
-
-    fn visit_polymorphic_function_declaration(
-        &self,
-        declaration: &FunctionDeclaration,
-    ) -> Result<()> {
+    fn visit_polymorphic_function_declaration(&self, declaration: &FunctionDeclaration) {
         self.parametric_functions
             .borrow_mut()
             .insert(declaration.prototype.name.clone(), declaration.clone());
-        Ok(())
     }
 
     fn visit_monomorphic_function_declaration(
@@ -896,7 +874,7 @@ impl Typechecker {
             false,
         );
 
-        self.function_body(declaration.prototype.clone(), declaration.body.as_ref())
+        self.function_body(&declaration.prototype, declaration.body.as_ref().as_ref())
             .context(format!(
                 "Function declaration {:?}",
                 ASTNode::Declaration(Declaration::Function(declaration.clone()))
@@ -919,7 +897,7 @@ impl StatementVisitor<Result<()>> for Typechecker {
     }
 
     fn visit_if_statement(&self, statement: &IfStatement) -> Result<()> {
-        let cond = statement.condition.accept(self)?.rvalue()?;
+        let cond = statement.condition.accept(self)?.rvalue();
         ValueType::unify(
             ValueType::Bool.intern(),
             cond.0,
@@ -941,7 +919,7 @@ impl StatementVisitor<Result<()>> for Typechecker {
     }
 
     fn visit_while_statement(&self, statement: &WhileStatement) -> Result<()> {
-        let cond = statement.condition.accept(self)?.rvalue()?;
+        let cond = statement.condition.accept(self)?.rvalue();
 
         ValueType::unify(
             ValueType::Bool.intern(),
@@ -958,10 +936,10 @@ impl StatementVisitor<Result<()>> for Typechecker {
         self.variables.borrow_mut().begin_scope();
         if let Some(init) = &statement.init {
             init.accept(self)?;
-        };
+        }
 
         if let Some(cond) = &statement.condition {
-            let cond = cond.accept(self)?.rvalue()?;
+            let cond = cond.accept(self)?.rvalue();
             ValueType::unify(
                 ValueType::Bool.intern(),
                 cond.0,
@@ -971,7 +949,7 @@ impl StatementVisitor<Result<()>> for Typechecker {
 
         if let Some(inc) = &statement.increment {
             inc.accept(self)?;
-        };
+        }
 
         statement.body.accept(self)?;
         self.variables.borrow_mut().end_scope();
@@ -989,7 +967,7 @@ impl StatementVisitor<Result<()>> for Typechecker {
 
     fn visit_return_statement(&self, statement: &ReturnStatement) -> Result<()> {
         if let Some(value) = &statement.value {
-            let v = value.accept(self)?.rvalue()?;
+            let v = value.accept(self)?.rvalue();
             self.return_type.set(Some(v.0));
         } else {
             self.return_type.set(Some(ValueType::Nil.intern()));
@@ -1012,25 +990,25 @@ mod tests {
 
     use super::*;
     use crate::{compiler::ffi_funcs, parser::Parser};
-    #[test_case(r##"
+    #[test_case(r"
         fn main() -> int {
             let x: int = 1;
             return x;
         }
-        "##; "var_expr_fully_typed")]
-    #[test_case(r##"
+        "; "var_expr_fully_typed")]
+    #[test_case(r"
         fn main() -> int {
             let x = 1;
             return x;
         }
-        "##; "var_expr_inferred")]
-    #[test_case(r##"
+        "; "var_expr_inferred")]
+    #[test_case(r"
         fn main() -> int {
             let x;
             x = 1;
             return x;
         }
-        "##; "var_expr_assign")]
+        "; "var_expr_assign")]
     fn test_program_integer_return(prog: &str) {
         let ast = crate::parser::SerenityParser::parse(prog.into(), "mod".into(), vec![]).unwrap();
 
@@ -1041,100 +1019,100 @@ mod tests {
         }
     }
 
-    #[test_case(r##"
+    #[test_case(r"
         fn main() -> float {
             let x: float = 3.14;
             return x;
         }
-        "##; "float_return")]
-    #[test_case(r##"
+        "; "float_return")]
+    #[test_case(r"
         fn main() -> bool {
             let x: bool = true;
             return x;
         }
-        "##; "bool_return")]
-    #[test_case(r##"
+        "; "bool_return")]
+    #[test_case(r"
         fn main() -> int {
             let x: int = 5;
             let y: int = 3;
             return x + y;
         }
-        "##; "addition")]
-    #[test_case(r##"
+        "; "addition")]
+    #[test_case(r"
         fn main() -> int {
             let x: int = 10;
             let y: int = 3;
             return x - y;
         }
-        "##; "subtraction")]
-    #[test_case(r##"
+        "; "subtraction")]
+    #[test_case(r"
         fn main() -> int {
             let x: int = 5;
             let y: int = 3;
             return x * y;
         }
-        "##; "multiplication")]
-    #[test_case(r##"
+        "; "multiplication")]
+    #[test_case(r"
         fn main() -> int {
             let x: int = 15;
             let y: int = 3;
             return x / y;
         }
-        "##; "division")]
-    #[test_case(r##"
+        "; "division")]
+    #[test_case(r"
         fn main() -> bool {
             let x: int = 5;
             let y: int = 3;
             return x > y;
         }
-        "##; "greater_than")]
-    #[test_case(r##"
+        "; "greater_than")]
+    #[test_case(r"
         fn main() -> bool {
             let x: int = 5;
             let y: int = 3;
             return x < y;
         }
-        "##; "less_than")]
-    #[test_case(r##"
+        "; "less_than")]
+    #[test_case(r"
         fn main() -> bool {
             let x: int = 5;
             let y: int = 5;
             return x == y;
         }
-        "##; "equality")]
-    #[test_case(r##"
+        "; "equality")]
+    #[test_case(r"
         fn main() -> bool {
             let x: int = 5;
             let y: int = 3;
             return x != y;
         }
-        "##; "inequality")]
-    #[test_case(r##"
+        "; "inequality")]
+    #[test_case(r"
         fn main() -> bool {
             let x: bool = true;
             let y: bool = false;
             return x and y;
         }
-        "##; "logical_and")]
-    #[test_case(r##"
+        "; "logical_and")]
+    #[test_case(r"
         fn main() -> bool {
             let x: bool = true;
             let y: bool = false;
             return x or y;
         }
-        "##; "logical_or")]
-    #[test_case(r##"
+        "; "logical_or")]
+    #[test_case(r"
         fn main() -> int {
             let x: int = 5;
             return -x;
         }
-        "##; "unary_negation")]
-    #[test_case(r##"
+        "; "unary_negation")]
+    #[test_case(r"
         fn main() -> bool {
             let x: bool = true;
             return !x;
         }
-        "##; "logical_not")]
+        "; "logical_not")]
     fn test_expressions(prog: &str) {
         let ast = crate::parser::SerenityParser::parse(prog.into(), "mod".into(), vec![]).unwrap();
 
@@ -1145,7 +1123,7 @@ mod tests {
         }
     }
 
-    #[test_case(r##"
+    #[test_case(r"
         fn main() -> int {
             let x: int = 5;
             if (x > 3) {
@@ -1153,8 +1131,8 @@ mod tests {
             }
             return 0;
         }
-        "##; "if_statement")]
-    #[test_case(r##"
+        "; "if_statement")]
+    #[test_case(r"
         fn main() -> int {
             let x: int = 0;
             while (x < 5) {
@@ -1162,8 +1140,8 @@ mod tests {
             }
             return x;
         }
-        "##; "while_loop")]
-    #[test_case(r##"
+        "; "while_loop")]
+    #[test_case(r"
         fn main() -> int {
             let sum: int = 0;
             for (var i = 0; i < 5; i = i + 1) {
@@ -1171,22 +1149,22 @@ mod tests {
             }
             return sum;
         }
-        "##; "for_loop")]
-    #[test_case(r##"
+        "; "for_loop")]
+    #[test_case(r"
         fn add(x: int, y: int) -> int {
             return x + y;
         }
         fn main() -> int {
             return add(3, 5);
         }
-        "##; "function_call")]
-    #[test_case(r##"
+        "; "function_call")]
+    #[test_case(r"
         fn main() -> int {
             let x: bool = #5;
             let y: int = x ? 10 : 20;
             return y;
         }
-        "##; "ternary_operator")]
+        "; "ternary_operator")]
     fn test_control_flow(prog: &str) {
         let ast = crate::parser::SerenityParser::parse(prog.into(), "mod".into(), vec![]).unwrap();
 
@@ -1197,14 +1175,14 @@ mod tests {
         }
     }
 
-    #[test_case(r##"
+    #[test_case(r"
         fn main() -> int {
             let x: int = 5;
             let y: *int = &x;
             return *y;
         }
-        "##; "reference_and_dereference")]
-    #[test_case(r##"
+        "; "reference_and_dereference")]
+    #[test_case(r"
         fn main() -> int {
             let arr: [int; 3];
             for (var i = 0; i < 3; i = i + 1) {
@@ -1212,7 +1190,7 @@ mod tests {
             }
             return arr[0];
         }
-        "##; "array_indexing")]
+        "; "array_indexing")]
     fn test_pointers_and_arrays(prog: &str) {
         let ast = crate::parser::SerenityParser::parse(prog.into(), "mod".into(), vec![]).unwrap();
 
@@ -1227,11 +1205,11 @@ mod tests {
 
     #[test]
     fn test_compile_creates_typechecker() {
-        let prog = r##"
+        let prog = r"
             fn main() -> int {
                 return 42;
             }
-        "##;
+        ";
         let ast = crate::parser::SerenityParser::parse(prog.into(), "mod".into(), vec![]).unwrap();
         let c = Typechecker::new(ast.custom_structs, ffi_funcs::ffi_funcs().as_ref());
 
@@ -1243,7 +1221,7 @@ mod tests {
 
     #[test]
     fn test_variable_scoping() {
-        let prog = r##"
+        let prog = r"
             fn main() -> int {
                 let x: int = 5;
                 {
@@ -1251,7 +1229,7 @@ mod tests {
                 }
                 return x;
             }
-        "##;
+        ";
         let ast = crate::parser::SerenityParser::parse(prog.into(), "mod".into(), vec![]).unwrap();
         let c = Typechecker::new(ast.custom_structs, ffi_funcs::ffi_funcs().as_ref());
 
@@ -1263,7 +1241,7 @@ mod tests {
 
     #[test]
     fn test_multiple_functions() {
-        let prog = r##"
+        let prog = r"
             fn add(x: int, y: int) -> int {
                 return x + y;
             }
@@ -1273,7 +1251,7 @@ mod tests {
             fn main() -> int {
                 return add(2, 3);
             }
-        "##;
+        ";
         let ast = crate::parser::SerenityParser::parse(prog.into(), "mod".into(), vec![]).unwrap();
         let c = Typechecker::new(ast.custom_structs, ffi_funcs::ffi_funcs().as_ref());
 

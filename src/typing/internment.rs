@@ -1,6 +1,6 @@
-use super::*;
+use super::{Arena, HashMap, RefCell, SharedString, UValueType, ValueType};
 
-static USED_TYPES_ARENA: Arena<1000000> = Arena::new();
+static USED_TYPES_ARENA: Arena<1_000_000> = Arena::new();
 
 thread_local! {
     static USED_TYPES: RefCell<HashMap<SharedString, UValueType>> =

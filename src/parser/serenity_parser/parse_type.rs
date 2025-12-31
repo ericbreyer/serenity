@@ -1,6 +1,6 @@
 use indexmap::IndexMap;
 
-use super::*;
+use super::{HashMap, ScopedMap, SerenityParser, SharedString, TokenType, Value, ValueType};
 use crate::typing::{Closure, Constraint, UValueType};
 
 impl SerenityParser {
@@ -51,16 +51,16 @@ impl SerenityParser {
                 let sindex = self.expression().eval_constexpr();
                 index = Some(match sindex {
                     Some(Value::UInteger(index)) => index,
-                    Some(Value::Integer(index)) if index >= 0 => index as u64,
+                    Some(Value::Integer(index)) if index >= 0 => index.cast_unsigned(),
                     _ => {
                         self.error("Expect constant unsigned index.");
                         return ValueType::Err.intern();
                     }
-                } as usize);
+                });
             }
 
             self.consume(TokenType::RightBracket, "Expect ']' after index.");
-            return ValueType::Array(t, index).intern();
+            return ValueType::Array(t, usize::try_from(index.unwrap_or(0)).ok()).intern();
         }
 
         if self.match_token(TokenType::Identifier) {
@@ -191,7 +191,7 @@ impl SerenityParser {
         }
 
         self.consume(TokenType::LeftParen, "Expect '(' after 'fun'.");
-        if self.current.token_type != TokenType::RightParen {
+        if self.current.tok_type != TokenType::RightParen {
             loop {
                 let p_type = self.parse_type(struct_name, type_params, false);
                 param_types.push(p_type);

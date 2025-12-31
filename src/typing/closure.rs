@@ -1,4 +1,4 @@
-use super::*;
+use super::{BTreeMap, Debug, Hash, SharedString, UValueType};
 
 #[derive(Clone, Debug, PartialEq, Hash)]
 pub struct Closure {

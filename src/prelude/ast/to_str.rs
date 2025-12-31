@@ -1,4 +1,4 @@
-use std::cell::RefCell;
+use std::{cell::RefCell, fmt::Write};
 
 use super::{
     ASTNode, Acceptor, Declaration, DeclarationVisitor, Expression, ExpressionVisitor,
@@ -175,10 +175,12 @@ impl ExpressionVisitor<String> for ToStrVisitor<'_> {
 
     fn visit_index_expression(&self, expression: &super::IndexExpression) -> String {
         let mut s = String::new();
-        s.push_str(&format!(
+        write!(
+            s,
             "[line {:>4}] {}Index:",
             expression.line_no, self.indent_member
-        ));
+        )
+        .unwrap();
         s.push_str(&expression.array.as_node().accept(&ToStrVisitor::new(
             self.depth_has_scope_open,
             self.depth + 1,
@@ -194,44 +196,73 @@ impl ExpressionVisitor<String> for ToStrVisitor<'_> {
 
     fn visit_binary_expression(&self, expression: &super::BinaryExpression) -> String {
         let mut s = String::new();
-        s.push_str(&format!(
+        write!(
+            s,
             "[line {:>4}] {}Binary: {:?}",
             expression.line_no, self.indent_member, expression.operator
-        ));
-        s.push_str(&expression.left.as_node().accept(&ToStrVisitor::new(
-            self.depth_has_scope_open,
-            self.depth + 1,
-            None,
-        )));
-        s.push_str(&expression.right.as_node().accept(&ToStrVisitor::new(
-            self.depth_has_scope_open,
-            self.depth + 1,
-            Some(self.depth),
-        )));
+        )
+        .unwrap();
+        write!(
+            s,
+            "{}",
+            expression.left.as_node().accept(&ToStrVisitor::new(
+                self.depth_has_scope_open,
+                self.depth + 1,
+                None,
+            ))
+        )
+        .unwrap();
+        write!(
+            s,
+            "{}",
+            expression.right.as_node().accept(&ToStrVisitor::new(
+                self.depth_has_scope_open,
+                self.depth + 1,
+                Some(self.depth),
+            ))
+        )
+        .unwrap();
         s
     }
 
     fn visit_ternary_expression(&self, expression: &super::TernaryExpression) -> String {
         let mut s = String::new();
-        s.push_str(&format!(
+        write!(
+            s,
             "[line {:>4}] {}Ternary:",
             expression.line_no, self.indent_member
-        ));
-        s.push_str(&expression.condition.as_node().accept(&ToStrVisitor::new(
-            self.depth_has_scope_open,
-            self.depth + 1,
-            None,
-        )));
-        s.push_str(&expression.then_branch.as_node().accept(&ToStrVisitor::new(
-            self.depth_has_scope_open,
-            self.depth + 1,
-            None,
-        )));
-        s.push_str(&expression.else_branch.as_node().accept(&ToStrVisitor::new(
-            self.depth_has_scope_open,
-            self.depth + 1,
-            Some(self.depth),
-        )));
+        )
+        .unwrap();
+        write!(
+            s,
+            "{}",
+            expression.condition.as_node().accept(&ToStrVisitor::new(
+                self.depth_has_scope_open,
+                self.depth + 1,
+                None,
+            ))
+        )
+        .unwrap();
+        write!(
+            s,
+            "{}",
+            expression.then_branch.as_node().accept(&ToStrVisitor::new(
+                self.depth_has_scope_open,
+                self.depth + 1,
+                None,
+            ))
+        )
+        .unwrap();
+        write!(
+            s,
+            "{}",
+            expression.else_branch.as_node().accept(&ToStrVisitor::new(
+                self.depth_has_scope_open,
+                self.depth + 1,
+                Some(self.depth),
+            ))
+        )
+        .unwrap();
         s
     }
 
@@ -247,10 +278,12 @@ impl ExpressionVisitor<String> for ToStrVisitor<'_> {
 
     fn visit_assign_expression(&self, expression: &super::AssignExpression) -> String {
         let mut s = String::new();
-        s.push_str(&format!(
+        write!(
+            s,
             "[line {:>4}] {}Assign:",
             expression.line_no, self.indent_member
-        ));
+        )
+        .unwrap();
         s.push_str(&expression.variable.as_node().accept(&ToStrVisitor::new(
             self.depth_has_scope_open,
             self.depth + 1,
@@ -266,93 +299,138 @@ impl ExpressionVisitor<String> for ToStrVisitor<'_> {
 
     fn visit_logical_expression(&self, expression: &super::LogicalExpression) -> String {
         let mut s = String::new();
-        s.push_str(&format!(
+        write!(
+            s,
             "[line {:>4}] {}Logical: {:?} ",
             expression.line_no, self.indent_member, expression.operator
-        ));
-        s.push_str(&expression.left.as_node().accept(&ToStrVisitor::new(
-            self.depth_has_scope_open,
-            self.depth + 1,
-            None,
-        )));
-        s.push_str(&expression.right.as_node().accept(&ToStrVisitor::new(
-            self.depth_has_scope_open,
-            self.depth + 1,
-            Some(self.depth),
-        )));
+        )
+        .unwrap();
+        write!(
+            s,
+            "{}",
+            expression.left.as_node().accept(&ToStrVisitor::new(
+                self.depth_has_scope_open,
+                self.depth + 1,
+                None,
+            ))
+        )
+        .unwrap();
+        write!(
+            s,
+            "{}",
+            expression.right.as_node().accept(&ToStrVisitor::new(
+                self.depth_has_scope_open,
+                self.depth + 1,
+                Some(self.depth),
+            ))
+        )
+        .unwrap();
         s
     }
 
     fn visit_call_expression(&self, expression: &super::CallExpression) -> String {
         let mut s = String::new();
-        s.push_str(&format!(
+        write!(
+            s,
             "[line {:>4}] {}Call:",
             expression.line_no, self.indent_member
-        ));
-        s.push_str(&expression.callee.as_node().accept(&ToStrVisitor::new(
-            self.depth_has_scope_open,
-            self.depth + 1,
-            if expression.arguments.is_empty() {
-                Some(self.depth)
-            } else {
-                None
-            },
-        )));
-        for (i, n) in expression.arguments.iter().enumerate() {
-            s.push_str(&n.as_node().accept(&ToStrVisitor::new(
+        )
+        .unwrap();
+        write!(
+            s,
+            "{}",
+            expression.callee.as_node().accept(&ToStrVisitor::new(
                 self.depth_has_scope_open,
                 self.depth + 1,
-                if i == expression.arguments.len() - 1 {
+                if expression.arguments.is_empty() {
                     Some(self.depth)
                 } else {
                     None
                 },
-            )));
+            ))
+        )
+        .unwrap();
+        for (i, n) in expression.arguments.iter().enumerate() {
+            write!(
+                s,
+                "{}",
+                n.as_node().accept(&ToStrVisitor::new(
+                    self.depth_has_scope_open,
+                    self.depth + 1,
+                    if i == expression.arguments.len() - 1 {
+                        Some(self.depth)
+                    } else {
+                        None
+                    },
+                ))
+            )
+            .unwrap();
         }
         s
     }
 
     fn visit_dot_expression(&self, expression: &super::DotExpression) -> String {
         let mut s = String::new();
-        s.push_str(&format!(
+        write!(
+            s,
             "[line {:>4}] {}Get: {:?}",
             expression.line_no, self.indent_member, expression.field
-        ));
-        s.push_str(&expression.object.as_node().accept(&ToStrVisitor::new(
-            self.depth_has_scope_open,
-            self.depth + 1,
-            Some(self.depth),
-        )));
+        )
+        .unwrap();
+        write!(
+            s,
+            "{}",
+            expression.object.as_node().accept(&ToStrVisitor::new(
+                self.depth_has_scope_open,
+                self.depth + 1,
+                Some(self.depth),
+            ))
+        )
+        .unwrap();
         s
     }
 
     fn visit_function_expression(&self, expression: &FunctionExpression) -> String {
         let mut s = String::new();
-        s.push_str(&format!(
+        write!(
+            s,
             "[line {:>4}] {}Function: {}",
             expression.line_no, self.indent_member, expression.prototype.name
-        ));
-        s.push_str(&expression.prototype.stringify(
-            self.depth_has_scope_open,
-            self.depth + 1,
-            expression.line_no,
-            Some(self.depth),
-            expression.body.clone(),
-        ));
+        )
+        .unwrap();
+        write!(
+            s,
+            "{}",
+            expression.prototype.stringify(
+                self.depth_has_scope_open,
+                self.depth + 1,
+                expression.line_no,
+                Some(self.depth),
+                expression.body.clone(),
+            )
+        )
+        .unwrap();
         s
     }
 
     fn visit_cast_expression(&self, expression: &super::CastExpression) -> String {
         let mut s = String::new();
-        s.push_str(&format!(
+        write!(
+            s,
             "[line {:>4}] {}Cast: {:?}",
             expression.line_no, self.indent_member, expression.target_type
-        ));
-        s.push_str(&expression.expression.as_node().accept(&ToStrVisitor::new(
-            self.depth_has_scope_open,
-            self.depth + 1,
-            Some(self.depth),
-        )));
+        )
+        .unwrap();
+        write!(
+            s,
+            "{}",
+            expression.expression.as_node().accept(&ToStrVisitor::new(
+                self.depth_has_scope_open,
+                self.depth + 1,
+                Some(self.depth),
+            ))
+        )
+        .unwrap();
         s
     }
 
@@ -361,10 +439,12 @@ impl ExpressionVisitor<String> for ToStrVisitor<'_> {
         expression: &super::StructInitializerExpression,
     ) -> String {
         let mut s = String::new();
-        s.push_str(&format!(
+        write!(
+            s,
             "[line {:>4}] {}StructInitializer: {:?}",
             expression.line_no, self.indent_member, expression.struct_type
-        ));
+        )
+        .unwrap();
         let indent = self
             .indent
             .strip_suffix("    ")
@@ -375,30 +455,34 @@ impl ExpressionVisitor<String> for ToStrVisitor<'_> {
             + INDENT;
 
         for (i, (t, e)) in expression.fields.iter().enumerate() {
-            if i as i64 > (expression.fields.len() as i64 - 2) {
+            if i + 2 > expression.fields.len() {
                 self.depth_has_scope_open.borrow_mut()[self.depth] = false;
             }
 
-            s.push_str(
-                format!(
-                    "\n[line {:>4}] {indent}{}{INDENT_MEMBER} {}: ",
-                    expression.line_no,
-                    if i == expression.fields.len() - 1 {
-                        PIPE_END_CHAR
-                    } else {
-                        T_CHAR
-                    },
-                    t
-                )
-                .as_str(),
-            );
+            write!(
+                s,
+                "\n[line {:>4}] {indent}{}{INDENT_MEMBER} {}: ",
+                expression.line_no,
+                if i == expression.fields.len() - 1 {
+                    PIPE_END_CHAR
+                } else {
+                    T_CHAR
+                },
+                t
+            )
+            .unwrap();
 
             self.depth_has_scope_open.borrow_mut()[self.depth + 1] = true;
-            s.push_str(&e.as_node().accept(&ToStrVisitor::new(
-                self.depth_has_scope_open,
-                self.depth + 2,
-                Some(&self.depth + 1),
-            )));
+            write!(
+                s,
+                "{}",
+                e.as_node().accept(&ToStrVisitor::new(
+                    self.depth_has_scope_open,
+                    self.depth + 2,
+                    Some(self.depth + 1),
+                ))
+            )
+            .unwrap();
         }
         s
     }
@@ -414,105 +498,163 @@ impl ExpressionVisitor<String> for ToStrVisitor<'_> {
 impl StatementVisitor<String> for ToStrVisitor<'_> {
     fn visit_block_statement(&self, statement: &super::BlockStatement) -> String {
         let mut s = String::new();
-        s.push_str(&format!(
+        write!(
+            s,
             "[line {:>4}] {}Block: ",
             statement.line_no, self.indent_member
-        ));
+        )
+        .unwrap();
         for (i, n) in statement.statements.iter().enumerate() {
-            s.push_str(&n.accept(&ToStrVisitor::new(
-                self.depth_has_scope_open,
-                self.depth + 1,
-                if i == statement.statements.len() - 1 {
-                    Some(self.depth)
-                } else {
-                    None
-                },
-            )));
+            write!(
+                s,
+                "{}",
+                n.accept(&ToStrVisitor::new(
+                    self.depth_has_scope_open,
+                    self.depth + 1,
+                    if i == statement.statements.len() - 1 {
+                        Some(self.depth)
+                    } else {
+                        None
+                    },
+                ))
+            )
+            .unwrap();
         }
         s
     }
 
     fn visit_if_statement(&self, statement: &super::IfStatement) -> String {
         let mut s = String::new();
-        s.push_str(&format!(
+        write!(
+            s,
             "[line {:>4}] {}If: ",
             statement.line_no, self.indent_member
-        ));
-        s.push_str(&statement.condition.as_node().accept(&ToStrVisitor::new(
-            self.depth_has_scope_open,
-            self.depth + 1,
-            None,
-        )));
-        s.push_str(&statement.then_branch.as_node().accept(&ToStrVisitor::new(
-            self.depth_has_scope_open,
-            self.depth + 1,
-            if statement.else_branch.is_none() {
-                Some(self.depth)
-            } else {
-                None
-            },
-        )));
-        if let Some(e) = &statement.else_branch {
-            s.push_str(&e.as_node().accept(&ToStrVisitor::new(
+        )
+        .unwrap();
+        write!(
+            s,
+            "{}",
+            statement.condition.as_node().accept(&ToStrVisitor::new(
                 self.depth_has_scope_open,
                 self.depth + 1,
-                Some(self.depth),
-            )));
+                None,
+            ))
+        )
+        .unwrap();
+        write!(
+            s,
+            "{}",
+            statement.then_branch.as_node().accept(&ToStrVisitor::new(
+                self.depth_has_scope_open,
+                self.depth + 1,
+                if statement.else_branch.is_none() {
+                    Some(self.depth)
+                } else {
+                    None
+                },
+            ))
+        )
+        .unwrap();
+        if let Some(e) = &statement.else_branch {
+            write!(
+                s,
+                "{}",
+                e.as_node().accept(&ToStrVisitor::new(
+                    self.depth_has_scope_open,
+                    self.depth + 1,
+                    Some(self.depth),
+                ))
+            )
+            .unwrap();
         }
         s
     }
 
     fn visit_while_statement(&self, statement: &super::WhileStatement) -> String {
         let mut s = String::new();
-        s.push_str(&format!(
+        write!(
+            s,
             "[line {:>4}] {}While: ",
             statement.line_no, self.indent_member
-        ));
-        s.push_str(&statement.condition.as_node().accept(&ToStrVisitor::new(
-            self.depth_has_scope_open,
-            self.depth + 1,
-            None,
-        )));
-        s.push_str(&statement.body.as_node().accept(&ToStrVisitor::new(
-            self.depth_has_scope_open,
-            self.depth + 1,
-            Some(self.depth),
-        )));
+        )
+        .unwrap();
+        write!(
+            s,
+            "{}",
+            statement.condition.as_node().accept(&ToStrVisitor::new(
+                self.depth_has_scope_open,
+                self.depth + 1,
+                None,
+            ))
+        )
+        .unwrap();
+        write!(
+            s,
+            "{}",
+            statement.body.as_node().accept(&ToStrVisitor::new(
+                self.depth_has_scope_open,
+                self.depth + 1,
+                Some(self.depth),
+            ))
+        )
+        .unwrap();
         s
     }
 
     fn visit_for_statement(&self, statement: &super::ForStatement) -> String {
         let mut s = String::new();
-        s.push_str(&format!(
+        write!(
+            s,
             "[line {:>4}] {}For: ",
             statement.line_no, self.indent_member
-        ));
+        )
+        .unwrap();
         if let Some(i) = &statement.init {
-            s.push_str(&i.accept(&ToStrVisitor::new(
-                self.depth_has_scope_open,
-                self.depth + 1,
-                None,
-            )));
+            write!(
+                s,
+                "{}",
+                i.accept(&ToStrVisitor::new(
+                    self.depth_has_scope_open,
+                    self.depth + 1,
+                    None,
+                ))
+            )
+            .unwrap();
         }
         if let Some(c) = &statement.condition {
-            s.push_str(&c.as_node().accept(&ToStrVisitor::new(
-                self.depth_has_scope_open,
-                self.depth + 1,
-                None,
-            )));
+            write!(
+                s,
+                "{}",
+                c.as_node().accept(&ToStrVisitor::new(
+                    self.depth_has_scope_open,
+                    self.depth + 1,
+                    None,
+                ))
+            )
+            .unwrap();
         }
         if let Some(u) = &statement.increment {
-            s.push_str(&u.as_node().accept(&ToStrVisitor::new(
+            write!(
+                s,
+                "{}",
+                u.as_node().accept(&ToStrVisitor::new(
+                    self.depth_has_scope_open,
+                    self.depth + 1,
+                    None,
+                ))
+            )
+            .unwrap();
+        }
+        write!(
+            s,
+            "{}",
+            statement.body.as_node().accept(&ToStrVisitor::new(
                 self.depth_has_scope_open,
                 self.depth + 1,
-                None,
-            )));
-        }
-        s.push_str(&statement.body.as_node().accept(&ToStrVisitor::new(
-            self.depth_has_scope_open,
-            self.depth + 1,
-            Some(self.depth),
-        )));
+                Some(self.depth),
+            ))
+        )
+        .unwrap();
         s
     }
 
@@ -532,16 +674,23 @@ impl StatementVisitor<String> for ToStrVisitor<'_> {
 
     fn visit_return_statement(&self, statement: &super::ReturnStatement) -> String {
         let mut s = String::new();
-        s.push_str(&format!(
+        write!(
+            s,
             "[line {:>4}] {}Return:",
             statement.line_no, self.indent_member
-        ));
+        )
+        .unwrap();
         if let Some(e) = &statement.value {
-            s.push_str(&e.as_node().accept(&ToStrVisitor::new(
-                self.depth_has_scope_open,
-                self.depth + 1,
-                Some(self.depth),
-            )));
+            write!(
+                s,
+                "{}",
+                e.as_node().accept(&ToStrVisitor::new(
+                    self.depth_has_scope_open,
+                    self.depth + 1,
+                    Some(self.depth),
+                ))
+            )
+            .unwrap();
         } else {
             self.depth_has_scope_open.borrow_mut()[self.depth] = false;
         }
@@ -568,25 +717,34 @@ impl DeclarationVisitor<String> for ToStrVisitor<'_> {
         let indent = if let Some(indent) = mindent {
             indent.to_owned() + INDENT
         } else {
-            self.indent.to_owned()
+            self.indent.clone()
         };
         let mut s = String::new();
-        s.push_str(&format!(
+        write!(
+            s,
             "[line {:>4}] {}Var Declaration: {}",
             declaration.line_no, self.indent_member, &declaration.name
-        ));
+        )
+        .unwrap();
         if let Some(e) = &declaration.initializer {
-            s.push_str(&format!(
+            write!(
+                s,
                 "\n[line {:>4}] {}{PIPE_END_CHAR}{INDENT_MEMBER} Initializer",
                 declaration.line_no, indent
-            ));
+            )
+            .unwrap();
             self.depth_has_scope_open.borrow_mut()[self.depth + 1] = true;
             self.depth_has_scope_open.borrow_mut()[self.depth] = false;
-            s.push_str(&e.as_node().accept(&ToStrVisitor::new(
-                self.depth_has_scope_open,
-                self.depth + 2,
-                Some(&self.depth + 1),
-            )));
+            write!(
+                s,
+                "{}",
+                e.as_node().accept(&ToStrVisitor::new(
+                    self.depth_has_scope_open,
+                    self.depth + 2,
+                    Some(&self.depth + 1),
+                ))
+            )
+            .unwrap();
         } else {
             self.depth_has_scope_open.borrow_mut()[self.depth] = false;
         }
@@ -595,10 +753,12 @@ impl DeclarationVisitor<String> for ToStrVisitor<'_> {
 
     fn visit_function_declaration(&self, declaration: &super::FunctionDeclaration) -> String {
         let mut s = String::new();
-        s.push_str(&format!(
+        write!(
+            s,
             "[line {:>4}] {}Function Declaration: {}",
             declaration.line_no, self.indent_member, &declaration.prototype.name
-        ));
+        )
+        .unwrap();
         if !declaration.type_params.is_empty() {
             s.push('<');
             for (i, (t, c)) in declaration.type_params.iter().enumerate() {
@@ -622,13 +782,18 @@ impl DeclarationVisitor<String> for ToStrVisitor<'_> {
             }
             s.push('>');
         }
-        s.push_str(&declaration.prototype.stringify(
-            self.depth_has_scope_open,
-            self.depth + 1,
-            declaration.line_no,
-            Some(self.depth),
-            declaration.body.as_ref().clone(),
-        ));
+        write!(
+            s,
+            "{}",
+            declaration.prototype.stringify(
+                self.depth_has_scope_open,
+                self.depth + 1,
+                declaration.line_no,
+                Some(self.depth),
+                declaration.body.as_ref().clone(),
+            )
+        )
+        .unwrap();
         s
     }
 }
@@ -678,57 +843,69 @@ impl Prototype {
             depth_has_scope_open.borrow_mut()[c] = false;
         }
 
-        s.push_str(&format!(
-            "[line {line:>4}] {indent_member}Function Expression:"
-        ));
-        s.push_str(&format!(
+        write!(s, "[line {line:>4}] {indent_member}Function Expression:").unwrap();
+        write!(
+            s,
             "\n[line {line:>4}] {indent}{T_CHAR}{INDENT_MEMBER}Name: {name}",
             name = self.name
-        ));
-        s.push_str(&format!(
+        )
+        .unwrap();
+        write!(
+            s,
             "\n[line {line:>4}] {indent}{T_CHAR}{INDENT_MEMBER}Return Type: {:?}",
             self.return_type
-        ));
+        )
+        .unwrap();
 
         if !self.captures.is_empty() {
-            s.push_str(&format!(
+            write!(
+                s,
                 "\n[line {line:>4}] {indent}{T_CHAR}{INDENT_MEMBER}Captures:"
-            ));
+            )
+            .unwrap();
             for (i, str) in self.captures.iter().enumerate() {
                 s.push('\n');
-                s.push_str(&format!(
+                write!(
+                    s,
                     "[line {line:>4}] {indent}{INDENT_PIPE}{}{INDENT_MEMBER}{str}",
                     if i == self.captures.len() - 1 {
                         PIPE_END_CHAR
                     } else {
                         T_CHAR
                     }
-                ));
+                )
+                .unwrap();
             }
         }
 
         if !self.params.is_empty() {
-            s.push_str(&format!(
+            write!(
+                s,
                 "\n[line {line:>4}] {indent}{T_CHAR}{INDENT_MEMBER}Params:"
-            ));
+            )
+            .unwrap();
             for (i, (str, t, _)) in self.params.iter().enumerate() {
                 s.push('\n');
-                s.push_str(&format!(
+                write!(
+                    s,
                     "[line {line:>4}] {indent}{INDENT_PIPE}{}{INDENT_MEMBER}{str}: {t:?}",
                     if i == self.params.len() - 1 {
                         PIPE_END_CHAR
                     } else {
                         T_CHAR
                     }
-                ));
+                )
+                .unwrap();
             }
         }
 
         depth_has_scope_open.borrow_mut()[depth + 1] = true;
         if let Some(body) = body {
-            s.push_str(&format!(
+            write!(
+                s,
                 "\n[line {line:>4}] {indent}{PIPE_END_CHAR}{INDENT_MEMBER}Body: "
-            ));
+            )
+            .unwrap();
             for (i, n) in body.iter().enumerate() {
                 s.push_str(&n.accept(&ToStrVisitor::new(
                     depth_has_scope_open,
@@ -760,15 +937,15 @@ mod test {
         prelude::*,
     };
 
-    #[test_case(Expression::Literal(LiteralExpression {
+    #[test_case(&Expression::Literal(LiteralExpression {
         line_no: 1,
         value: Value::Integer(1),
     }), "literal"; "test_literal")]
-    #[test_case(Expression::StringLiteral(StringLiteralExpression {
+    #[test_case(&Expression::StringLiteral(StringLiteralExpression {
         line_no: 1,
         value: "test".into(),
     }), "string_literal"; "test_string_literal")]
-    #[test_case(Expression::Unary(UnaryExpression {
+    #[test_case(&Expression::Unary(UnaryExpression {
         line_no: 1,
         operator: TokenType::Minus,
         operand: Box::new(Expression::Literal(LiteralExpression {
@@ -776,21 +953,21 @@ mod test {
             value: Value::Integer(1),
         })),
     }), "unary"; "test_unary")]
-    #[test_case(Expression::Deref(DerefExpression {
+    #[test_case(&Expression::Deref(DerefExpression {
         line_no: 1,
         operand: Box::new(Expression::Literal(LiteralExpression {
             line_no: 1,
             value: Value::Integer(1),
         })),
     }), "deref"; "test_deref")]
-    #[test_case(Expression::Ref(RefExpression {
+    #[test_case(&Expression::Ref(RefExpression {
         line_no: 1,
         operand: Box::new(Expression::Literal(LiteralExpression {
             line_no: 1,
             value: Value::Integer(1),
         })),
     }), "ref"; "test_ref")]
-    #[test_case(Expression::Index(IndexExpression {
+    #[test_case(&Expression::Index(IndexExpression {
         line_no: 1,
         array: Box::new(Expression::Literal(LiteralExpression {
             line_no: 1,
@@ -801,7 +978,7 @@ mod test {
             value: Value::Integer(1),
         })),
     }), "index"; "test_index")]
-    #[test_case(Expression::Binary(BinaryExpression {
+    #[test_case(&Expression::Binary(BinaryExpression {
         line_no: 1,
         operator: TokenType::Plus,
         left: Box::new(Expression::Literal(LiteralExpression {
@@ -813,7 +990,7 @@ mod test {
             value: Value::Integer(1),
         })),
     }), "binary"; "test_binary")]
-    #[test_case(Expression::Ternary(TernaryExpression {
+    #[test_case(&Expression::Ternary(TernaryExpression {
         line_no: 1,
         condition: Box::new(Expression::Literal(LiteralExpression {
             line_no: 1,
@@ -828,21 +1005,21 @@ mod test {
             value: Value::Integer(1),
         })),
     }), "ternary"; "test_ternary")]
-    #[test_case(Expression::Variable(VariableExpression {
+    #[test_case(&Expression::Variable(VariableExpression {
         line_no: 1,
         token: Rc::new(Token {
             lexeme: "test".into(),
-            token_type: TokenType::Identifier,
+            tok_type: TokenType::Identifier,
             line: 1,
         }.into()),
     }), "variable"; "test_variable")]
-    #[test_case(Expression::Assign(AssignExpression {
+    #[test_case(&Expression::Assign(AssignExpression {
         line_no: 1,
         variable: Box::new(Expression::Variable(VariableExpression {
             line_no: 1,
             token: Rc::new(Token {
                 lexeme: "test".into(),
-                token_type: TokenType::Identifier,
+                tok_type: TokenType::Identifier,
                 line: 1,
             }.into()),
         })),
@@ -851,7 +1028,7 @@ mod test {
             value: Value::Integer(1),
         })),
     }), "assign"; "test_assign")]
-    #[test_case(Expression::Logical(LogicalExpression {
+    #[test_case(&Expression::Logical(LogicalExpression {
         line_no: 1,
         operator: TokenType::And,
         left: Box::new(Expression::Literal(LiteralExpression {
@@ -863,13 +1040,13 @@ mod test {
             value: Value::Integer(1),
         })),
     }), "logical"; "test_logical")]
-    #[test_case(Expression::Call(CallExpression {
+    #[test_case(&Expression::Call(CallExpression {
         line_no: 1,
         callee: Box::new(Expression::Variable(VariableExpression {
             line_no: 1,
             token: Rc::new(Token {
                 lexeme: "test".into(),
-                token_type: TokenType::Identifier,
+                tok_type: TokenType::Identifier,
                 line: 1,
             }.into()),
         })),
@@ -884,7 +1061,7 @@ mod test {
             }),
         ],
     }), "call"; "test_call")]
-    #[test_case(Expression::Dot(DotExpression {
+    #[test_case(&Expression::Dot(DotExpression {
         line_no: 1,
         object: Box::new(Expression::Literal(LiteralExpression {
             line_no: 1,
@@ -906,7 +1083,7 @@ mod test {
     //         }),
     //     })],
     // }), "function"; "test_function")]
-    #[test_case(Expression::Cast(CastExpression {
+    #[test_case(&Expression::Cast(CastExpression {
         line_no: 1,
         target_type: ValueType::Integer.intern(),
         expression: Box::new(Expression::Literal(LiteralExpression {
@@ -914,7 +1091,7 @@ mod test {
             value: Value::Integer(1),
         })),
     }), "cast"; "test_cast")]
-    fn test_to_str_for_expr(expr: Expression, name: &str) {
+    fn test_to_str_for_expr(expr: &Expression, name: &str) {
         let depth_has_scope_open = RefCell::new([false; 100]);
 
         let visitor = ToStrVisitor::new(&depth_has_scope_open, 0, None);
@@ -926,24 +1103,24 @@ mod test {
         assert_snapshot!(result);
     }
 
-    #[test_case(Statement::Break(BreakStatement {
+    #[test_case(&Statement::Break(BreakStatement {
         line_no: 1,
     }), "break"; "test_break")]
-    #[test_case(Statement::Continue(ContinueStatement {
+    #[test_case(&Statement::Continue(ContinueStatement {
         line_no: 1,
     }), "continue"; "test_continue")]
-    #[test_case(Statement::Return(ReturnStatement {
+    #[test_case(&Statement::Return(ReturnStatement {
         line_no: 1,
         value: Some(Box::new(Expression::Literal(LiteralExpression {
             line_no: 1,
             value: Value::Integer(1),
         }))),
     }), "return"; "test_return")]
-    #[test_case(Statement::Expression(ExpressionStatement {
+    #[test_case(&Statement::Expression(ExpressionStatement {
         line_no: 1,
         expr: Box::new(Expression::Literal(LiteralExpression{line_no:1,value:Value::Integer(1),})),
     }), "expression"; "test_expression")]
-    fn test_to_str_for_stmt(stmt: Statement, name: &str) {
+    fn test_to_str_for_stmt(stmt: &Statement, name: &str) {
         let depth_has_scope_open = [false; 100].into();
 
         let visitor = ToStrVisitor::new(&depth_has_scope_open, 0, None);
@@ -955,7 +1132,7 @@ mod test {
         assert_snapshot!(result);
     }
 
-    #[test_case(Declaration::Var(VarDeclaration {
+    #[test_case(&Declaration::Var(VarDeclaration {
         line_no: 1,
         name: "test".into(),
         initializer: Some(Expression::Literal(LiteralExpression {
@@ -965,7 +1142,7 @@ mod test {
         tipe: ValueType::Integer.intern(),
         mutable: false,
     }), "var"; "test_var")]
-    #[test_case(Declaration::Function(FunctionDeclaration {
+    #[test_case(&Declaration::Function(FunctionDeclaration {
         line_no: 1,
         prototype: Prototype {
             name: "test".into(),
@@ -983,7 +1160,7 @@ mod test {
         type_params: IndexMap::new(),
         generic_instantiations: FunctionGenerics::Monomorphic(IndexMap::new()),
     }), "function"; "test_function")]
-    fn test_to_str_for_decl(decl: Declaration, name: &str) {
+    fn test_to_str_for_decl(decl: &Declaration, name: &str) {
         let depth_has_scope_open = [false; 100].into();
 
         let visitor = ToStrVisitor::new(&depth_has_scope_open, 0, None);

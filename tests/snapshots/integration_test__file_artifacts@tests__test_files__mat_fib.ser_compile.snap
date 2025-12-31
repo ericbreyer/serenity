@@ -8,8 +8,6 @@ target datalayout = "e-m:o-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-n32:
 target triple = "arm64-apple-darwin24.6.0"
 
 @"matMult#closure_wrapper" = global { ptr } { ptr @"matMult_i64->i64->i64->i64ptr->ptr" }
-@"printmat#closure_wrapper" = global { ptr } { ptr @printmat_i8ptr }
-@str = private unnamed_addr constant [13 x i8] c"%d %d\0A%d %d\0A\00", align 1
 @"fib_mat#closure_wrapper" = global { ptr } { ptr @"fib_mat_i64->i64->i64->i64i64" }
 @"fib#closure_wrapper" = global { ptr } { ptr @fib_i64i64 }
 @"main#closure_wrapper" = global { ptr } { ptr @main_i64 }
@@ -24,215 +22,235 @@ declare i8 @usleep(i64)
 
 declare i8 @exit(i64)
 
-define { i64, i64, i64, i64 } @"matMult_i64->i64->i64->i64ptr->ptr"(ptr %0, ptr %1) {
+define { { i64, i64 }, { i64, i64 } } @"matMult_i64->i64->i64->i64ptr->ptr"(ptr %0, ptr %1) {
 entry:
-  %struct_init = alloca { i64, i64, i64, i64 }, align 8
+  %struct_init41 = alloca { i64, i64 }, align 8
+  %struct_init1 = alloca { i64, i64 }, align 8
+  %struct_init = alloca { { i64, i64 }, { i64, i64 } }, align 8
   %mb = alloca ptr, align 8
   %ma = alloca ptr, align 8
   store ptr %0, ptr %ma, align 8
   store ptr %1, ptr %mb, align 8
-  %field = getelementptr inbounds nuw { i64, i64, i64, i64 }, ptr %struct_init, i32 0, i32 0
+  %field = getelementptr inbounds nuw { { i64, i64 }, { i64, i64 } }, ptr %struct_init, i32 0, i32 0
+  %field2 = getelementptr inbounds nuw { i64, i64 }, ptr %struct_init1, i32 0, i32 0
   %rval = load ptr, ptr %ma, align 8
-  %field1 = getelementptr inbounds nuw { i64, i64, i64, i64 }, ptr %rval, i32 0, i32 0
-  %rval2 = load i64, ptr %field1, align 8
-  %rval3 = load ptr, ptr %mb, align 8
-  %field4 = getelementptr inbounds nuw { i64, i64, i64, i64 }, ptr %rval3, i32 0, i32 0
+  %field3 = getelementptr inbounds nuw { { i64, i64 }, { i64, i64 } }, ptr %rval, i32 0, i32 0
+  %field4 = getelementptr inbounds nuw { i64, i64 }, ptr %field3, i32 0, i32 0
   %rval5 = load i64, ptr %field4, align 8
-  %multmp = mul i64 %rval2, %rval5
-  %rval6 = load ptr, ptr %ma, align 8
-  %field7 = getelementptr inbounds nuw { i64, i64, i64, i64 }, ptr %rval6, i32 0, i32 1
-  %rval8 = load i64, ptr %field7, align 8
-  %rval9 = load ptr, ptr %mb, align 8
-  %field10 = getelementptr inbounds nuw { i64, i64, i64, i64 }, ptr %rval9, i32 0, i32 2
-  %rval11 = load i64, ptr %field10, align 8
-  %multmp12 = mul i64 %rval8, %rval11
-  %addtmp = add i64 %multmp, %multmp12
-  store i64 %addtmp, ptr %field, align 8
-  %field13 = getelementptr inbounds nuw { i64, i64, i64, i64 }, ptr %struct_init, i32 0, i32 1
-  %rval14 = load ptr, ptr %ma, align 8
-  %field15 = getelementptr inbounds nuw { i64, i64, i64, i64 }, ptr %rval14, i32 0, i32 0
-  %rval16 = load i64, ptr %field15, align 8
-  %rval17 = load ptr, ptr %mb, align 8
-  %field18 = getelementptr inbounds nuw { i64, i64, i64, i64 }, ptr %rval17, i32 0, i32 1
-  %rval19 = load i64, ptr %field18, align 8
-  %multmp20 = mul i64 %rval16, %rval19
-  %rval21 = load ptr, ptr %ma, align 8
-  %field22 = getelementptr inbounds nuw { i64, i64, i64, i64 }, ptr %rval21, i32 0, i32 1
+  %rval6 = load ptr, ptr %mb, align 8
+  %field7 = getelementptr inbounds nuw { { i64, i64 }, { i64, i64 } }, ptr %rval6, i32 0, i32 0
+  %field8 = getelementptr inbounds nuw { i64, i64 }, ptr %field7, i32 0, i32 0
+  %rval9 = load i64, ptr %field8, align 8
+  %multmp = mul i64 %rval5, %rval9
+  %rval10 = load ptr, ptr %ma, align 8
+  %field11 = getelementptr inbounds nuw { { i64, i64 }, { i64, i64 } }, ptr %rval10, i32 0, i32 0
+  %field12 = getelementptr inbounds nuw { i64, i64 }, ptr %field11, i32 0, i32 1
+  %rval13 = load i64, ptr %field12, align 8
+  %rval14 = load ptr, ptr %mb, align 8
+  %field15 = getelementptr inbounds nuw { { i64, i64 }, { i64, i64 } }, ptr %rval14, i32 0, i32 1
+  %field16 = getelementptr inbounds nuw { i64, i64 }, ptr %field15, i32 0, i32 0
+  %rval17 = load i64, ptr %field16, align 8
+  %multmp18 = mul i64 %rval13, %rval17
+  %addtmp = add i64 %multmp, %multmp18
+  store i64 %addtmp, ptr %field2, align 8
+  %field19 = getelementptr inbounds nuw { i64, i64 }, ptr %struct_init1, i32 0, i32 1
+  %rval20 = load ptr, ptr %ma, align 8
+  %field21 = getelementptr inbounds nuw { { i64, i64 }, { i64, i64 } }, ptr %rval20, i32 0, i32 0
+  %field22 = getelementptr inbounds nuw { i64, i64 }, ptr %field21, i32 0, i32 0
   %rval23 = load i64, ptr %field22, align 8
   %rval24 = load ptr, ptr %mb, align 8
-  %field25 = getelementptr inbounds nuw { i64, i64, i64, i64 }, ptr %rval24, i32 0, i32 3
-  %rval26 = load i64, ptr %field25, align 8
-  %multmp27 = mul i64 %rval23, %rval26
-  %addtmp28 = add i64 %multmp20, %multmp27
-  store i64 %addtmp28, ptr %field13, align 8
-  %field29 = getelementptr inbounds nuw { i64, i64, i64, i64 }, ptr %struct_init, i32 0, i32 2
-  %rval30 = load ptr, ptr %ma, align 8
-  %field31 = getelementptr inbounds nuw { i64, i64, i64, i64 }, ptr %rval30, i32 0, i32 2
+  %field25 = getelementptr inbounds nuw { { i64, i64 }, { i64, i64 } }, ptr %rval24, i32 0, i32 0
+  %field26 = getelementptr inbounds nuw { i64, i64 }, ptr %field25, i32 0, i32 1
+  %rval27 = load i64, ptr %field26, align 8
+  %multmp28 = mul i64 %rval23, %rval27
+  %rval29 = load ptr, ptr %ma, align 8
+  %field30 = getelementptr inbounds nuw { { i64, i64 }, { i64, i64 } }, ptr %rval29, i32 0, i32 0
+  %field31 = getelementptr inbounds nuw { i64, i64 }, ptr %field30, i32 0, i32 1
   %rval32 = load i64, ptr %field31, align 8
   %rval33 = load ptr, ptr %mb, align 8
-  %field34 = getelementptr inbounds nuw { i64, i64, i64, i64 }, ptr %rval33, i32 0, i32 0
-  %rval35 = load i64, ptr %field34, align 8
-  %multmp36 = mul i64 %rval32, %rval35
-  %rval37 = load ptr, ptr %ma, align 8
-  %field38 = getelementptr inbounds nuw { i64, i64, i64, i64 }, ptr %rval37, i32 0, i32 3
-  %rval39 = load i64, ptr %field38, align 8
-  %rval40 = load ptr, ptr %mb, align 8
-  %field41 = getelementptr inbounds nuw { i64, i64, i64, i64 }, ptr %rval40, i32 0, i32 2
-  %rval42 = load i64, ptr %field41, align 8
-  %multmp43 = mul i64 %rval39, %rval42
-  %addtmp44 = add i64 %multmp36, %multmp43
-  store i64 %addtmp44, ptr %field29, align 8
-  %field45 = getelementptr inbounds nuw { i64, i64, i64, i64 }, ptr %struct_init, i32 0, i32 3
-  %rval46 = load ptr, ptr %ma, align 8
-  %field47 = getelementptr inbounds nuw { i64, i64, i64, i64 }, ptr %rval46, i32 0, i32 2
-  %rval48 = load i64, ptr %field47, align 8
-  %rval49 = load ptr, ptr %mb, align 8
-  %field50 = getelementptr inbounds nuw { i64, i64, i64, i64 }, ptr %rval49, i32 0, i32 1
-  %rval51 = load i64, ptr %field50, align 8
-  %multmp52 = mul i64 %rval48, %rval51
-  %rval53 = load ptr, ptr %ma, align 8
-  %field54 = getelementptr inbounds nuw { i64, i64, i64, i64 }, ptr %rval53, i32 0, i32 3
+  %field34 = getelementptr inbounds nuw { { i64, i64 }, { i64, i64 } }, ptr %rval33, i32 0, i32 1
+  %field35 = getelementptr inbounds nuw { i64, i64 }, ptr %field34, i32 0, i32 1
+  %rval36 = load i64, ptr %field35, align 8
+  %multmp37 = mul i64 %rval32, %rval36
+  %addtmp38 = add i64 %multmp28, %multmp37
+  store i64 %addtmp38, ptr %field19, align 8
+  %struct_init39 = load { i64, i64 }, ptr %struct_init1, align 8
+  store { i64, i64 } %struct_init39, ptr %field, align 8
+  %field40 = getelementptr inbounds nuw { { i64, i64 }, { i64, i64 } }, ptr %struct_init, i32 0, i32 1
+  %field42 = getelementptr inbounds nuw { i64, i64 }, ptr %struct_init41, i32 0, i32 0
+  %rval43 = load ptr, ptr %ma, align 8
+  %field44 = getelementptr inbounds nuw { { i64, i64 }, { i64, i64 } }, ptr %rval43, i32 0, i32 1
+  %field45 = getelementptr inbounds nuw { i64, i64 }, ptr %field44, i32 0, i32 0
+  %rval46 = load i64, ptr %field45, align 8
+  %rval47 = load ptr, ptr %mb, align 8
+  %field48 = getelementptr inbounds nuw { { i64, i64 }, { i64, i64 } }, ptr %rval47, i32 0, i32 0
+  %field49 = getelementptr inbounds nuw { i64, i64 }, ptr %field48, i32 0, i32 0
+  %rval50 = load i64, ptr %field49, align 8
+  %multmp51 = mul i64 %rval46, %rval50
+  %rval52 = load ptr, ptr %ma, align 8
+  %field53 = getelementptr inbounds nuw { { i64, i64 }, { i64, i64 } }, ptr %rval52, i32 0, i32 1
+  %field54 = getelementptr inbounds nuw { i64, i64 }, ptr %field53, i32 0, i32 1
   %rval55 = load i64, ptr %field54, align 8
   %rval56 = load ptr, ptr %mb, align 8
-  %field57 = getelementptr inbounds nuw { i64, i64, i64, i64 }, ptr %rval56, i32 0, i32 3
-  %rval58 = load i64, ptr %field57, align 8
-  %multmp59 = mul i64 %rval55, %rval58
-  %addtmp60 = add i64 %multmp52, %multmp59
-  store i64 %addtmp60, ptr %field45, align 8
-  %struct_init61 = load { i64, i64, i64, i64 }, ptr %struct_init, align 8
-  ret { i64, i64, i64, i64 } %struct_init61
+  %field57 = getelementptr inbounds nuw { { i64, i64 }, { i64, i64 } }, ptr %rval56, i32 0, i32 1
+  %field58 = getelementptr inbounds nuw { i64, i64 }, ptr %field57, i32 0, i32 0
+  %rval59 = load i64, ptr %field58, align 8
+  %multmp60 = mul i64 %rval55, %rval59
+  %addtmp61 = add i64 %multmp51, %multmp60
+  store i64 %addtmp61, ptr %field42, align 8
+  %field62 = getelementptr inbounds nuw { i64, i64 }, ptr %struct_init41, i32 0, i32 1
+  %rval63 = load ptr, ptr %ma, align 8
+  %field64 = getelementptr inbounds nuw { { i64, i64 }, { i64, i64 } }, ptr %rval63, i32 0, i32 1
+  %field65 = getelementptr inbounds nuw { i64, i64 }, ptr %field64, i32 0, i32 0
+  %rval66 = load i64, ptr %field65, align 8
+  %rval67 = load ptr, ptr %mb, align 8
+  %field68 = getelementptr inbounds nuw { { i64, i64 }, { i64, i64 } }, ptr %rval67, i32 0, i32 0
+  %field69 = getelementptr inbounds nuw { i64, i64 }, ptr %field68, i32 0, i32 1
+  %rval70 = load i64, ptr %field69, align 8
+  %multmp71 = mul i64 %rval66, %rval70
+  %rval72 = load ptr, ptr %ma, align 8
+  %field73 = getelementptr inbounds nuw { { i64, i64 }, { i64, i64 } }, ptr %rval72, i32 0, i32 1
+  %field74 = getelementptr inbounds nuw { i64, i64 }, ptr %field73, i32 0, i32 1
+  %rval75 = load i64, ptr %field74, align 8
+  %rval76 = load ptr, ptr %mb, align 8
+  %field77 = getelementptr inbounds nuw { { i64, i64 }, { i64, i64 } }, ptr %rval76, i32 0, i32 1
+  %field78 = getelementptr inbounds nuw { i64, i64 }, ptr %field77, i32 0, i32 1
+  %rval79 = load i64, ptr %field78, align 8
+  %multmp80 = mul i64 %rval75, %rval79
+  %addtmp81 = add i64 %multmp71, %multmp80
+  store i64 %addtmp81, ptr %field62, align 8
+  %struct_init82 = load { i64, i64 }, ptr %struct_init41, align 8
+  store { i64, i64 } %struct_init82, ptr %field40, align 8
+  %struct_init83 = load { { i64, i64 }, { i64, i64 } }, ptr %struct_init, align 8
+  ret { { i64, i64 }, { i64, i64 } } %struct_init83
 }
 
-define i8 @printmat_i8ptr(ptr %0) {
+define { { i64, i64 }, { i64, i64 } } @"fib_mat_i64->i64->i64->i64i64"(i64 %0) {
 entry:
-  %m = alloca ptr, align 8
-  store ptr %0, ptr %m, align 8
-  %rval = load ptr, ptr @printf, align 8
-  %rval1 = load ptr, ptr %m, align 8
-  %field = getelementptr inbounds nuw { i64, i64, i64, i64 }, ptr %rval1, i32 0, i32 0
-  %rval2 = load i64, ptr %field, align 8
-  %rval3 = load ptr, ptr %m, align 8
-  %field4 = getelementptr inbounds nuw { i64, i64, i64, i64 }, ptr %rval3, i32 0, i32 1
-  %rval5 = load i64, ptr %field4, align 8
-  %rval6 = load ptr, ptr %m, align 8
-  %field7 = getelementptr inbounds nuw { i64, i64, i64, i64 }, ptr %rval6, i32 0, i32 2
-  %rval8 = load i64, ptr %field7, align 8
-  %rval9 = load ptr, ptr %m, align 8
-  %field10 = getelementptr inbounds nuw { i64, i64, i64, i64 }, ptr %rval9, i32 0, i32 3
-  %rval11 = load i64, ptr %field10, align 8
-  %calltmp = call i8 (ptr, ...) @printf(ptr @str, i64 %rval2, i64 %rval5, i64 %rval8, i64 %rval11)
-  ret i8 0
-}
-
-define { i64, i64, i64, i64 } @"fib_mat_i64->i64->i64->i64i64"(i64 %0) {
-entry:
-  %calltmp35 = alloca { i64, i64, i64, i64 }, align 8
-  %calltmp30 = alloca { i64, i64, i64, i64 }, align 8
-  %halfSquared = alloca { i64, i64, i64, i64 }, align 8
-  %extra = alloca { i64, i64, i64, i64 }, align 8
-  %calltmp19 = alloca { i64, i64, i64, i64 }, align 8
-  %half = alloca { i64, i64, i64, i64 }, align 8
-  %struct_init5 = alloca { i64, i64, i64, i64 }, align 8
-  %identity = alloca { i64, i64, i64, i64 }, align 8
-  %struct_init = alloca { i64, i64, i64, i64 }, align 8
-  %baseMat = alloca { i64, i64, i64, i64 }, align 8
+  %calltmp47 = alloca { { i64, i64 }, { i64, i64 } }, align 8
+  %calltmp42 = alloca { { i64, i64 }, { i64, i64 } }, align 8
+  %halfSquared = alloca { { i64, i64 }, { i64, i64 } }, align 8
+  %extra = alloca { { i64, i64 }, { i64, i64 } }, align 8
+  %calltmp31 = alloca { { i64, i64 }, { i64, i64 } }, align 8
+  %half = alloca { { i64, i64 }, { i64, i64 } }, align 8
+  %struct_init18 = alloca { i64, i64 }, align 8
+  %struct_init13 = alloca { i64, i64 }, align 8
+  %struct_init11 = alloca { { i64, i64 }, { i64, i64 } }, align 8
+  %identity = alloca { { i64, i64 }, { i64, i64 } }, align 8
+  %struct_init6 = alloca { i64, i64 }, align 8
+  %struct_init1 = alloca { i64, i64 }, align 8
+  %struct_init = alloca { { i64, i64 }, { i64, i64 } }, align 8
+  %baseMat = alloca { { i64, i64 }, { i64, i64 } }, align 8
   %n = alloca i64, align 8
   store i64 %0, ptr %n, align 8
-  %field = getelementptr inbounds nuw { i64, i64, i64, i64 }, ptr %struct_init, i32 0, i32 0
-  store i64 1, ptr %field, align 8
-  %field1 = getelementptr inbounds nuw { i64, i64, i64, i64 }, ptr %struct_init, i32 0, i32 1
-  store i64 1, ptr %field1, align 8
-  %field2 = getelementptr inbounds nuw { i64, i64, i64, i64 }, ptr %struct_init, i32 0, i32 2
+  %field = getelementptr inbounds nuw { { i64, i64 }, { i64, i64 } }, ptr %struct_init, i32 0, i32 0
+  %field2 = getelementptr inbounds nuw { i64, i64 }, ptr %struct_init1, i32 0, i32 0
   store i64 1, ptr %field2, align 8
-  %field3 = getelementptr inbounds nuw { i64, i64, i64, i64 }, ptr %struct_init, i32 0, i32 3
-  store i64 0, ptr %field3, align 8
-  %struct_init4 = load { i64, i64, i64, i64 }, ptr %struct_init, align 8
-  store { i64, i64, i64, i64 } %struct_init4, ptr %baseMat, align 8
-  %field6 = getelementptr inbounds nuw { i64, i64, i64, i64 }, ptr %struct_init5, i32 0, i32 0
-  store i64 1, ptr %field6, align 8
-  %field7 = getelementptr inbounds nuw { i64, i64, i64, i64 }, ptr %struct_init5, i32 0, i32 1
-  store i64 0, ptr %field7, align 8
-  %field8 = getelementptr inbounds nuw { i64, i64, i64, i64 }, ptr %struct_init5, i32 0, i32 2
+  %field3 = getelementptr inbounds nuw { i64, i64 }, ptr %struct_init1, i32 0, i32 1
+  store i64 1, ptr %field3, align 8
+  %struct_init4 = load { i64, i64 }, ptr %struct_init1, align 8
+  store { i64, i64 } %struct_init4, ptr %field, align 8
+  %field5 = getelementptr inbounds nuw { { i64, i64 }, { i64, i64 } }, ptr %struct_init, i32 0, i32 1
+  %field7 = getelementptr inbounds nuw { i64, i64 }, ptr %struct_init6, i32 0, i32 0
+  store i64 1, ptr %field7, align 8
+  %field8 = getelementptr inbounds nuw { i64, i64 }, ptr %struct_init6, i32 0, i32 1
   store i64 0, ptr %field8, align 8
-  %field9 = getelementptr inbounds nuw { i64, i64, i64, i64 }, ptr %struct_init5, i32 0, i32 3
-  store i64 1, ptr %field9, align 8
-  %struct_init10 = load { i64, i64, i64, i64 }, ptr %struct_init5, align 8
-  store { i64, i64, i64, i64 } %struct_init10, ptr %identity, align 8
+  %struct_init9 = load { i64, i64 }, ptr %struct_init6, align 8
+  store { i64, i64 } %struct_init9, ptr %field5, align 8
+  %struct_init10 = load { { i64, i64 }, { i64, i64 } }, ptr %struct_init, align 8
+  store { { i64, i64 }, { i64, i64 } } %struct_init10, ptr %baseMat, align 8
+  %field12 = getelementptr inbounds nuw { { i64, i64 }, { i64, i64 } }, ptr %struct_init11, i32 0, i32 0
+  %field14 = getelementptr inbounds nuw { i64, i64 }, ptr %struct_init13, i32 0, i32 0
+  store i64 1, ptr %field14, align 8
+  %field15 = getelementptr inbounds nuw { i64, i64 }, ptr %struct_init13, i32 0, i32 1
+  store i64 0, ptr %field15, align 8
+  %struct_init16 = load { i64, i64 }, ptr %struct_init13, align 8
+  store { i64, i64 } %struct_init16, ptr %field12, align 8
+  %field17 = getelementptr inbounds nuw { { i64, i64 }, { i64, i64 } }, ptr %struct_init11, i32 0, i32 1
+  %field19 = getelementptr inbounds nuw { i64, i64 }, ptr %struct_init18, i32 0, i32 0
+  store i64 0, ptr %field19, align 8
+  %field20 = getelementptr inbounds nuw { i64, i64 }, ptr %struct_init18, i32 0, i32 1
+  store i64 1, ptr %field20, align 8
+  %struct_init21 = load { i64, i64 }, ptr %struct_init18, align 8
+  store { i64, i64 } %struct_init21, ptr %field17, align 8
+  %struct_init22 = load { { i64, i64 }, { i64, i64 } }, ptr %struct_init11, align 8
+  store { { i64, i64 }, { i64, i64 } } %struct_init22, ptr %identity, align 8
   %rval = load i64, ptr %n, align 8
   %eqtmp = icmp eq i64 %rval, 0
   br i1 %eqtmp, label %then, label %else
 
 then:                                             ; preds = %entry
-  %rval11 = load { i64, i64, i64, i64 }, ptr %identity, align 8
-  ret { i64, i64, i64, i64 } %rval11
+  %rval23 = load { { i64, i64 }, { i64, i64 } }, ptr %identity, align 8
+  ret { { i64, i64 }, { i64, i64 } } %rval23
 
 else:                                             ; preds = %entry
   br label %ifcont
 
 ifcont:                                           ; preds = %else
-  %rval15 = load i64, ptr %n, align 8
-  %letmp = icmp sle i64 %rval15, 1
-  br i1 %letmp, label %then12, label %else13
+  %rval27 = load i64, ptr %n, align 8
+  %letmp = icmp sle i64 %rval27, 1
+  br i1 %letmp, label %then24, label %else25
 
-then12:                                           ; preds = %ifcont
-  %rval16 = load { i64, i64, i64, i64 }, ptr %baseMat, align 8
-  ret { i64, i64, i64, i64 } %rval16
+then24:                                           ; preds = %ifcont
+  %rval28 = load { { i64, i64 }, { i64, i64 } }, ptr %baseMat, align 8
+  ret { { i64, i64 }, { i64, i64 } } %rval28
 
-else13:                                           ; preds = %ifcont
-  br label %ifcont14
+else25:                                           ; preds = %ifcont
+  br label %ifcont26
 
-ifcont14:                                         ; preds = %else13
-  %rval17 = load { ptr }, ptr @"fib_mat#closure_wrapper", align 8
-  %rval18 = load i64, ptr %n, align 8
-  %divtmp = sdiv i64 %rval18, 2
-  %fnptr = extractvalue { ptr } %rval17, 0
-  %calltmp = call { i64, i64, i64, i64 } %fnptr(i64 %divtmp)
-  store { i64, i64, i64, i64 } %calltmp, ptr %calltmp19, align 8
-  %rval20 = load { i64, i64, i64, i64 }, ptr %calltmp19, align 8
-  store { i64, i64, i64, i64 } %rval20, ptr %half, align 8
-  %rval21 = load i64, ptr %n, align 8
-  %remtmp = srem i64 %rval21, 2
-  %eqtmp22 = icmp eq i64 %remtmp, 0
-  br i1 %eqtmp22, label %then23, label %else24
+ifcont26:                                         ; preds = %else25
+  %rval29 = load { ptr }, ptr @"fib_mat#closure_wrapper", align 8
+  %rval30 = load i64, ptr %n, align 8
+  %divtmp = sdiv i64 %rval30, 2
+  %fnptr = extractvalue { ptr } %rval29, 0
+  %calltmp = call { { i64, i64 }, { i64, i64 } } %fnptr(i64 %divtmp)
+  store { { i64, i64 }, { i64, i64 } } %calltmp, ptr %calltmp31, align 8
+  %rval32 = load { { i64, i64 }, { i64, i64 } }, ptr %calltmp31, align 8
+  store { { i64, i64 }, { i64, i64 } } %rval32, ptr %half, align 8
+  %rval33 = load i64, ptr %n, align 8
+  %remtmp = srem i64 %rval33, 2
+  %eqtmp34 = icmp eq i64 %remtmp, 0
+  br i1 %eqtmp34, label %then35, label %else36
 
-then23:                                           ; preds = %ifcont14
-  %rval25 = load { i64, i64, i64, i64 }, ptr %identity, align 8
+then35:                                           ; preds = %ifcont26
+  %rval37 = load { { i64, i64 }, { i64, i64 } }, ptr %identity, align 8
   br label %merge
 
-else24:                                           ; preds = %ifcont14
-  %rval26 = load { i64, i64, i64, i64 }, ptr %baseMat, align 8
+else36:                                           ; preds = %ifcont26
+  %rval38 = load { { i64, i64 }, { i64, i64 } }, ptr %baseMat, align 8
   br label %merge
 
-merge:                                            ; preds = %else24, %then23
-  %iftmp = phi { i64, i64, i64, i64 } [ %rval25, %then23 ], [ %rval26, %else24 ]
-  store { i64, i64, i64, i64 } %iftmp, ptr %extra, align 8
-  %rval27 = load { ptr }, ptr @"matMult#closure_wrapper", align 8
-  %fnptr28 = extractvalue { ptr } %rval27, 0
-  %calltmp29 = call { i64, i64, i64, i64 } %fnptr28(ptr %half, ptr %half)
-  store { i64, i64, i64, i64 } %calltmp29, ptr %calltmp30, align 8
-  %rval31 = load { i64, i64, i64, i64 }, ptr %calltmp30, align 8
-  store { i64, i64, i64, i64 } %rval31, ptr %halfSquared, align 8
-  %rval32 = load { ptr }, ptr @"matMult#closure_wrapper", align 8
-  %fnptr33 = extractvalue { ptr } %rval32, 0
-  %calltmp34 = call { i64, i64, i64, i64 } %fnptr33(ptr %extra, ptr %halfSquared)
-  store { i64, i64, i64, i64 } %calltmp34, ptr %calltmp35, align 8
-  %rval36 = load { i64, i64, i64, i64 }, ptr %calltmp35, align 8
-  ret { i64, i64, i64, i64 } %rval36
+merge:                                            ; preds = %else36, %then35
+  %iftmp = phi { { i64, i64 }, { i64, i64 } } [ %rval37, %then35 ], [ %rval38, %else36 ]
+  store { { i64, i64 }, { i64, i64 } } %iftmp, ptr %extra, align 8
+  %rval39 = load { ptr }, ptr @"matMult#closure_wrapper", align 8
+  %fnptr40 = extractvalue { ptr } %rval39, 0
+  %calltmp41 = call { { i64, i64 }, { i64, i64 } } %fnptr40(ptr %half, ptr %half)
+  store { { i64, i64 }, { i64, i64 } } %calltmp41, ptr %calltmp42, align 8
+  %rval43 = load { { i64, i64 }, { i64, i64 } }, ptr %calltmp42, align 8
+  store { { i64, i64 }, { i64, i64 } } %rval43, ptr %halfSquared, align 8
+  %rval44 = load { ptr }, ptr @"matMult#closure_wrapper", align 8
+  %fnptr45 = extractvalue { ptr } %rval44, 0
+  %calltmp46 = call { { i64, i64 }, { i64, i64 } } %fnptr45(ptr %extra, ptr %halfSquared)
+  store { { i64, i64 }, { i64, i64 } } %calltmp46, ptr %calltmp47, align 8
+  %rval48 = load { { i64, i64 }, { i64, i64 } }, ptr %calltmp47, align 8
+  ret { { i64, i64 }, { i64, i64 } } %rval48
 }
 
 define i64 @fib_i64i64(i64 %0) {
 entry:
-  %calltmp2 = alloca { i64, i64, i64, i64 }, align 8
+  %calltmp2 = alloca { { i64, i64 }, { i64, i64 } }, align 8
   %n = alloca i64, align 8
   store i64 %0, ptr %n, align 8
   %rval = load { ptr }, ptr @"fib_mat#closure_wrapper", align 8
   %rval1 = load i64, ptr %n, align 8
   %fnptr = extractvalue { ptr } %rval, 0
-  %calltmp = call { i64, i64, i64, i64 } %fnptr(i64 %rval1)
-  store { i64, i64, i64, i64 } %calltmp, ptr %calltmp2, align 8
-  %field = getelementptr inbounds nuw { i64, i64, i64, i64 }, ptr %calltmp2, i32 0, i32 1
-  %rval3 = load i64, ptr %field, align 8
-  ret i64 %rval3
+  %calltmp = call { { i64, i64 }, { i64, i64 } } %fnptr(i64 %rval1)
+  store { { i64, i64 }, { i64, i64 } } %calltmp, ptr %calltmp2, align 8
+  %field = getelementptr inbounds nuw { { i64, i64 }, { i64, i64 } }, ptr %calltmp2, i32 0, i32 1
+  %field3 = getelementptr inbounds nuw { i64, i64 }, ptr %field, i32 0, i32 0
+  %rval4 = load i64, ptr %field3, align 8
+  ret i64 %rval4
 }
 
 define i64 @main_i64() {
@@ -243,14 +261,14 @@ entry:
   %ret = alloca i64, align 8
   store i64 0, ptr %ret, align 8
   store i64 0, ptr %i, align 8
-  br label %loop_44
+  br label %loop_47
 
-loop_44:                                          ; preds = %increment_44, %entry
+loop_47:                                          ; preds = %increment_47, %entry
   %rval = load i64, ptr %i, align 8
   %lttmp = icmp slt i64 %rval, 30
-  br i1 %lttmp, label %body_44, label %merge_44
+  br i1 %lttmp, label %body_47, label %merge_47
 
-body_44:                                          ; preds = %loop_44
+body_47:                                          ; preds = %loop_47
   %rval1 = load { ptr }, ptr @"fib#closure_wrapper", align 8
   %rval2 = load i64, ptr %i, align 8
   %fnptr = extractvalue { ptr } %rval1, 0
@@ -262,15 +280,15 @@ body_44:                                          ; preds = %loop_44
   %rval6 = load i64, ptr %f, align 8
   %addtmp = add i64 %rval5, %rval6
   store i64 %addtmp, ptr %ret, align 8
-  br label %increment_44
+  br label %increment_47
 
-increment_44:                                     ; preds = %body_44
+increment_47:                                     ; preds = %body_47
   %rval7 = load i64, ptr %i, align 8
   %addtmp8 = add i64 %rval7, 1
   store i64 %addtmp8, ptr %i, align 8
-  br label %loop_44
+  br label %loop_47
 
-merge_44:                                         ; preds = %loop_44
+merge_47:                                         ; preds = %loop_47
   %rval9 = load i64, ptr %ret, align 8
   ret i64 %rval9
 }

@@ -58,7 +58,7 @@ impl ValueType {
         let subedself = self.substitute(generics);
         match subedself {
             Self::Struct(s) => {
-                for c in constraint.iter() {
+                for c in constraint {
                     if let Some(ref name) = c.0 {
                         if !s.implements.contains(name) {
                             return false;
@@ -160,9 +160,8 @@ impl ValueType {
         Ok(match self.substitute(generics) {
             Self::Float => ctx.f64_type().as_basic_type_enum(),
             Self::Integer => ctx.i64_type().as_basic_type_enum(),
-            Self::Char => ctx.i8_type().as_basic_type_enum(),
+            Self::Char | Self::Nil => ctx.i8_type().as_basic_type_enum(),
             Self::Bool => ctx.bool_type().as_basic_type_enum(),
-            Self::Nil => ctx.i8_type().as_basic_type_enum(),
             ValueType::Closure(Closure {
                 args: _,
                 upvals,
@@ -170,7 +169,7 @@ impl ValueType {
                 generics: _,
             }) => {
                 let mut types = Vec::new();
-                for v in upvals.iter() {
+                for v in upvals {
                     types.push(v.llvm(ctx, generics)?);
                 }
                 types.push(ctx.ptr_type(AddressSpace::default()).as_basic_type_enum());
@@ -181,7 +180,7 @@ impl ValueType {
             Self::LValue(_t, _) => ctx.ptr_type(AddressSpace::default()).as_basic_type_enum(),
             Self::Array(t, n) => t
                 .llvm(ctx, generics)?
-                .array_type(n.unwrap_or(0) as u32)
+                .array_type(u32::try_from(n.unwrap_or(0)).context("Array size too large")?)
                 .as_basic_type_enum(),
             Self::Struct(h) => {
                 let mut types = Vec::new();
@@ -221,7 +220,7 @@ impl From<SharedString> for ValueType {
             "nil" => Self::Nil,
             "err" => Self::Err,
             s if s.chars().nth(0).unwrap() == '$' => Self::TypeVar(s[1..].parse().unwrap()),
-            s if s.contains(":") => {
+            s if s.contains(':') => {
                 // generic param with constraints
                 let parts: Vec<&str> = s.split(':').collect();
                 let name = parts[0].to_string();
@@ -231,7 +230,7 @@ impl From<SharedString> for ValueType {
                         if c.is_empty() {
                             Constraint(None)
                         } else {
-                            Constraint(Some(c.to_string().into()))
+                            Constraint(Some((*c).to_string().into()))
                         }
                     })
                     .collect::<Vec<_>>();
@@ -254,11 +253,11 @@ mod tests {
         let char_type = ValueType::Char;
         let nil_type = ValueType::Nil;
 
-        assert_eq!(format!("{}", int_type), "int");
-        assert_eq!(format!("{}", float_type), "float");
-        assert_eq!(format!("{}", bool_type), "bool");
-        assert_eq!(format!("{}", char_type), "char");
-        assert_eq!(format!("{}", nil_type), "nil");
+        assert_eq!(format!("{int_type}"), "int");
+        assert_eq!(format!("{float_type}"), "float");
+        assert_eq!(format!("{bool_type}"), "bool");
+        assert_eq!(format!("{char_type}"), "char");
+        assert_eq!(format!("{nil_type}"), "nil");
     }
 
     #[test]
@@ -320,7 +319,7 @@ mod tests {
     #[test]
     fn test_err_type() {
         let err_type = ValueType::Err;
-        assert_eq!(format!("{}", err_type), "err");
+        assert_eq!(format!("{err_type}"), "err");
     }
 
     #[test]
@@ -363,14 +362,14 @@ mod tests {
         ];
 
         for (value_type, expected) in types {
-            assert_eq!(format!("{}", value_type), expected);
+            assert_eq!(format!("{value_type}"), expected);
         }
     }
 
     #[test]
     fn test_value_type_debug() {
         let int_type = ValueType::Integer;
-        let debug_str = format!("{:?}", int_type);
+        let debug_str = format!("{int_type:?}");
         assert!(!debug_str.is_empty());
     }
 
@@ -424,8 +423,8 @@ mod tests {
     #[test]
     fn test_generic_param_display() {
         let generic = ValueType::GenericParam("T".into(), Box::new([]));
-        let display_str = format!("{}", generic);
-        assert!(display_str.contains("T"));
+        let display_str = format!("{generic}");
+        assert!(display_str.contains('T'));
     }
 
     #[test]
@@ -437,7 +436,7 @@ mod tests {
     #[test]
     fn test_type_var_display() {
         let type_var = ValueType::TypeVar(42);
-        let display_str = format!("{}", type_var);
+        let display_str = format!("{type_var}");
         assert_eq!(display_str, "$42");
     }
 
@@ -451,7 +450,7 @@ mod tests {
     #[test]
     fn test_constraint_debug() {
         let c = Constraint(Some("Iterator".into()));
-        let debug_str = format!("{:?}", c);
+        let debug_str = format!("{c:?}");
         assert!(!debug_str.is_empty());
     }
 }

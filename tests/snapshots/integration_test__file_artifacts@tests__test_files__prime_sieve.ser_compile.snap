@@ -875,14 +875,14 @@ entry:
   store { { ptr, { { ptr } } } } %struct_init11, ptr %gen, align 8
   store i64 1, ptr %prod, align 8
   store i64 0, ptr %i, align 8
-  br label %loop_76
+  br label %loop_75
 
-loop_76:                                          ; preds = %increment_76, %entry
+loop_75:                                          ; preds = %increment_75, %entry
   %rval12 = load i64, ptr %i, align 8
   %lttmp = icmp slt i64 %rval12, 100
-  br i1 %lttmp, label %body_76, label %merge_76
+  br i1 %lttmp, label %body_75, label %merge_75
 
-body_76:                                          ; preds = %loop_76
+body_75:                                          ; preds = %loop_75
   %rval13 = load { ptr }, ptr @"12868915959732643263_next#closure_wrapper", align 8
   %fnptr14 = extractvalue { ptr } %rval13, 0
   %calltmp15 = call { ptr, ptr } %fnptr14(ptr %gen)
@@ -898,15 +898,15 @@ body_76:                                          ; preds = %loop_76
   %rval23 = load i64, ptr %p, align 8
   %multmp = mul i64 %rval22, %rval23
   store i64 %multmp, ptr %prod, align 8
-  br label %increment_76
+  br label %increment_75
 
-increment_76:                                     ; preds = %body_76
+increment_75:                                     ; preds = %body_75
   %rval24 = load i64, ptr %i, align 8
   %addtmp = add i64 %rval24, 1
   store i64 %addtmp, ptr %i, align 8
-  br label %loop_76
+  br label %loop_75
 
-merge_76:                                         ; preds = %loop_76
+merge_75:                                         ; preds = %loop_75
   %rval25 = load { ptr }, ptr @"5737668483962445842_destroy#closure_wrapper", align 8
   %fnptr26 = extractvalue { ptr } %rval25, 0
   %calltmp27 = call { ptr, ptr } %fnptr26(ptr @arena)

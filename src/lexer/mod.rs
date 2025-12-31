@@ -126,14 +126,14 @@ const KEYWORDS: [(&str, TokenType); 34] = [
 
 #[derive(Clone)]
 pub struct Token {
-    pub token_type: TokenType,
+    pub tok_type: TokenType,
     pub lexeme: SharedString,
     pub line: usize,
 }
 
 impl Token {
     pub fn is_eof(&self) -> bool {
-        self.token_type == TokenType::Eof
+        self.tok_type == TokenType::Eof
     }
 }
 
@@ -141,8 +141,8 @@ impl Debug for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            r#"<{:12} {:13?} [{}]>"#,
-            self.token_type, self.lexeme, self.line
+            "<{:12} {:13?} [{}]>",
+            self.tok_type, self.lexeme, self.line
         )
     }
 }
@@ -169,7 +169,7 @@ impl Lexer {
 
         if self.is_at_end() {
             return self.make_token(TokenType::Eof);
-        };
+        }
 
         let c = self.advance();
         if c.is_ascii_alphabetic() || c == '_' {
@@ -303,7 +303,7 @@ impl Lexer {
                 }
                 self.make_token(TokenType::SimpleType)
             }
-            _ => self.error_token(format!("Unexpected character: {}", c).as_str()),
+            _ => self.error_token(format!("Unexpected character: {c}").as_str()),
         }
     }
     fn is_at_end(&self) -> bool {
@@ -312,7 +312,7 @@ impl Lexer {
 
     fn make_token(&self, token_type: TokenType) -> Token {
         Token {
-            token_type,
+            tok_type: token_type,
             lexeme: String::from(&self.source[self.lexeme_start..self.lexeme_current]).into(),
             line: self.line,
         }
@@ -320,7 +320,7 @@ impl Lexer {
 
     fn error_token(&self, message: &str) -> Token {
         Token {
-            token_type: TokenType::Error,
+            tok_type: TokenType::Error,
             lexeme: message.into(),
             line: self.line,
         }
@@ -386,7 +386,7 @@ impl Lexer {
         let is_keyword = self.keywords.exact_match(lexeme.as_bytes());
         if is_keyword {
             return KEYWORDS.iter().find(|(k, _)| k == &lexeme).unwrap().1;
-        };
+        }
         TokenType::Identifier
     }
 }
@@ -413,29 +413,29 @@ mod tests {
     fn test_simple_number() {
         let tokens = lex_all("42");
         assert_eq!(tokens.len(), 2);
-        assert_eq!(tokens[0].token_type, TokenType::Number);
+        assert_eq!(tokens[0].tok_type, TokenType::Number);
         assert_eq!(tokens[0].lexeme, "42".into());
-        assert_eq!(tokens[1].token_type, TokenType::Eof);
+        assert_eq!(tokens[1].tok_type, TokenType::Eof);
     }
 
     #[test]
     fn test_float_number() {
         let tokens = lex_all("3.14");
-        assert_eq!(tokens[0].token_type, TokenType::Number);
+        assert_eq!(tokens[0].tok_type, TokenType::Number);
         assert_eq!(tokens[0].lexeme, "3.14".into());
     }
 
     #[test]
     fn test_unsigned_integer() {
         let tokens = lex_all("42u");
-        assert_eq!(tokens[0].token_type, TokenType::Number);
+        assert_eq!(tokens[0].tok_type, TokenType::Number);
         assert_eq!(tokens[0].lexeme, "42u".into());
     }
 
     #[test]
     fn test_identifier() {
         let tokens = lex_all("variable_name");
-        assert_eq!(tokens[0].token_type, TokenType::Identifier);
+        assert_eq!(tokens[0].tok_type, TokenType::Identifier);
         assert_eq!(tokens[0].lexeme, "variable_name".into());
     }
 
@@ -461,9 +461,8 @@ mod tests {
         for (keyword, expected_type) in keywords_to_test {
             let tokens = lex_all(keyword);
             assert_eq!(
-                tokens[0].token_type, expected_type,
-                "Keyword '{}' should lex as {:?}",
-                keyword, expected_type
+                tokens[0].tok_type, expected_type,
+                "Keyword '{keyword}' should lex as {expected_type:?}"
             );
         }
     }
@@ -493,9 +492,8 @@ mod tests {
         for (op, expected_type) in tests {
             let tokens = lex_all(op);
             assert_eq!(
-                tokens[0].token_type, expected_type,
-                "Operator '{}' should lex as {:?}",
-                op, expected_type
+                tokens[0].tok_type, expected_type,
+                "Operator '{op}' should lex as {expected_type:?}"
             );
         }
     }
@@ -520,9 +518,8 @@ mod tests {
         for (delim, expected_type) in tests {
             let tokens = lex_all(delim);
             assert_eq!(
-                tokens[0].token_type, expected_type,
-                "Delimiter '{}' should lex as {:?}",
-                delim, expected_type
+                tokens[0].tok_type, expected_type,
+                "Delimiter '{delim}' should lex as {expected_type:?}"
             );
         }
     }
@@ -530,33 +527,33 @@ mod tests {
     #[test]
     fn test_string_literal() {
         let tokens = lex_all(r#""hello world""#);
-        assert_eq!(tokens[0].token_type, TokenType::String);
+        assert_eq!(tokens[0].tok_type, TokenType::String);
         assert_eq!(tokens[0].lexeme, r#""hello world""#.into());
     }
 
     #[test]
     fn test_char_literal() {
         let tokens = lex_all("'a'");
-        assert_eq!(tokens[0].token_type, TokenType::Char);
+        assert_eq!(tokens[0].tok_type, TokenType::Char);
         assert_eq!(tokens[0].lexeme, "'a'".into());
     }
 
     #[test]
     fn test_char_escape() {
         let tokens = lex_all(r"'\n'");
-        assert_eq!(tokens[0].token_type, TokenType::Char);
+        assert_eq!(tokens[0].tok_type, TokenType::Char);
     }
 
     #[test]
     fn test_unterminated_string() {
         let tokens = lex_all(r#""unterminated"#);
-        assert_eq!(tokens[0].token_type, TokenType::Error);
+        assert_eq!(tokens[0].tok_type, TokenType::Error);
     }
 
     #[test]
     fn test_unterminated_char() {
         let tokens = lex_all(r"'a");
-        assert_eq!(tokens[0].token_type, TokenType::Error);
+        assert_eq!(tokens[0].tok_type, TokenType::Error);
     }
 
     #[test]
@@ -570,11 +567,11 @@ mod tests {
     #[test]
     fn test_comment_skipping() {
         let tokens = lex_all("x // comment\ny");
-        assert_eq!(tokens[0].token_type, TokenType::Identifier);
+        assert_eq!(tokens[0].tok_type, TokenType::Identifier);
         assert_eq!(tokens[0].lexeme, "x".into());
-        assert_eq!(tokens[1].token_type, TokenType::Identifier);
+        assert_eq!(tokens[1].tok_type, TokenType::Identifier);
         assert_eq!(tokens[1].lexeme, "y".into());
-        assert_eq!(tokens[2].token_type, TokenType::Eof);
+        assert_eq!(tokens[2].tok_type, TokenType::Eof);
     }
 
     #[test]
@@ -582,44 +579,44 @@ mod tests {
         let tokens = lex_all("  x  \t  y  ");
         assert_eq!(tokens[0].lexeme, "x".into());
         assert_eq!(tokens[1].lexeme, "y".into());
-        assert_eq!(tokens[2].token_type, TokenType::Eof);
+        assert_eq!(tokens[2].tok_type, TokenType::Eof);
     }
 
     #[test]
     fn test_lambda_keyword() {
         let tokens_lambda = lex_all("lambda");
-        assert_eq!(tokens_lambda[0].token_type, TokenType::Lambda);
+        assert_eq!(tokens_lambda[0].tok_type, TokenType::Lambda);
     }
 
     #[test]
     fn test_parenthesis_brace_combo() {
         let tokens = lex_all("({})");
-        assert_eq!(tokens[0].token_type, TokenType::LeftParenBrace);
-        assert_eq!(tokens[1].token_type, TokenType::RightParenBrace);
+        assert_eq!(tokens[0].tok_type, TokenType::LeftParenBrace);
+        assert_eq!(tokens[1].tok_type, TokenType::RightParenBrace);
     }
 
     #[test]
     fn test_complex_expression() {
         let tokens = lex_all("let x: int = 42; x + 10");
-        assert_eq!(tokens[0].token_type, TokenType::Var); // let
+        assert_eq!(tokens[0].tok_type, TokenType::Var); // let
         assert_eq!(tokens[1].lexeme, "x".into());
-        assert_eq!(tokens[2].token_type, TokenType::Colon);
-        assert_eq!(tokens[3].token_type, TokenType::SimpleType); // int
-        assert_eq!(tokens[4].token_type, TokenType::Equal);
-        assert_eq!(tokens[5].token_type, TokenType::Number); // 42
-        assert_eq!(tokens[6].token_type, TokenType::Semicolon);
+        assert_eq!(tokens[2].tok_type, TokenType::Colon);
+        assert_eq!(tokens[3].tok_type, TokenType::SimpleType); // int
+        assert_eq!(tokens[4].tok_type, TokenType::Equal);
+        assert_eq!(tokens[5].tok_type, TokenType::Number); // 42
+        assert_eq!(tokens[6].tok_type, TokenType::Semicolon);
     }
 
     #[test]
     fn test_multiple_operators() {
         let tokens = lex_all("a <= b && c >= d");
         assert_eq!(tokens[0].lexeme, "a".into());
-        assert_eq!(tokens[1].token_type, TokenType::LessEqual);
+        assert_eq!(tokens[1].tok_type, TokenType::LessEqual);
         assert_eq!(tokens[2].lexeme, "b".into());
-        assert_eq!(tokens[3].token_type, TokenType::Amp);
-        assert_eq!(tokens[4].token_type, TokenType::Amp);
+        assert_eq!(tokens[3].tok_type, TokenType::Amp);
+        assert_eq!(tokens[4].tok_type, TokenType::Amp);
         assert_eq!(tokens[5].lexeme, "c".into());
-        assert_eq!(tokens[6].token_type, TokenType::GreaterEqual);
+        assert_eq!(tokens[6].tok_type, TokenType::GreaterEqual);
         assert_eq!(tokens[7].lexeme, "d".into());
     }
 
@@ -628,22 +625,22 @@ mod tests {
         let simple_types = vec!["int", "uint", "float", "bool", "char", "nil"];
         for simple_type in simple_types {
             let tokens = lex_all(simple_type);
-            assert_eq!(tokens[0].token_type, TokenType::SimpleType);
+            assert_eq!(tokens[0].tok_type, TokenType::SimpleType);
         }
     }
 
     #[test]
     fn test_underscore_in_identifier() {
         let tokens = lex_all("_private_var");
-        assert_eq!(tokens[0].token_type, TokenType::Identifier);
+        assert_eq!(tokens[0].tok_type, TokenType::Identifier);
         assert_eq!(tokens[0].lexeme, "_private_var".into());
     }
 
     #[test]
     fn test_type_keyword() {
         let tokens = lex_all("type MyType");
-        assert_eq!(tokens[0].token_type, TokenType::Type);
-        assert_eq!(tokens[1].token_type, TokenType::Identifier);
+        assert_eq!(tokens[0].tok_type, TokenType::Type);
+        assert_eq!(tokens[1].tok_type, TokenType::Identifier);
         assert_eq!(tokens[1].lexeme, "MyType".into());
     }
 }

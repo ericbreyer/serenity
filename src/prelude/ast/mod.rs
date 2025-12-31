@@ -68,7 +68,7 @@ pub struct Ast {
 impl Debug for Ast {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for node in &self.roots {
-            write!(f, "{:?}", node)?;
+            write!(f, "{node:?}")?;
         }
         Ok(())
     }
@@ -126,7 +126,7 @@ impl fmt::Display for ASTNode {
 
 impl Debug for ASTNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self)
+        write!(f, "{self}")
     }
 }
 
@@ -340,7 +340,9 @@ impl Expression {
 
                 match (e.operator, operand) {
                     (TokenType::Minus, Value::Integer(i)) => Some(Value::Integer(-i)),
-                    (TokenType::Minus, Value::UInteger(i)) => Some(Value::Integer(-(i as i64))),
+                    (TokenType::Minus, Value::UInteger(i)) => {
+                        Some(Value::Integer(-i.cast_signed()))
+                    }
                     (TokenType::Bang, Value::Bool(b)) => Some(Value::Bool(!b)),
                     _ => None,
                 }
@@ -432,10 +434,10 @@ impl Expression {
                         Some(Value::Bool(l <= r))
                     }
                     (TokenType::EqualEqual, Value::Float(l), Value::Float(r)) => {
-                        Some(Value::Bool(l == r))
+                        Some(Value::Bool((l - r).abs() < f64::EPSILON))
                     }
                     (TokenType::BangEqual, Value::Float(l), Value::Float(r)) => {
-                        Some(Value::Bool(l != r))
+                        Some(Value::Bool((l - r).abs() >= f64::EPSILON))
                     }
                     (TokenType::And, Value::Bool(l), Value::Bool(r)) => Some(Value::Bool(l && r)),
                     (TokenType::Or, Value::Bool(l), Value::Bool(r)) => Some(Value::Bool(l || r)),
@@ -1109,10 +1111,10 @@ mod tests {
     #[test]
     fn test_literal_expression_float() {
         let lit = LiteralExpression {
-            value: Value::Float(3.14),
+            value: Value::Float(std::f64::consts::PI),
             line_no: 71,
         };
-        assert_eq!(lit.value, Value::Float(3.14));
+        assert_eq!(lit.value, Value::Float(std::f64::consts::PI));
     }
 
     #[test]
@@ -1389,7 +1391,7 @@ mod tests {
     fn test_eval_constexpr_non_constant_returns_none() {
         use std::{cell::RefCell, rc::Rc};
         let token = Rc::new(RefCell::new(Token {
-            token_type: TokenType::Identifier,
+            tok_type: TokenType::Identifier,
             lexeme: "x".into(),
             line: 180,
         }));
@@ -1416,7 +1418,7 @@ mod tests {
     fn test_ref_expression_creation() {
         use std::{cell::RefCell, rc::Rc};
         let token = Rc::new(RefCell::new(Token {
-            token_type: TokenType::Identifier,
+            tok_type: TokenType::Identifier,
             lexeme: "x".into(),
             line: 195,
         }));
@@ -1434,7 +1436,7 @@ mod tests {
     fn test_index_expression_creation() {
         use std::{cell::RefCell, rc::Rc};
         let token = Rc::new(RefCell::new(Token {
-            token_type: TokenType::Identifier,
+            tok_type: TokenType::Identifier,
             lexeme: "arr".into(),
             line: 200,
         }));
@@ -1488,7 +1490,7 @@ mod tests {
     fn test_variable_expression_creation() {
         use std::{cell::RefCell, rc::Rc};
         let token = Rc::new(RefCell::new(Token {
-            token_type: TokenType::Identifier,
+            tok_type: TokenType::Identifier,
             lexeme: "myVar".into(),
             line: 220,
         }));
@@ -1503,7 +1505,7 @@ mod tests {
     fn test_assign_expression_creation() {
         use std::{cell::RefCell, rc::Rc};
         let token = Rc::new(RefCell::new(Token {
-            token_type: TokenType::Identifier,
+            tok_type: TokenType::Identifier,
             lexeme: "x".into(),
             line: 225,
         }));
@@ -1525,7 +1527,7 @@ mod tests {
     fn test_cast_expression_creation() {
         let cast = CastExpression {
             expression: Box::new(Expression::Literal(LiteralExpression {
-                value: Value::Float(3.14),
+                value: Value::Float(std::f64::consts::PI),
                 line_no: 230,
             })),
             target_type: ValueType::Integer.intern(),

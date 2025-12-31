@@ -44,7 +44,7 @@ impl SerenityParser {
             .expect("Failed to read file");
             let mparse_result = Self::parse_helper(
                 source.into(),
-                path,
+                &path,
                 HashMap::default(),
                 self.include_paths.clone(),
             );
@@ -114,8 +114,8 @@ impl SerenityParser {
 
     pub(super) fn block(&mut self) -> Vec<ASTNode> {
         let mut statements = Vec::new();
-        while self.current.token_type != TokenType::RightBrace
-            && self.current.token_type != TokenType::Eof
+        while self.current.tok_type != TokenType::RightBrace
+            && self.current.tok_type != TokenType::Eof
         {
             statements.extend(self.declaration());
         }
@@ -211,7 +211,7 @@ impl SerenityParser {
     fn type_declaration(&mut self) -> Vec<ASTNode> {
         let mut type_params: IndexMap<SharedString, Box<[Constraint]>> = IndexMap::new();
         if self.match_token(TokenType::Less) {
-            while self.current.token_type != TokenType::Greater {
+            while self.current.tok_type != TokenType::Greater {
                 self.consume(TokenType::Identifier, "Expect type parameter name.");
                 let name = self.previous.lexeme.clone();
                 let constriants = self.extract_function_constraints();
@@ -227,9 +227,9 @@ impl SerenityParser {
         let name = self.previous.lexeme.clone();
 
         if self.match_token(TokenType::Struct) {
-            self.struct_declaration(name, type_params)
+            self.struct_declaration(&name, &type_params)
         } else if self.match_token(TokenType::Interface) {
-            self.interface_definition(name, type_params)
+            self.interface_definition(&name, &type_params)
         } else {
             self.error("Expect struct or interface in type definition");
             vec![ASTNode::Empty]
@@ -238,12 +238,12 @@ impl SerenityParser {
 
     fn struct_declaration(
         &mut self,
-        name: SharedString,
-        type_params: IndexMap<SharedString, Box<[Constraint]>>,
+        name: &SharedString,
+        type_params: &IndexMap<SharedString, Box<[Constraint]>>,
     ) -> Vec<ASTNode> {
         let _ = self.previous.line;
 
-        if self.custom_types.contains_key(&name) {
+        if self.custom_types.contains_key(name) {
             self.error("Struct with that name already exists.");
         }
 
@@ -263,7 +263,7 @@ impl SerenityParser {
             },
         );
         let mut embed = None;
-        while self.current.token_type != TokenType::RightBrace {
+        while self.current.tok_type != TokenType::RightBrace {
             if !self.match_token(TokenType::Identifier) {
                 if !offset == 0 {
                     self.error("Expect field name.");
@@ -297,11 +297,11 @@ impl SerenityParser {
 
             let field_name = self.previous.clone();
             self.consume(TokenType::Colon, "Expect ':' after field name.");
-            let field_type = self.parse_type(Some(&name), Some(&type_params), false);
+            let field_type = self.parse_type(Some(name), Some(type_params), false);
 
             // if the field is this struct throw an error
             if let ValueType::Struct(s) = field_type {
-                if s.name == name {
+                if s.name == *name {
                     self.error("Struct cannot contain itself.");
                 }
             }
@@ -324,17 +324,17 @@ impl SerenityParser {
         // debug!("Struct: {:?}", self.custom_types.get(&name.lexeme));
         // debug!("New fields: {:?}", fields);
         self.custom_types
-            .get(&name)
+            .get(name)
             .unwrap()
             .fields
             .borrow_mut()
             .clone_from(&fields);
         self.custom_types
-            .get_mut(&name)
+            .get_mut(name)
             .unwrap()
             .embed
             .clone_from(&embed);
-        debug!("after Struct: {:?}", self.custom_types.get(&name).unwrap());
+        debug!("after Struct: {:?}", self.custom_types.get(name).unwrap());
 
         let mut impl_nodes = vec![];
 
@@ -342,7 +342,7 @@ impl SerenityParser {
             while self.match_token(TokenType::Identifier) {
                 let interface = &self.previous.lexeme;
                 self.custom_types
-                    .get_mut(&name)
+                    .get_mut(name)
                     .unwrap()
                     .implements
                     .insert(interface.clone());
@@ -375,9 +375,9 @@ impl SerenityParser {
                         continue;
                     };
                     for (i, t) in atypes.iter().enumerate() {
-                        s = format!("{s} a{i} : {}, ", t);
+                        s = format!("{s} a{i} : {t}, ");
                     }
-                    s = format!("{s}) -> {};", ret);
+                    s = format!("{s}) -> {ret};");
                 }
                 s = format!("{s}let mut {name}_{interface}_vtable : struct {interfacev};");
 
@@ -397,7 +397,7 @@ impl SerenityParser {
                 impl_nodes.extend(
                     Self::parse_helper(
                         s.into(),
-                        format!("{name}_{interface}_impl").into(),
+                        &format!("{name}_{interface}_impl").into(),
                         self.custom_types.clone(),
                         self.include_paths.clone(),
                     )
@@ -415,8 +415,8 @@ impl SerenityParser {
 
     fn interface_definition(
         &mut self,
-        name: SharedString,
-        type_params: IndexMap<SharedString, Box<[Constraint]>>,
+        name: &SharedString,
+        type_params: &IndexMap<SharedString, Box<[Constraint]>>,
     ) -> Vec<ASTNode> {
         let vtable_name: SharedString = format!("{name}_vtable").into();
         let _ = self.previous.line;
@@ -444,7 +444,7 @@ impl SerenityParser {
         );
         let mut methods: Vec<(SharedString, SharedString)> = vec![];
 
-        while self.current.token_type != TokenType::RightBrace {
+        while self.current.tok_type != TokenType::RightBrace {
             if !self.match_token(TokenType::Identifier) {
                 self.error("Expect field name.");
                 continue;
@@ -454,7 +454,7 @@ impl SerenityParser {
             self.consume(TokenType::Colon, "Expect ':' after field name.");
             let field_type = self.parse_type(
                 Some(&format!("{name}_impl").into()),
-                Some(&type_params),
+                Some(type_params),
                 false,
             );
 
@@ -500,9 +500,9 @@ impl SerenityParser {
                 s = format!("{s} (self: *struct {name}_impl)");
                 s = format!("{s} {}(", field_name.lexeme.clone());
                 for (i, t) in args.iter().enumerate() {
-                    s = format!("{s} a{i} : {}, ", t);
+                    s = format!("{s} a{i} : {t}, ");
                 }
-                s = format!("{s}) -> {}{{\n", ret);
+                s = format!("{s}) -> {ret}{{\n");
                 s = format!(
                     "{s} return (self->vtable.{})(self->self)(",
                     field_name.lexeme.clone()
@@ -599,7 +599,7 @@ impl SerenityParser {
             .flat_map(|(methname, node)| {
                 Self::parse_helper(
                     node.clone(),
-                    format!("{name}_{}_meth_mod", methname).into(),
+                    &format!("{name}_{methname}_meth_mod").into(),
                     self.custom_types.clone(),
                     self.include_paths.clone(),
                 )
@@ -633,9 +633,8 @@ impl SerenityParser {
             format!(
                 "Expect {} after variable name.",
                 match (var_type.is_some(), initializer.is_some()) {
-                    (true, true) => "';'",
+                    (_, true) => "';'",
                     (true, false) => "';' or '='",
-                    (false, true) => "';'",
                     (false, false) => "';' or ':' or '='",
                 }
             )
@@ -643,7 +642,7 @@ impl SerenityParser {
         );
 
         if is_const {
-            let value = initializer.as_ref().and_then(|x| x.eval_constexpr());
+            let value = initializer.as_ref().and_then(Expression::eval_constexpr);
             let Some(value) = value else {
                 self.error("Const variable must be initialized with a constant value.");
                 return ASTNode::Empty;
@@ -669,7 +668,7 @@ impl SerenityParser {
         };
         self.consume(TokenType::LeftBrace, "Expect '{' after struct name.");
         let mut fields = IndexMap::new();
-        while self.current.token_type != TokenType::RightBrace {
+        while self.current.tok_type != TokenType::RightBrace {
             self.consume(TokenType::Identifier, "Expect field name.");
             let name = self.previous.clone();
             self.consume(TokenType::Colon, "Expect ':' after field name.");
@@ -714,7 +713,7 @@ impl SerenityParser {
 
         self.consume(TokenType::Identifier, "Expect function name.");
         let name = self.previous.lexeme.clone();
-        let node = self.function(&name, type_params.clone());
+        let node = self.function(&name, &type_params);
 
         let mono = type_params.is_empty();
 
@@ -777,8 +776,8 @@ impl SerenityParser {
             format!("{}_{}", cs.name, name).into()
         };
 
-        let inner_name = format!("{}_inner", new_name);
-        let mut node = self.function(&inner_name, type_params.clone());
+        let inner_name = format!("{new_name}_inner");
+        let mut node = self.function(&inner_name, &type_params);
 
         if monomorphic {
             cs.methods.borrow_mut().insert(new_name.clone());
@@ -788,7 +787,7 @@ impl SerenityParser {
 
         node.prototype.captures.push(receiver.clone());
         let mut node_type = vec![];
-        for (_name, t, _) in node.prototype.params.iter() {
+        for (_name, t, _) in &node.prototype.params {
             node_type.push(*t);
         }
         let node_return = node.prototype.return_type;
@@ -826,7 +825,7 @@ impl SerenityParser {
 
     fn find_include_file(&self, path: &SharedString) -> Result<SharedString> {
         for include_path in self.include_paths.iter().chain(once(&".".into())) {
-            let full_path = format!("{}/{}", include_path, path);
+            let full_path = format!("{include_path}/{path}");
             if std::path::Path::new(&full_path).exists() {
                 return Ok(full_path.into());
             }

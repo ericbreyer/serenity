@@ -20,7 +20,7 @@ impl ValueType {
     }
 
     pub fn get_constraints(&'static self) -> Option<Box<[Constraint]>> {
-        println!("get_constraints for {}", self);
+        println!("get_constraints for {self}");
         match self {
             ValueType::TypeVar(x) => CONSTRAINTS.with_borrow(|c| c.get(*x).cloned()),
             _ => None,
@@ -152,7 +152,7 @@ impl ValueType {
             }
             // Otherwise, types match we good
             (_, _) => {}
-        };
+        }
         Ok(())
     }
 
@@ -174,9 +174,9 @@ impl ValueType {
                     || a.iter().any(|x| ValueType::occurs_in(tv1, x))
                     || ValueType::occurs_in(tv1, r)
             }
-            ValueType::Pointer(p, _) => ValueType::occurs_in(tv1, p),
-            ValueType::LValue(p, _) => ValueType::occurs_in(tv1, p),
-            ValueType::Array(p, _) => ValueType::occurs_in(tv1, p),
+            ValueType::Pointer(p, _) | ValueType::LValue(p, _) | ValueType::Array(p, _) => {
+                ValueType::occurs_in(tv1, p)
+            }
             ValueType::Struct(s) => {
                 let s = s.fields.borrow();
                 s.values().any(|x| ValueType::occurs_in(tv1, x.value))
@@ -216,16 +216,16 @@ impl ValueType {
                 generics: local_generics,
             }) => {
                 let mut new_c = Vec::with_capacity(c.len());
-                for x in c.iter() {
+                for x in c {
                     new_c.push(x.substitute(generics));
                 }
                 let mut new_a = Vec::with_capacity(a.len());
-                for x in a.iter() {
+                for x in a {
                     new_a.push(x.substitute(generics));
                 }
 
                 let mut new_generics = BTreeMap::new();
-                for (k, v) in local_generics.iter() {
+                for (k, v) in local_generics {
                     new_generics.insert(k.clone(), v.substitute(generics));
                 }
 
@@ -291,7 +291,7 @@ impl ValueType {
                 SUBSTITUTIONS.with_borrow_mut(|v| v[*x] = new_new);
                 return new_new;
             }
-        };
+        }
         new
     }
 
@@ -320,11 +320,11 @@ impl ValueType {
                 generics: _,
             }) => {
                 let mut new_args = Vec::with_capacity(args.len());
-                for x in args.iter() {
+                for x in args {
                     new_args.push(x.instantiate_generic(generics));
                 }
                 let mut new_upvals = Vec::with_capacity(upvals.len());
-                for x in upvals.iter() {
+                for x in upvals {
                     new_upvals.push(x.instantiate_generic(generics));
                 }
                 let new_ret = ret.instantiate_generic(generics);
@@ -368,7 +368,7 @@ impl ValueType {
             }
             Self::SelfStructRef(s, v) => {
                 let mut new_v = Vec::with_capacity(v.len());
-                for x in v.iter() {
+                for x in v {
                     new_v.push(x.instantiate_generic(generics));
                 }
                 Self::SelfStructRef(s.clone(), new_v).intern()

@@ -37,11 +37,11 @@ enum Precedence {
 }
 
 impl Precedence {
-    fn next(&self) -> Precedence {
+    fn next(self) -> Precedence {
         if matches!(self, Self::Primary) {
-            *self
+            self
         } else {
-            Precedence::from((*self as u8) + 1)
+            Precedence::from((self as u8) + 1)
         }
     }
 }
@@ -62,12 +62,12 @@ impl SerenityParser {
     pub fn new(lexer: Lexer, include_paths: Vec<SharedString>) -> SerenityParser {
         SerenityParser {
             current: Token {
-                token_type: TokenType::Error,
+                tok_type: TokenType::Error,
                 lexeme: "".into(),
                 line: 0,
             },
             previous: Token {
-                token_type: TokenType::Error,
+                tok_type: TokenType::Error,
                 lexeme: "".into(),
                 line: 0,
             },
@@ -85,7 +85,7 @@ impl SerenityParser {
 
         loop {
             self.current = self.lexer.scan_token();
-            if self.current.token_type != TokenType::Error {
+            if self.current.tok_type != TokenType::Error {
                 break;
             }
 
@@ -94,7 +94,7 @@ impl SerenityParser {
     }
 
     fn consume(&mut self, token_type: TokenType, message: &str) {
-        if self.current.token_type == token_type {
+        if self.current.tok_type == token_type {
             self.advance();
             return;
         }
@@ -103,7 +103,7 @@ impl SerenityParser {
     }
 
     fn match_token(&mut self, token_type: TokenType) -> bool {
-        if self.current.token_type != token_type {
+        if self.current.tok_type != token_type {
             return false;
         }
         self.advance();
@@ -113,12 +113,12 @@ impl SerenityParser {
     fn synchronize(&mut self) {
         self.panic_mode.set(false);
 
-        while self.current.token_type != TokenType::Eof {
-            if self.previous.token_type == TokenType::Semicolon {
+        while self.current.tok_type != TokenType::Eof {
+            if self.previous.tok_type == TokenType::Semicolon {
                 return;
             }
 
-            match self.current.token_type {
+            match self.current.tok_type {
                 TokenType::Struct
                 | TokenType::Type
                 | TokenType::Fun
@@ -140,11 +140,11 @@ impl SerenityParser {
     fn go(&mut self) -> Vec<ASTNode> {
         let mut nodes = Vec::new();
 
-        while self.current.token_type != TokenType::Eof {
+        while self.current.tok_type != TokenType::Eof {
             let new_nodes = self.declaration();
 
             for node in new_nodes {
-                nodes.push(node)
+                nodes.push(node);
             }
         }
         nodes
@@ -170,9 +170,9 @@ impl SerenityParser {
         let token = if prev { &self.previous } else { &self.current };
         let mut err_msg = format!("[line {}] error", token.line);
 
-        if token.token_type == TokenType::Eof {
+        if token.tok_type == TokenType::Eof {
             err_msg = format!("{err_msg} at end");
-        } else if token.token_type == TokenType::Error {
+        } else if token.tok_type == TokenType::Error {
             // Nothing.
         } else {
             err_msg = format!("{err_msg} at '{}'", token.lexeme);
@@ -194,9 +194,9 @@ impl SerenityParser {
         let token = if prev { &self.previous } else { &self.current };
         let mut warn_msg = format!("[line {}] warn", token.line);
 
-        if token.token_type == TokenType::Eof {
+        if token.tok_type == TokenType::Eof {
             warn_msg = format!("{warn_msg} at end");
-        } else if token.token_type == TokenType::Error {
+        } else if token.tok_type == TokenType::Error {
             // Nothing.
         } else {
             warn_msg = format!("{warn_msg} at '{}'", token.lexeme);
@@ -215,9 +215,9 @@ impl Parser for SerenityParser {
     ) -> Result<ParseResult> {
         SerenityParser::parse_helper(
             source,
-            name,
+            &name,
             HashMap::default(),
-            include_paths.into_iter().map(|s| s.into()).collect(),
+            include_paths.into_iter().map(Into::into).collect(),
         )
     }
 }
@@ -225,7 +225,7 @@ impl Parser for SerenityParser {
 impl SerenityParser {
     fn parse_helper(
         source: SharedString,
-        name: SharedString,
+        name: &SharedString,
         custom_types: HashMap<SharedString, CustomStruct>,
         include_paths: Vec<SharedString>,
     ) -> Result<ParseResult> {
@@ -249,9 +249,8 @@ impl SerenityParser {
         if let Some(e) = errors {
             tracing::error!("Parse failed");
             return Err(e);
-        } else {
-            tracing::info!("Parse of {name} succeeded");
         }
+        tracing::info!("Parse of {name} succeeded");
 
         Ok(ret)
     }

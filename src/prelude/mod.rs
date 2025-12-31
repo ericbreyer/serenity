@@ -30,7 +30,7 @@ impl Default for ParseResult {
 impl Debug for ParseResult {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for node in &self.ast.roots {
-            writeln!(f, "{:?}", node)?;
+            writeln!(f, "{node:?}")?;
         }
         Ok(())
     }

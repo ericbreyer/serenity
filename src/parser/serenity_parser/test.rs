@@ -93,7 +93,7 @@ fn test_parser_extended(snippet: &str, should_fail: bool) {
     let res = SerenityParser::parse(snippet.into(), "test".into(), vec![]);
 
     let mut settings = insta::Settings::clone_current();
-    settings.set_snapshot_suffix(format!("extended_{}", snippet));
+    settings.set_snapshot_suffix(format!("extended_{snippet}"));
     let _g = settings.bind_to_scope();
 
     if should_fail {

@@ -14,7 +14,7 @@ use inkwell::{
     context::Context,
     module::{Linkage, Module},
     targets::{InitializationConfig, Target, TargetData, TargetMachine},
-    types::{BasicMetadataTypeEnum, BasicType, FunctionType, StructType},
+    types::{BasicMetadataTypeEnum, BasicType, BasicTypeEnum, FunctionType, StructType},
     values::{
         BasicMetadataValueEnum, BasicValue, BasicValueEnum, FunctionValue, PointerValue,
         StructValue,
@@ -97,7 +97,7 @@ impl<'ctx> LLVMCompiler<'ctx> {
             Some(Linkage::External),
         );
         self.variables.borrow_mut().set(
-            name.to_string(),
+            (*name).to_string(),
             (
                 fnvalue.as_global_value().as_pointer_value(),
                 ValueType::ExternalFn(ret, (*name).into()).intern(),
@@ -134,9 +134,10 @@ impl<'ctx> LLVMCompiler<'ctx> {
             types: custom_structs,
             target_data,
         };
-        ffi_functions
-            .iter()
-            .for_each(|f| c.register_ffi_function(f).unwrap());
+
+        for ffi in ffi_functions {
+            c.register_ffi_function(ffi).unwrap();
+        }
 
         c
     }
@@ -402,20 +403,18 @@ impl<'ctx> ExprResultInner<'ctx> {
     }
 
     fn rvalue(self, compiler: &LLVMFunctionCompiler<'_, 'ctx>) -> ExprResult<'ctx> {
-        Ok(match self.serenity_type {
-            ValueType::LValue(ref t, _) => match t {
-                ValueType::Array(a, _) => {
-                    ExprResultInner::new(self.value, ValueType::Pointer(a, false).intern())
-                }
-                _ => {
-                    let ptr = self.value.into_pointer_value();
-                    let v = compiler
-                        .make_load(t.fill_self_struct(compiler.types.clone()), ptr, "rval")
-                        .context("Rvalue")?;
-                    ExprResultInner::new(v, t.substitute(&*compiler.generics_in_scope.borrow()))
-                }
-            },
-            _ => self,
+        Ok(if let ValueType::LValue(t, _) = self.serenity_type {
+            if let ValueType::Array(a, _) = t {
+                ExprResultInner::new(self.value, ValueType::Pointer(a, false).intern())
+            } else {
+                let ptr = self.value.into_pointer_value();
+                let v = compiler
+                    .make_load(t.fill_self_struct(compiler.types.clone()), ptr, "rval")
+                    .context("Rvalue")?;
+                ExprResultInner::new(v, t.substitute(&*compiler.generics_in_scope.borrow()))
+            }
+        } else {
+            self
         })
     }
 }
@@ -424,7 +423,10 @@ impl<'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'_, 'ctx
     fn visit_literal_expression(&self, expression: &LiteralExpression) -> ExprResult<'ctx> {
         Ok(match expression.value {
             Value::Integer(i) => ExprResultInner::new(
-                self.context.i64_type().const_int(i as u64, false).into(),
+                self.context
+                    .i64_type()
+                    .const_int(u64::try_from(i)?, false)
+                    .into(),
                 ValueType::Integer.intern(),
             ),
             Value::UInteger(i) => ExprResultInner::new(
@@ -436,11 +438,14 @@ impl<'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'_, 'ctx
                 ValueType::Float.intern(),
             ),
             Value::Char(c) => ExprResultInner::new(
-                self.context.i8_type().const_int(c as u64, false).into(),
+                self.context.i8_type().const_int(u64::from(c), false).into(),
                 ValueType::Char.intern(),
             ),
             Value::Bool(b) => ExprResultInner::new(
-                self.context.bool_type().const_int(b as u64, false).into(),
+                self.context
+                    .bool_type()
+                    .const_int(u64::from(b), false)
+                    .into(),
                 ValueType::Bool.intern(),
             ),
         })
@@ -590,14 +595,11 @@ impl<'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'_, 'ctx
             .serenity_type
             .substitute(&*self.generics_in_scope.borrow());
 
-        let t = match a {
-            ValueType::Pointer(t, _) => t,
-            _ => {
-                return Err(anyhow::anyhow!(
-                    "Invalid index expression array type was {:?}",
-                    a
-                ))
-            }
+        let ValueType::Pointer(t, _) = a else {
+            return Err(anyhow::anyhow!(
+                "Invalid index expression element type was {:?}",
+                a
+            ));
         };
 
         let ptr = unsafe {
@@ -674,7 +676,7 @@ impl<'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'_, 'ctx
                 let ptr = unsafe {
                     self.builder.build_gep(
                         t1.llvm(self.context, &self.generics_in_scope.borrow())?
-                            .array_type(s.unwrap() as u32),
+                            .array_type(u32::try_from(s.unwrap())?),
                         lhs_ptr.value.into_pointer_value(),
                         &[
                             self.context.i16_type().const_zero(),
@@ -1194,7 +1196,7 @@ impl<'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'_, 'ctx
             .builder
             .build_extract_value(
                 callee.value.into_struct_value(),
-                uvals.len() as u32,
+                u32::try_from(uvals.len())?,
                 "fnptr",
             )
             .context(format!(
@@ -1209,7 +1211,7 @@ impl<'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'_, 'ctx
         for (i, upval) in uvals.iter().enumerate() {
             let upval_val = self.builder.build_extract_value(
                 callee.value.into_struct_value(),
-                i as u32,
+                u32::try_from(i)?,
                 "upval",
             )?;
             upval_vals.push(upval_val);
@@ -1300,7 +1302,7 @@ impl<'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'_, 'ctx
                         token: Rc::new(
                             Token {
                                 lexeme: method_name.clone(),
-                                token_type: TokenType::Identifier,
+                                tok_type: TokenType::Identifier,
                                 line: 0,
                             }
                             .into(),
@@ -1327,7 +1329,7 @@ impl<'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'_, 'ctx
         let field_ptr = self.builder.build_struct_gep(
             struct_type,
             lhs.value.into_pointer_value(),
-            field as u32,
+            u32::try_from(field)?,
             "field",
         )?;
         let x = Ok(ExprResultInner::new(
@@ -1338,7 +1340,7 @@ impl<'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'_, 'ctx
     }
 
     fn visit_function_expression(&self, expression: &FunctionExpression) -> ExprResult<'ctx> {
-        let fn_expr = self.function(expression.prototype.clone(), &expression.body)?;
+        let fn_expr = self.function(&expression.prototype, expression.body.as_ref())?;
 
         Ok(ExprResultInner::new(
             fn_expr.as_basic_value_enum(),
@@ -1453,7 +1455,7 @@ impl<'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'_, 'ctx
                         .struct_type
                         .llvm(self.context, &self.generics_in_scope.borrow())?,
                     struct_value_ptr,
-                    i as u32,
+                    u32::try_from(i)?,
                     "field",
                 )?;
                 let expr = expression.fields.get(name).unwrap();
@@ -1494,11 +1496,11 @@ impl<'ctx> ExpressionVisitor<ExprResult<'ctx>> for LLVMFunctionCompiler<'_, 'ctx
 impl<'ctx> LLVMFunctionCompiler<'_, 'ctx> {
     fn function(
         &self,
-        prototype: Prototype,
-        body: &Option<Vec<ASTNode>>,
+        prototype: &Prototype,
+        body: Option<&Vec<ASTNode>>,
     ) -> Result<StructValue<'ctx>> {
         // the type of the function itself: fn(captures ..., args ... ) -> return_type
-        let fn_type = self.function_prototype_llvm(&prototype)?;
+        let fn_type = self.function_prototype_llvm(prototype)?;
         let fn_name = format!(
             "{}_{}",
             prototype.name,
@@ -1517,7 +1519,7 @@ impl<'ctx> LLVMFunctionCompiler<'_, 'ctx> {
             .unwrap_or_else(|| self.module.add_function(&fn_name, fn_type, None));
 
         // the type of the closure: struct { captures ..., fn_ptr }
-        let closure_type = self.closure_type_llvm(&prototype)?;
+        let closure_type = self.closure_type_llvm(prototype)?;
 
         let mut struct_init = prototype
             .captures
@@ -1541,7 +1543,7 @@ impl<'ctx> LLVMFunctionCompiler<'_, 'ctx> {
         let struct_value = if self.function.is_none() {
             closure_type.const_named_struct(struct_init.as_slice())
         } else {
-            let tipe = self.function_type_serenity(&prototype);
+            let tipe = self.function_type_serenity(prototype);
             let struct_value_ptr = self
                 .make_alloca(tipe, "closure")
                 .context("Closure alloca")?;
@@ -1549,7 +1551,7 @@ impl<'ctx> LLVMFunctionCompiler<'_, 'ctx> {
                 let ptr = self.builder.build_struct_gep(
                     closure_type,
                     struct_value_ptr,
-                    i as u32,
+                    u32::try_from(i)?,
                     "upval",
                 )?;
                 self.make_store(ptr, *v, tipe)?;
@@ -1567,7 +1569,7 @@ impl<'ctx> LLVMFunctionCompiler<'_, 'ctx> {
             for (i, s) in prototype.captures.iter().enumerate() {
                 let arg_type_serenity = self.get_variable(s).unwrap().1;
                 let arg_v = fn_value
-                    .get_nth_param(i as u32)
+                    .get_nth_param(u32::try_from(i)?)
                     .context("Upvalue parameter")?;
                 let arg = fncompiler
                     .make_alloca(arg_type_serenity, s)
@@ -1578,7 +1580,7 @@ impl<'ctx> LLVMFunctionCompiler<'_, 'ctx> {
 
             for (i, &(ref s, t, _)) in prototype.params.iter().enumerate() {
                 let arg_v = fn_value
-                    .get_nth_param((i + prototype.captures.len()) as u32)
+                    .get_nth_param(u32::try_from(i + prototype.captures.len())?)
                     .context("Function parameter")?;
                 let arg = fncompiler
                     .make_alloca(t.decay(), s)
@@ -1587,7 +1589,7 @@ impl<'ctx> LLVMFunctionCompiler<'_, 'ctx> {
                 self.set_variable(s, (arg, t.decay()));
             }
 
-            for statement in body {
+            for statement in *body {
                 statement.accept(&fncompiler).context("Function body")?;
             }
             if self
@@ -1597,7 +1599,7 @@ impl<'ctx> LLVMFunctionCompiler<'_, 'ctx> {
                 .get_terminator()
                 .is_none()
             {
-                let ret = fn_type.get_return_type().map(|t| t.const_zero());
+                let ret = fn_type.get_return_type().map(BasicTypeEnum::const_zero);
                 self.builder
                     .build_return(ret.as_ref().map(|r| r as &dyn BasicValue))?;
             }
@@ -1701,7 +1703,6 @@ impl DeclarationVisitor<Result<()>> for LLVMFunctionCompiler<'_, '_> {
     }
 }
 impl LLVMFunctionCompiler<'_, '_> {
-
     fn visit_polymorphic_function_declaration(
         &self,
         declaration: &FunctionDeclaration,
@@ -1721,7 +1722,7 @@ impl LLVMFunctionCompiler<'_, '_> {
 
             let mut dec = declaration.clone();
             let mut mapping: IndexMap<SharedString, _> = IndexMap::new();
-            for (t, _) in declaration.type_params.iter() {
+            for (t, _) in &declaration.type_params {
                 let v = instantiation
                     .types
                     .get(t)
@@ -1753,12 +1754,14 @@ impl LLVMFunctionCompiler<'_, '_> {
         let closure = if self.function.is_none() {
             self.module
                 .get_global(&closure_name)
-                .map(|g| g.as_pointer_value())
                 .unwrap_or_else(|| {
-                    self.module
-                        .add_global(closure_type, Some(AddressSpace::default()), &closure_name)
-                        .as_pointer_value()
+                    self.module.add_global(
+                        closure_type,
+                        Some(AddressSpace::default()),
+                        &closure_name,
+                    )
                 })
+                .as_pointer_value()
         } else {
             self.make_alloca(
                 self.function_type_serenity(&declaration.prototype),
@@ -1773,7 +1776,7 @@ impl LLVMFunctionCompiler<'_, '_> {
         );
 
         let struct_init =
-            self.function(declaration.prototype.clone(), declaration.body.as_ref())?;
+            self.function(&declaration.prototype, declaration.body.as_ref().as_ref())?;
 
         if self.function.is_none() {
             let global_closure = self
@@ -2030,59 +2033,59 @@ mod tests {
 
     use super::*;
     use crate::parser::Parser;
-    #[test_case(r##"
+    #[test_case(r"
         fn main() -> int {
             let x: int = 1;
             return x;
         }
-        "##, 1; "var_expr")]
-    #[test_case(r##"
+        ", 1; "var_expr")]
+    #[test_case(r"
         fn main() -> int {
             return 1;
         }
-        "##, 1; "literal_expr")]
-    #[test_case(r##"
+        ", 1; "literal_expr")]
+    #[test_case(r"
         fn main() -> int {
             return 1 + 1;
         }
-        "##, 2; "addition_expr")]
-    #[test_case(r##"
+        ", 2; "addition_expr")]
+    #[test_case(r"
         fn main() -> int {
             return 1 - 1;
         }
-        "##, 0; "subtraction_expr")]
-    #[test_case(r##"
+        ", 0; "subtraction_expr")]
+    #[test_case(r"
         fn main() -> int {
             var x: int = 1;
             let p = &x;
             return *p;
         }
-        "##, 1; "ref and deref")]
-    #[test_case(r##"
+        ", 1; "ref and deref")]
+    #[test_case(r"
         fn test() -> int {
             return -1;
         }
         fn main() -> int {
             return test();
         }
-        "##, -1; "call")]
-    #[test_case(r##"
+        ", -1; "call")]
+    #[test_case(r"
         fn test(x: int) -> int {
             return x;
         }
         fn main() -> int {
             return test(2);
         }
-        "##, 2; "call_args")]
-    #[test_case(r##"
+        ", 2; "call_args")]
+    #[test_case(r"
         fn test(x: int, y: int) -> int {
             return x + y;
         }
         fn main() -> int {
             return test(1, 2);
         }
-        "##, 3; "call_args_2")]
-    #[test_case(r##"
+        ", 3; "call_args_2")]
+    #[test_case(r"
         fn test(x: int, y: int) -> int {
             return x + y;
         }
@@ -2090,16 +2093,16 @@ mod tests {
             let x: int = 1;
             return test(x, 2);
         }
-        "##, 3; "call_args_var")]
-    #[test_case(r##"
+        ", 3; "call_args_var")]
+    #[test_case(r"
         fn main() -> int {
             fn test(x: int, y: int) -> int {
                 return x + y;
             }
             return test(1, 2);
         }
-        "##, 3; "local_fn")]
-    #[test_case(r##"
+        ", 3; "local_fn")]
+    #[test_case(r"
         fn main() -> int {
             let test = lambda(x: int, y: int) -> int {
                 return x + y;
@@ -2107,15 +2110,15 @@ mod tests {
             let x: int = 1;
             return test(x, 2);
         }
-        "##, 3; "anon_fn")]
-    #[test_case(r##"
+        ", 3; "anon_fn")]
+    #[test_case(r"
         fn main() -> int {
             if (true) {
                 return 1;
             }
         }
-        "##, 1; "if block")]
-    #[test_case(r##"
+        ", 1; "if block")]
+    #[test_case(r"
         fn main() -> int {
             if (false) {
                 return 1;
@@ -2123,8 +2126,8 @@ mod tests {
                 return 2;
             }
         }
-        "##, 2; "if else block")]
-    #[test_case(r##"
+        ", 2; "if else block")]
+    #[test_case(r"
         fn make_add(x: int) -> fn[int](int) -> int {
             fn inner[x](y: int) -> int {
                 return x + y;
@@ -2136,8 +2139,8 @@ mod tests {
             let add = make_add(1);
             return add(2);
         }
-        "##, 3; "closure")]
-    #[test_case(r##"
+        ", 3; "closure")]
+    #[test_case(r"
         fn make_add(x: int) -> fn[int](int) -> int {
             fn inner[x](y: int) -> int {
                 return x + y;
@@ -2150,8 +2153,8 @@ mod tests {
             let add2 = make_add(2);
             return add(2) + add2(3);
         }
-        "##, 8; "closure_2")]
-    #[test_case(r##"
+        ", 8; "closure_2")]
+    #[test_case(r"
         fn outer(x: int) ->  fn[int](int) -> (fn[int, int](int) -> int) {
             return lambda[x](y: int) -> fn[int, int](int) -> int {
                 return lambda[x, y](z: int) -> int {
@@ -2165,8 +2168,8 @@ mod tests {
             let inner2 = inner(2);
             return inner2(3);
         }
-        "##, 6; "closure_deep")]
-    #[test_case(r##"
+        ", 6; "closure_deep")]
+    #[test_case(r"
         fn outer(x: int) ->  fn[int](int) -> (fn[int, int](int) -> int) {
             return lambda[x](y: int) -> fn[int, int](int) -> int {
                 if (x > 0) {
@@ -2186,8 +2189,8 @@ mod tests {
             let minus = outer(-1)(2);
             return plus(3) + minus(3);
         }
-        "##, 0; "closure_deep_2")]
-    #[test_case(r##"
+        ", 0; "closure_deep_2")]
+    #[test_case(r"
         type c struct {
             x: int,
             y: int,
@@ -2197,8 +2200,8 @@ mod tests {
             let s: struct c = struct c {x: 1, y: 2};
             return s.x + s.y;
         }
-        "##, 3; "structs")]
-    #[test_case(r##"
+        ", 3; "structs")]
+    #[test_case(r"
         type c struct {
             x: int,
         };
@@ -2212,8 +2215,8 @@ mod tests {
             s.inc();
             return s.x;
         }
-        "##, 2; "method")]
-    #[test_case(r##"
+        ", 2; "method")]
+    #[test_case(r"
         fn forward(x: int) -> int;
 
         fn main() -> int {
@@ -2223,8 +2226,8 @@ mod tests {
         fn forward(x: int) -> int {
             return x;
         }
-        "##, 1; "forward")]
-    #[test_case(r##"
+        ", 1; "forward")]
+    #[test_case(r"
     type adder interface {
         add: fn(int) -> int
     };
@@ -2247,23 +2250,23 @@ mod tests {
         c_impl.add(2);
         return c_conc.i;
     }
-    "##, 4; "interface")]
-    #[test_case(r##"
+    ", 4; "interface")]
+    #[test_case(r"
     fn main() -> int {
         let s: *int = malloc(4);
         *s = 1;
         return *s;
     }
-    "##, 1; "malloc")]
-    #[test_case(r##"
+    ", 1; "malloc")]
+    #[test_case(r"
     var arr: [[int; 4]; 4];
     fn main() -> int {
         arr[3][2] = 1;
         arr[2][3] = 2;
         return arr[3][2];
     }
-    "##, 1; "twodarr")]
-    #[test_case(r##"
+    ", 1; "twodarr")]
+    #[test_case(r"
     type c struct {
         x: int,
         y: int,
@@ -2273,20 +2276,20 @@ mod tests {
         let p = &s;
         return p->x + p->y;
     }
-    "##, 3; "struct_literal")]
-    #[test_case(r##"
+    ", 3; "struct_literal")]
+    #[test_case(r"
     fn main() -> int {
         return 49 % 8;
     }
-    "##, 1; "modulo")]
-    #[test_case(r##"
+    ", 1; "modulo")]
+    #[test_case(r"
     fn main() -> int {
         let x: int = 1;
         let y: float = 2.0;
         return x + #y;
     }
-    "##, 3; "casting")]
-    #[test_case(r##"
+    ", 3; "casting")]
+    #[test_case(r"
     type hold_ptr struct {
         x: *int,
     };
@@ -2296,8 +2299,8 @@ mod tests {
         let h: struct hold_ptr = struct hold_ptr {x: arr};
         return h.x[1];
     }
-    "##, 1; "ptr_struct")]
-    #[test_case(r##"
+    ", 1; "ptr_struct")]
+    #[test_case(r"
     type s struct {
         x: int,
     };
@@ -2306,8 +2309,8 @@ mod tests {
         arr[1].x = 1;
         return arr[1].x;
     }
-    "##, 1; "struct_arr")]
-    #[test_case(r##"
+    ", 1; "struct_arr")]
+    #[test_case(r"
     type generator interface {
         next: fn() -> int,
     };
@@ -2327,8 +2330,8 @@ mod tests {
         let g = nat_gen_impl_generator(&gen);
         return g.next() + g.next();
     }
-    "##, 1; "structliteral_ptr")]
-    #[test_case(r##"
+    ", 1; "structliteral_ptr")]
+    #[test_case(r"
     //pass array as pointer
     fn sum(arr: *int, len: int) -> int {
         let sum = 0;
@@ -2348,8 +2351,8 @@ mod tests {
         arr[3] = 4;
         return sum(arr, 4);
     }
-    "##, 10; "array_ptr")]
-    #[test_case(r##"
+    ", 10; "array_ptr")]
+    #[test_case(r"
     //pass array of struct as pointer
     type s struct {
         x: int,
@@ -2373,8 +2376,8 @@ mod tests {
         arr[3].x = 4;
         return sum(arr, 4);
     }
-    "##, 10; "struct_array_ptr")]
-    #[test_case(r##"
+    ", 10; "struct_array_ptr")]
+    #[test_case(r"
     // nested if
     fn main() -> int {
         let x = 1;
@@ -2386,8 +2389,8 @@ mod tests {
         }
         return 0;
     }
-    "##, 1; "nested_if")]
-    #[test_case(r##"
+    ", 1; "nested_if")]
+    #[test_case(r"
     // for loop
     fn main() -> int {
         let sum = 0;
@@ -2396,23 +2399,23 @@ mod tests {
         }
         return sum;
     }
-    "##, 45; "for_loop")]
-    #[test_case(r##"
+    ", 45; "for_loop")]
+    #[test_case(r"
     // ternary
     fn main() -> int {
         let x = 1;
         return x == 1 ? 1 : 0;
     }
-    "##, 1; "ternary")]
-    #[test_case(r##"
+    ", 1; "ternary")]
+    #[test_case(r"
     // ternary complicated
     fn main() -> int {
         let x = 1;
         let y = 2;
         return x == 1 ? (y == 2 ? 1 : 0) : 0;
     }
-    "##, 1; "ternary_complicated")]
-    #[test_case(r##"
+    ", 1; "ternary_complicated")]
+    #[test_case(r"
     // generic struct
     type<T> s struct {
         x: T,
@@ -2422,8 +2425,8 @@ mod tests {
         let s: struct s<int> = struct s<int> {x: 1};
         return s.x;
     }
-    "##, 1; "generic_struct")]
-    #[test_case(r##"
+    ", 1; "generic_struct")]
+    #[test_case(r"
     // generic function
     fn<T> test(x: T) -> T {
         return x;
@@ -2431,8 +2434,8 @@ mod tests {
     
     fn main() -> int {
         return test(1);
-    }"##, 1; "generic_fn")]
-    #[test_case(r##"
+    }", 1; "generic_fn")]
+    #[test_case(r"
     // generic function
     fn<T> test(x: T, y: T) -> T {
         return x + y;
@@ -2440,8 +2443,8 @@ mod tests {
 
     fn main() -> int {
         return test(1, 2);
-    }"##, 3; "generic_fn_args")]
-    #[test_case(r##"
+    }", 3; "generic_fn_args")]
+    #[test_case(r"
     fn main() -> int {
         let arr: [int; 2];
         arr[0] = 1;
@@ -2452,22 +2455,22 @@ mod tests {
         }
         return 0;
     }
-    "##, 10; "sizeof_and_logic")]
-    #[test_case(r##"
+    ", 10; "sizeof_and_logic")]
+    #[test_case(r"
     // ffi malloc/free
     fn main() -> int {
         let p = malloc(8);
         free(p);
         return 3;
     }
-    "##, 3; "ffi_malloc_free")]
-    #[test_case(r##"
+    ", 3; "ffi_malloc_free")]
+    #[test_case(r#"
     // ffi printf
     fn main() -> int {
         printf("hi\n");
         return 4;
     }
-    "##, 4; "ffi_printf")]
+    "#, 4; "ffi_printf")]
     fn test_program_integer_return(prog: &str, expected: i64) {
         let ast = crate::parser::SerenityParser::parse(prog.into(), "mod".into(), vec![]).unwrap();
 
@@ -2475,7 +2478,7 @@ mod tests {
         let ffi = crate::compiler::ffi_funcs::ffi_funcs();
         let t = crate::compiler::Typechecker::new(ast.custom_structs.clone(), ffi.as_ref());
 
-        for n in ast.ast.roots.iter() {
+        for n in &ast.ast.roots {
             let r = t.compile(n);
             assert!(r.is_ok(), "{:#}", r.unwrap_err());
         }
@@ -2517,11 +2520,11 @@ mod tests {
     #[test]
     fn test_simple_arithmetic() {
         test_program_integer_return(
-            r##"
+            r"
             fn main() -> int {
                 return 5 + 3 * 2;
             }
-            "##,
+            ",
             11,
         );
     }
@@ -2529,11 +2532,11 @@ mod tests {
     #[test]
     fn test_complex_arithmetic() {
         test_program_integer_return(
-            r##"
+            r"
             fn main() -> int {
                 return (10 + 5) * 2 - 8 / 2;
             }
-            "##,
+            ",
             26,
         );
     }
@@ -2541,14 +2544,14 @@ mod tests {
     #[test]
     fn test_variable_reassignment() {
         test_program_integer_return(
-            r##"
+            r"
             fn main() -> int {
                 var x: int = 10;
                 x = x + 5;
                 x = x * 2;
                 return x;
             }
-            "##,
+            ",
             30,
         );
     }
@@ -2556,14 +2559,14 @@ mod tests {
     #[test]
     fn test_multiple_variables() {
         test_program_integer_return(
-            r##"
+            r"
             fn main() -> int {
                 let x: int = 10;
                 let y: int = 20;
                 let z: int = x + y;
                 return z;
             }
-            "##,
+            ",
             30,
         );
     }
@@ -2571,14 +2574,14 @@ mod tests {
     #[test]
     fn test_if_true_branch() {
         test_program_integer_return(
-            r##"
+            r"
             fn main() -> int {
                 if (true) {
                     return 42;
                 }
                 return 0;
             }
-            "##,
+            ",
             42,
         );
     }
@@ -2586,7 +2589,7 @@ mod tests {
     #[test]
     fn test_if_false_branch() {
         test_program_integer_return(
-            r##"
+            r"
             fn main() -> int {
                 if (false) {
                     return 0;
@@ -2594,7 +2597,7 @@ mod tests {
                     return 99;
                 }
             }
-            "##,
+            ",
             99,
         );
     }
@@ -2602,7 +2605,7 @@ mod tests {
     #[test]
     fn test_while_loop() {
         test_program_integer_return(
-            r##"
+            r"
             fn main() -> int {
                 var x: int = 0;
                 var i: int = 0;
@@ -2612,7 +2615,7 @@ mod tests {
                 }
                 return x;
             }
-            "##,
+            ",
             10,
         );
     }
@@ -2620,7 +2623,7 @@ mod tests {
     #[test]
     fn test_for_loop_sum() {
         test_program_integer_return(
-            r##"
+            r"
             fn main() -> int {
                 var sum: int = 0;
                 for (var i: int = 1; i <= 5; i = i + 1) {
@@ -2628,7 +2631,7 @@ mod tests {
                 }
                 return sum;
             }
-            "##,
+            ",
             15,
         );
     }
@@ -2636,7 +2639,7 @@ mod tests {
     #[test]
     fn test_nested_loops() {
         test_program_integer_return(
-            r##"
+            r"
             fn main() -> int {
                 var sum: int = 0;
                 for (var i: int = 0; i < 3; i = i + 1) {
@@ -2646,7 +2649,7 @@ mod tests {
                 }
                 return sum;
             }
-            "##,
+            ",
             9,
         );
     }
@@ -2654,7 +2657,7 @@ mod tests {
     #[test]
     fn test_comparison_operators() {
         test_program_integer_return(
-            r##"
+            r"
             fn main() -> int {
                 let a: int = 10;
                 let b: int = 5;
@@ -2669,7 +2672,7 @@ mod tests {
                 }
                 return 0;
             }
-            "##,
+            ",
             1,
         );
     }
@@ -2677,7 +2680,7 @@ mod tests {
     #[test]
     fn test_equality_operators() {
         test_program_integer_return(
-            r##"
+            r"
             fn main() -> int {
                 let x: int = 42;
                 if (x == 42) {
@@ -2688,7 +2691,7 @@ mod tests {
                 }
                 return 0;
             }
-            "##,
+            ",
             1,
         );
     }
@@ -2696,14 +2699,14 @@ mod tests {
     #[test]
     fn test_logical_operators() {
         test_program_integer_return(
-            r##"
+            r"
             fn main() -> int {
                 if (true and true) {
                     return 1;
                 }
                 return 0;
             }
-            "##,
+            ",
             1,
         );
     }
@@ -2711,14 +2714,14 @@ mod tests {
     #[test]
     fn test_logical_or() {
         test_program_integer_return(
-            r##"
+            r"
             fn main() -> int {
                 if (false || true) {
                     return 1;
                 }
                 return 0;
             }
-            "##,
+            ",
             1,
         );
     }
@@ -2726,7 +2729,7 @@ mod tests {
     #[test]
     fn test_function_with_multiple_params() {
         test_program_integer_return(
-            r##"
+            r"
             fn add3(a: int, b: int, c: int) -> int {
                 return a + b + c;
             }
@@ -2734,7 +2737,7 @@ mod tests {
             fn main() -> int {
                 return add3(10, 20, 30);
             }
-            "##,
+            ",
             60,
         );
     }
@@ -2742,7 +2745,7 @@ mod tests {
     #[test]
     fn test_recursive_function() {
         test_program_integer_return(
-            r##"
+            r"
             fn factorial(n: int) -> int {
                 if (n <= 1) {
                     return 1;
@@ -2753,7 +2756,7 @@ mod tests {
             fn main() -> int {
                 return factorial(5);
             }
-            "##,
+            ",
             120,
         );
     }
@@ -2761,7 +2764,7 @@ mod tests {
     #[test]
     fn test_array_access() {
         test_program_integer_return(
-            r##"
+            r"
             fn main() -> int {
                 let arr: [int; 3];
                 arr[0] = 10;
@@ -2769,7 +2772,7 @@ mod tests {
                 arr[2] = 30;
                 return arr[0] + arr[1] + arr[2];
             }
-            "##,
+            ",
             60,
         );
     }
@@ -2777,7 +2780,7 @@ mod tests {
     #[test]
     fn test_array_iteration() {
         test_program_integer_return(
-            r##"
+            r"
             fn main() -> int {
                 let arr: [int; 5];
                 for (var i: int = 0; i < 5; i = i + 1) {
@@ -2789,7 +2792,7 @@ mod tests {
                 }
                 return sum;
             }
-            "##,
+            ",
             20,
         );
     }
@@ -2797,13 +2800,13 @@ mod tests {
     #[test]
     fn test_pointer_arithmetic() {
         test_program_integer_return(
-            r##"
+            r"
             fn main() -> int {
                 var x: int = 42;
                 let p: *int = &x;
                 return *p;
             }
-            "##,
+            ",
             42,
         );
     }
@@ -2811,14 +2814,14 @@ mod tests {
     #[test]
     fn test_pointer_modification() {
         test_program_integer_return(
-            r##"
+            r"
             fn main() -> int {
                 var x: int = 10;
                 let p: *int = &x;
                 *p = 20;
                 return x;
             }
-            "##,
+            ",
             20,
         );
     }
@@ -2826,7 +2829,7 @@ mod tests {
     #[test]
     fn test_struct_field_access() {
         test_program_integer_return(
-            r##"
+            r"
             type Point struct {
                 x: int,
                 y: int,
@@ -2836,7 +2839,7 @@ mod tests {
                 let p: struct Point = struct Point {x: 10, y: 20};
                 return p.x + p.y;
             }
-            "##,
+            ",
             30,
         );
     }
@@ -2844,7 +2847,7 @@ mod tests {
     #[test]
     fn test_struct_field_modification() {
         test_program_integer_return(
-            r##"
+            r"
             type Point struct {
                 x: int,
                 y: int,
@@ -2855,7 +2858,7 @@ mod tests {
                 p.x = 30;
                 return p.x + p.y;
             }
-            "##,
+            ",
             50,
         );
     }
@@ -2863,7 +2866,7 @@ mod tests {
     #[test]
     fn test_nested_struct_access() {
         test_program_integer_return(
-            r##"
+            r"
             type Inner struct {
                 value: int,
             };
@@ -2878,7 +2881,7 @@ mod tests {
                 };
                 return o.inner.value;
             }
-            "##,
+            ",
             42,
         );
     }
@@ -2886,7 +2889,7 @@ mod tests {
     #[test]
     fn test_break_in_loop() {
         test_program_integer_return(
-            r##"
+            r"
             fn main() -> int {
                 var x: int = 0;
                 while (true) {
@@ -2897,7 +2900,7 @@ mod tests {
                 }
                 return x;
             }
-            "##,
+            ",
             5,
         );
     }
@@ -2905,7 +2908,7 @@ mod tests {
     #[test]
     fn test_continue_in_loop() {
         test_program_integer_return(
-            r##"
+            r"
             fn main() -> int {
                 var sum: int = 0;
                 for (var i: int = 0; i < 10; i = i + 1) {
@@ -2916,7 +2919,7 @@ mod tests {
                 }
                 return sum;
             }
-            "##,
+            ",
             25,
         );
     }
@@ -2924,12 +2927,12 @@ mod tests {
     #[test]
     fn test_ternary_operator() {
         test_program_integer_return(
-            r##"
+            r"
             fn main() -> int {
                 let x: int = 10;
                 return x > 5 ? 1 : 0;
             }
-            "##,
+            ",
             1,
         );
     }
@@ -2937,12 +2940,12 @@ mod tests {
     #[test]
     fn test_nested_ternary() {
         test_program_integer_return(
-            r##"
+            r"
             fn main() -> int {
                 let x: int = 5;
                 return x > 10 ? 1 : (x > 3 ? 2 : 3);
             }
-            "##,
+            ",
             2,
         );
     }
@@ -2950,14 +2953,14 @@ mod tests {
     #[test]
     fn test_lambda_basic() {
         test_program_integer_return(
-            r##"
+            r"
             fn main() -> int {
                 let f = lambda(x: int) -> int {
                     return x * 2;
                 };
                 return f(21);
             }
-            "##,
+            ",
             42,
         );
     }
@@ -2965,7 +2968,7 @@ mod tests {
     #[test]
     fn test_closure_captures_value() {
         test_program_integer_return(
-            r##"
+            r"
             fn make_multiplier(factor: int) -> fn[int](int) -> int {
                 fn multiply[factor](x: int) -> int {
                     return x * factor;
@@ -2977,7 +2980,7 @@ mod tests {
                 let times3 = make_multiplier(3);
                 return times3(14);
             }
-            "##,
+            ",
             42,
         );
     }
@@ -2985,7 +2988,7 @@ mod tests {
     #[test]
     fn test_multiple_closures() {
         test_program_integer_return(
-            r##"
+            r"
             fn make_adder(x: int) -> fn[int](int) -> int {
                 fn add[x](y: int) -> int {
                     return x + y;
@@ -2998,7 +3001,7 @@ mod tests {
                 let add20 = make_adder(20);
                 return add10(5) + add20(5);
             }
-            "##,
+            ",
             40,
         );
     }
@@ -3006,7 +3009,7 @@ mod tests {
     #[test]
     fn test_method_call_basic() {
         test_program_integer_return(
-            r##"
+            r"
             type Counter struct {
                 count: int,
             };
@@ -3022,7 +3025,7 @@ mod tests {
                 c.increment();
                 return c.count;
             }
-            "##,
+            ",
             3,
         );
     }
@@ -3030,7 +3033,7 @@ mod tests {
     #[test]
     fn test_method_with_return_value() {
         test_program_integer_return(
-            r##"
+            r"
             type Calculator struct {
                 value: int,
             };
@@ -3044,7 +3047,7 @@ mod tests {
                 var calc: struct Calculator = struct Calculator {value: 10};
                 return calc.add(32);
             }
-            "##,
+            ",
             42,
         );
     }
@@ -3052,14 +3055,14 @@ mod tests {
     #[test]
     fn test_global_variable() {
         test_program_integer_return(
-            r##"
+            r"
             var global: int;
             
             fn main() -> int {
                 global = 42;
                 return global;
             }
-            "##,
+            ",
             42,
         );
     }
@@ -3067,7 +3070,7 @@ mod tests {
     #[test]
     fn test_global_variable_modification() {
         test_program_integer_return(
-            r##"
+            r"
             var counter: int;
             
             fn increment() {
@@ -3081,7 +3084,7 @@ mod tests {
                 increment();
                 return counter;
             }
-            "##,
+            ",
             3,
         );
     }

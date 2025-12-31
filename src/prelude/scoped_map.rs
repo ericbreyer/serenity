@@ -12,45 +12,49 @@ use crate::{prelude::*, typing::UValueType};
 
 pub type Generics = ScopedMap<SharedString, UValueType>;
 
-pub struct ScopedMap<K, V>
+pub struct ScopedMap<K, V, S = std::collections::hash_map::RandomState>
 where
     K: Eq + Hash + Debug + Clone,
     V: Clone,
+    S: std::hash::BuildHasher + Default,
 {
-    variables: RefCell<VecDeque<HashMap<K, V>>>,
-    as_hashmap: RefCell<HashMap<K, V>>,
+    variables: RefCell<VecDeque<HashMap<K, V, S>>>,
+    as_hashmap: RefCell<HashMap<K, V, S>>,
     dirty: Cell<bool>,
 }
 
-impl<K, V> Debug for ScopedMap<K, V>
+impl<K, V, S> Debug for ScopedMap<K, V, S>
 where
     K: Eq + Hash + Debug + Clone,
     V: Clone + Debug,
+    S: std::hash::BuildHasher + Default + Clone,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "SM{:?}", self.as_hashmap())
     }
 }
 
-impl<K, V> Default for ScopedMap<K, V>
+impl<K, V, S> Default for ScopedMap<K, V, S>
 where
     K: Eq + Hash + Debug + Clone,
     V: Clone,
+    S: std::hash::BuildHasher + Default + Clone,
 {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<K, V> ScopedMap<K, V>
+impl<K, V, S> ScopedMap<K, V, S>
 where
     K: Eq + Hash + Debug + Clone,
     V: Clone,
+    S: std::hash::BuildHasher + Default + Clone,
 {
     pub fn new() -> Self {
         let mut v = Self {
             variables: VecDeque::new().into(),
-            as_hashmap: HashMap::new().into(),
+            as_hashmap: HashMap::<K, V, S>::default().into(),
             dirty: true.into(),
         };
         v.begin_scope();
@@ -58,7 +62,8 @@ where
     }
 
     pub fn begin_scope(&mut self) {
-        self.variables.borrow_mut().push_front(HashMap::new());
+        self.variables.borrow_mut().push_front(HashMap::default());
+        self.dirty.set(true);
     }
     pub fn end_scope(&mut self) {
         self.variables.borrow_mut().pop_front();
@@ -88,35 +93,37 @@ where
         self.dirty.set(true);
     }
 
-    pub fn as_hashmap(&self) -> HashMap<K, V> {
+    pub fn as_hashmap(&self) -> HashMap<K, V, S> {
         if self.dirty.get() {
-            let mut map = HashMap::new();
+            let mut map = HashMap::default();
             for scope in self.variables.borrow().iter() {
-                for (k, v) in scope.iter() {
+                for (k, v) in scope {
                     map.insert(k.clone(), v.clone());
                 }
             }
-            self.as_hashmap.replace(map.clone());
+            self.as_hashmap.replace(map);
             self.dirty.set(false);
         }
         self.as_hashmap.borrow().clone()
     }
 }
 
-impl<K, V> From<ScopedMap<K, V>> for HashMap<K, V>
+impl<K, V, S> From<ScopedMap<K, V, S>> for HashMap<K, V, S>
 where
     K: Eq + Hash + Debug + Clone,
     V: Clone,
+    S: std::hash::BuildHasher + Default + Clone,
 {
-    fn from(val: ScopedMap<K, V>) -> Self {
+    fn from(val: ScopedMap<K, V, S>) -> Self {
         val.as_hashmap()
     }
 }
 
-impl<K, V> Iterator for ScopedMap<K, V>
+impl<K, V, S> Iterator for ScopedMap<K, V, S>
 where
     K: Eq + Hash + Debug + Clone,
     V: Clone,
+    S: std::hash::BuildHasher + Default + Clone,
 {
     type Item = (K, V);
 
@@ -295,11 +302,11 @@ mod tests {
     fn test_multiple_keys_same_scope() {
         let mut map: ScopedMap<String, i32> = ScopedMap::new();
         for i in 0..100 {
-            map.set(format!("key_{}", i), i);
+            map.set(format!("key_{i}"), i);
         }
 
         for i in 0..100 {
-            assert_eq!(map.get(format!("key_{}", i)).unwrap(), i);
+            assert_eq!(map.get(format!("key_{i}")).unwrap(), i);
         }
     }
 }

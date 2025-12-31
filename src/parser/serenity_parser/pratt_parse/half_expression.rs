@@ -69,7 +69,7 @@ impl HalfExpression {
                 // Generate parameter names for each placeholder
                 let mut param_names: Vec<SharedString> = Vec::new();
                 for i in 0..placeholders.len() {
-                    param_names.push(format!("arg{}", i).into());
+                    param_names.push(format!("arg{i}").into());
                 }
 
                 // Build params vector: (name, typevar, mutable)
@@ -103,7 +103,7 @@ impl HalfExpression {
                         let pname = param_names[placeholder_idx].clone();
                         placeholder_idx += 1;
                         let tok = Token {
-                            token_type: TokenType::Identifier,
+                            tok_type: TokenType::Identifier,
                             lexeme: pname.clone(),
                             line,
                         };

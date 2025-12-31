@@ -550,33 +550,33 @@ expression: result
 [line    6]                     │    ╰─── Variable: seive_generator_vtable
 [line    6]                     ╰───  self: 
 [line    6]                          ╰─── Variable: self
-[line   47] Function Declaration: divides
-[line   47] ╰─── Function Expression:
-[line   47]      ├─── Name: divides
-[line   47]      ├─── Return Type: bool
-[line   47]      ├─── Params:
-[line   47]      │    ├─── a: int
-[line   47]      │    ╰─── b: int
-[line   47]      ╰─── Body: 
-[line   47]           ╰─── Return:
-[line   48]                ╰─── Binary: EqualEqual
-[line   48]                     ├─── Cast: float
-[line   48]                     │    ╰─── Binary: Slash
-[line   48]                     │         ├─── Variable: a
-[line   48]                     │         ╰─── Variable: b
-[line   48]                     ╰─── Binary: Slash
-[line   48]                          ├─── Cast: $39
-[line   48]                          │    ╰─── Variable: a
-[line   48]                          ╰─── Cast: $40
-[line   48]                               ╰─── Variable: b
-[line   50] Function Declaration: not<C>
-[line   50] ╰─── Function Expression:
-[line   50]      ├─── Name: not
-[line   50]      ├─── Return Type: fn[fn[$43](int) -> bool](int) -> bool
-[line   50]      ├─── Params:
-[line   50]      │    ╰─── pred: fn[$41](int) -> bool
-[line   50]      ╰─── Body: 
-[line   50]           ╰─── Return:
+[line   45] Function Declaration: divides
+[line   45] ╰─── Function Expression:
+[line   45]      ├─── Name: divides
+[line   45]      ├─── Return Type: bool
+[line   45]      ├─── Params:
+[line   45]      │    ├─── a: int
+[line   45]      │    ╰─── b: int
+[line   45]      ╰─── Body: 
+[line   45]           ╰─── Return:
+[line   46]                ╰─── Binary: EqualEqual
+[line   46]                     ├─── Cast: float
+[line   46]                     │    ╰─── Binary: Slash
+[line   46]                     │         ├─── Variable: a
+[line   46]                     │         ╰─── Variable: b
+[line   46]                     ╰─── Binary: Slash
+[line   46]                          ├─── Cast: $39
+[line   46]                          │    ╰─── Variable: a
+[line   46]                          ╰─── Cast: $40
+[line   46]                               ╰─── Variable: b
+[line   48] Function Declaration: not<C>
+[line   48] ╰─── Function Expression:
+[line   48]      ├─── Name: not
+[line   48]      ├─── Return Type: fn[fn[$43](int) -> bool](int) -> bool
+[line   48]      ├─── Params:
+[line   48]      │    ╰─── pred: fn[$41](int) -> bool
+[line   48]      ╰─── Body: 
+[line   48]           ╰─── Return:
 [line    0]                ╰─── Function: anon0
 [line    0]                     ╰─── Function Expression:
 [line    0]                          ├─── Name: anon0
@@ -586,19 +586,19 @@ expression: result
 [line    0]                          ├─── Params:
 [line    0]                          │    ╰─── x: int
 [line    0]                          ╰─── Body: 
-[line   51]                               ╰─── Return:
-[line   52]                                    ╰─── Unary: Bang 
-[line   52]                                         ╰─── Call:
-[line   52]                                              ├─── Variable: pred
-[line   52]                                              ╰─── Variable: x
-[line   56] Function Declaration: 12868915959732643263_next
-[line   56] ╰─── Function Expression:
-[line   56]      ├─── Name: 12868915959732643263_next
-[line   56]      ├─── Return Type: fn[*struct seive { gen: struct generator_impl { self: *nil, vtable: struct generator_vtable { next: fn[](*nil) -> fn[*nil]() -> int, }, }, }]() -> int
-[line   56]      ├─── Params:
-[line   56]      │    ╰─── self: *struct seive { gen: struct generator_impl { self: *nil, vtable: struct generator_vtable { next: fn[](*nil) -> fn[*nil]() -> int, }, }, }
-[line   56]      ╰─── Body: 
-[line   56]           ╰─── Return:
+[line   49]                               ╰─── Return:
+[line   50]                                    ╰─── Unary: Bang 
+[line   50]                                         ╰─── Call:
+[line   50]                                              ├─── Variable: pred
+[line   50]                                              ╰─── Variable: x
+[line   54] Function Declaration: 12868915959732643263_next
+[line   54] ╰─── Function Expression:
+[line   54]      ├─── Name: 12868915959732643263_next
+[line   54]      ├─── Return Type: fn[*struct seive { gen: struct generator_impl { self: *nil, vtable: struct generator_vtable { next: fn[](*nil) -> fn[*nil]() -> int, }, }, }]() -> int
+[line   54]      ├─── Params:
+[line   54]      │    ╰─── self: *struct seive { gen: struct generator_impl { self: *nil, vtable: struct generator_vtable { next: fn[](*nil) -> fn[*nil]() -> int, }, }, }
+[line   54]      ╰─── Body: 
+[line   54]           ╰─── Return:
 [line    0]                ╰─── Function: 12868915959732643263_next_inner
 [line    0]                     ╰─── Function Expression:
 [line    0]                          ├─── Name: 12868915959732643263_next_inner
@@ -606,117 +606,117 @@ expression: result
 [line    0]                          ├─── Captures:
 [line    0]                          │    ╰─── self
 [line    0]                          ╰─── Body: 
-[line   57]                               ├─── Var Declaration: gen
-[line   57]                               │    ╰───  Initializer
-[line   57]                               │         ╰─── Get: "gen"
-[line   57]                               │              ╰─── Deref: 
-[line   57]                               │                   ╰─── Variable: self
-[line   58]                               ├─── Var Declaration: i
+[line   55]                               ├─── Var Declaration: gen
+[line   55]                               │    ╰───  Initializer
+[line   55]                               │         ╰─── Get: "gen"
+[line   55]                               │              ╰─── Deref: 
+[line   55]                               │                   ╰─── Variable: self
+[line   56]                               ├─── Var Declaration: i
+[line   56]                               │    ╰───  Initializer
+[line   56]                               │         ╰─── Call:
+[line   56]                               │              ╰─── Get: "next"
+[line   56]                               │                   ╰─── Variable: gen
+[line   58]                               ├─── Var Declaration: pred
 [line   58]                               │    ╰───  Initializer
-[line   58]                               │         ╰─── Call:
-[line   58]                               │              ╰─── Get: "next"
-[line   58]                               │                   ╰─── Variable: gen
-[line   60]                               ├─── Var Declaration: pred
+[line   58]                               │         ╰─── Function: anon9223372036854775807
+[line   58]                               │              ╰─── Function Expression:
+[line   58]                               │                   ├─── Name: anon9223372036854775807
+[line   58]                               │                   ├─── Return Type: $49
+[line   58]                               │                   ├─── Captures:
+[line   58]                               │                   │    ╰─── i
+[line   58]                               │                   ├─── Params:
+[line   58]                               │                   │    ╰─── arg0: $48
+[line   58]                               │                   ╰─── Body: 
+[line   58]                               │                        ╰─── Return:
+[line   58]                               │                             ╰─── Call:
+[line   58]                               │                                  ├─── Variable: divides
+[line   58]                               │                                  ├─── Variable: arg0
+[line   58]                               │                                  ╰─── Variable: i
+[line   59]                               ├─── Var Declaration: pred
+[line   59]                               │    ╰───  Initializer
+[line   59]                               │         ╰─── Call:
+[line   59]                               │              ├─── Variable: not
+[line   59]                               │              ╰─── Variable: pred
+[line   60]                               ├─── Var Declaration: filter
 [line   60]                               │    ╰───  Initializer
-[line   60]                               │         ╰─── Function: anon9223372036854775807
-[line   60]                               │              ╰─── Function Expression:
-[line   60]                               │                   ├─── Name: anon9223372036854775807
-[line   60]                               │                   ├─── Return Type: $49
-[line   60]                               │                   ├─── Captures:
-[line   60]                               │                   │    ╰─── i
-[line   60]                               │                   ├─── Params:
-[line   60]                               │                   │    ╰─── arg0: $48
-[line   60]                               │                   ╰─── Body: 
-[line   60]                               │                        ╰─── Return:
-[line   60]                               │                             ╰─── Call:
-[line   60]                               │                                  ├─── Variable: divides
-[line   60]                               │                                  ├─── Variable: arg0
-[line   60]                               │                                  ╰─── Variable: i
-[line   61]                               ├─── Var Declaration: pred
-[line   61]                               │    ╰───  Initializer
-[line   61]                               │         ╰─── Call:
-[line   61]                               │              ├─── Variable: not
-[line   61]                               │              ╰─── Variable: pred
-[line   62]                               ├─── Var Declaration: filter
-[line   62]                               │    ╰───  Initializer
+[line   60]                               │         ╰─── Call:
+[line   60]                               │              ├─── Get: "alloc"
+[line   60]                               │              │    ╰─── Variable: arena
+[line   60]                               │              ╰─── Sizeof: struct filter { gen: struct generator_impl { self: *nil, vtable: struct generator_vtable { next: fn[](*nil) -> fn[*nil]() -> int, }, }, pred: fn[$28](int) -> bool, }
+[line   61]                               ├─── Expression: 
+[line   61]                               │    ╰─── Assign:
+[line   61]                               │         ├─── Deref: 
+[line   61]                               │         │    ╰─── Variable: filter
+[line   61]                               │         ╰─── StructInitializer: struct filter {gen: struct generator_impl { self: *nil, vtable: struct generator_vtable { next: fn[](*nil) -> fn[*nil]() -> int, }, }, pred: fn[$28](int) -> bool, }
+[line   61]                               │              ├───  gen: 
+[line   61]                               │              │    ╰─── Get: "gen"
+[line   61]                               │              │         ╰─── Deref: 
+[line   61]                               │              │              ╰─── Variable: self
+[line   61]                               │              ╰───  pred: 
+[line   61]                               │                   ╰─── Variable: pred
+[line   62]                               ├─── Expression: 
+[line   62]                               │    ╰─── Assign:
+[line   62]                               │         ├─── Get: "gen"
+[line   62]                               │         │    ╰─── Deref: 
+[line   62]                               │         │         ╰─── Variable: self
 [line   62]                               │         ╰─── Call:
-[line   62]                               │              ├─── Get: "alloc"
-[line   62]                               │              │    ╰─── Variable: arena
-[line   62]                               │              ╰─── Sizeof: struct filter { gen: struct generator_impl { self: *nil, vtable: struct generator_vtable { next: fn[](*nil) -> fn[*nil]() -> int, }, }, pred: fn[$28](int) -> bool, }
-[line   63]                               ├─── Expression: 
-[line   63]                               │    ╰─── Assign:
-[line   63]                               │         ├─── Deref: 
-[line   63]                               │         │    ╰─── Variable: filter
-[line   63]                               │         ╰─── StructInitializer: struct filter {gen: struct generator_impl { self: *nil, vtable: struct generator_vtable { next: fn[](*nil) -> fn[*nil]() -> int, }, }, pred: fn[$28](int) -> bool, }
-[line   63]                               │              ├───  gen: 
-[line   63]                               │              │    ╰─── Get: "gen"
-[line   63]                               │              │         ╰─── Deref: 
-[line   63]                               │              │              ╰─── Variable: self
-[line   63]                               │              ╰───  pred: 
-[line   63]                               │                   ╰─── Variable: pred
-[line   64]                               ├─── Expression: 
-[line   64]                               │    ╰─── Assign:
-[line   64]                               │         ├─── Get: "gen"
-[line   64]                               │         │    ╰─── Deref: 
-[line   64]                               │         │         ╰─── Variable: self
-[line   64]                               │         ╰─── Call:
-[line   64]                               │              ├─── Variable: filter_impl_generator
-[line   64]                               │              ╰─── Variable: filter
-[line   64]                               ╰─── Return:
-[line   65]                                    ╰─── Variable: i
-[line   69] Function Declaration: main
-[line   69] ╰─── Function Expression:
-[line   69]      ├─── Name: main
-[line   69]      ├─── Return Type: int
-[line   69]      ╰─── Body: 
-[line   70]           ├─── Expression: 
-[line   70]           │    ╰─── Assign:
-[line   70]           │         ├─── Variable: arena
-[line   70]           │         ╰─── Call:
-[line   70]           │              ╰─── Variable: create_arena
-[line   71]           ├─── Var Declaration: nats
-[line   71]           │    ╰───  Initializer
-[line   71]           │         ╰─── StructInitializer: struct nat_gen {i: int, }
-[line   71]           │              ╰───  i: 
-[line   71]           │                   ╰─── Literal: 2
-[line   73]           ├─── Var Declaration: gen
-[line   73]           │    ╰───  Initializer
-[line   73]           │         ╰─── StructInitializer: struct seive {gen: struct generator_impl { self: *nil, vtable: struct generator_vtable { next: fn[](*nil) -> fn[*nil]() -> int, }, }, }
-[line   73]           │              ╰───  gen: 
-[line   73]           │                   ╰─── Call:
-[line   73]           │                        ├─── Variable: nat_gen_impl_generator
-[line   73]           │                        ╰─── Ref: 
-[line   73]           │                             ╰─── Variable: nats
-[line   75]           ├─── Var Declaration: prod
-[line   75]           │    ╰───  Initializer
-[line   75]           │         ╰─── Literal: 1
-[line   76]           ├─── For: 
-[line   76]           │    ├─── Var Declaration: i
-[line   76]           │    │    ╰───  Initializer
-[line   76]           │    │         ╰─── Literal: 0
-[line   76]           │    ├─── Binary: Less
-[line   76]           │    │    ├─── Variable: i
-[line   76]           │    │    ╰─── Literal: 100
-[line   76]           │    ├─── Assign:
-[line   76]           │    │    ├─── Variable: i
-[line   76]           │    │    ╰─── Binary: Plus
-[line   76]           │    │         ├─── Variable: i
-[line   76]           │    │         ╰─── Literal: 1
-[line   76]           │    ╰─── Block: 
-[line   77]           │         ├─── Var Declaration: p
-[line   77]           │         │    ╰───  Initializer
-[line   77]           │         │         ╰─── Call:
-[line   77]           │         │              ╰─── Get: "next"
-[line   77]           │         │                   ╰─── Variable: gen
-[line   78]           │         ╰─── Expression: 
-[line   78]           │              ╰─── Assign:
-[line   78]           │                   ├─── Variable: prod
-[line   78]           │                   ╰─── Binary: Star
-[line   78]           │                        ├─── Variable: prod
-[line   78]           │                        ╰─── Variable: p
-[line   81]           ├─── Expression: 
-[line   81]           │    ╰─── Call:
-[line   81]           │         ╰─── Get: "destroy"
-[line   81]           │              ╰─── Variable: arena
-[line   81]           ╰─── Return:
-[line   82]                ╰─── Variable: prod
+[line   62]                               │              ├─── Variable: filter_impl_generator
+[line   62]                               │              ╰─── Variable: filter
+[line   62]                               ╰─── Return:
+[line   63]                                    ╰─── Variable: i
+[line   68] Function Declaration: main
+[line   68] ╰─── Function Expression:
+[line   68]      ├─── Name: main
+[line   68]      ├─── Return Type: int
+[line   68]      ╰─── Body: 
+[line   69]           ├─── Expression: 
+[line   69]           │    ╰─── Assign:
+[line   69]           │         ├─── Variable: arena
+[line   69]           │         ╰─── Call:
+[line   69]           │              ╰─── Variable: create_arena
+[line   70]           ├─── Var Declaration: nats
+[line   70]           │    ╰───  Initializer
+[line   70]           │         ╰─── StructInitializer: struct nat_gen {i: int, }
+[line   70]           │              ╰───  i: 
+[line   70]           │                   ╰─── Literal: 2
+[line   72]           ├─── Var Declaration: gen
+[line   72]           │    ╰───  Initializer
+[line   72]           │         ╰─── StructInitializer: struct seive {gen: struct generator_impl { self: *nil, vtable: struct generator_vtable { next: fn[](*nil) -> fn[*nil]() -> int, }, }, }
+[line   72]           │              ╰───  gen: 
+[line   72]           │                   ╰─── Call:
+[line   72]           │                        ├─── Variable: nat_gen_impl_generator
+[line   72]           │                        ╰─── Ref: 
+[line   72]           │                             ╰─── Variable: nats
+[line   74]           ├─── Var Declaration: prod
+[line   74]           │    ╰───  Initializer
+[line   74]           │         ╰─── Literal: 1
+[line   75]           ├─── For: 
+[line   75]           │    ├─── Var Declaration: i
+[line   75]           │    │    ╰───  Initializer
+[line   75]           │    │         ╰─── Literal: 0
+[line   75]           │    ├─── Binary: Less
+[line   75]           │    │    ├─── Variable: i
+[line   75]           │    │    ╰─── Literal: 100
+[line   75]           │    ├─── Assign:
+[line   75]           │    │    ├─── Variable: i
+[line   75]           │    │    ╰─── Binary: Plus
+[line   75]           │    │         ├─── Variable: i
+[line   75]           │    │         ╰─── Literal: 1
+[line   75]           │    ╰─── Block: 
+[line   76]           │         ├─── Var Declaration: p
+[line   76]           │         │    ╰───  Initializer
+[line   76]           │         │         ╰─── Call:
+[line   76]           │         │              ╰─── Get: "next"
+[line   76]           │         │                   ╰─── Variable: gen
+[line   77]           │         ╰─── Expression: 
+[line   77]           │              ╰─── Assign:
+[line   77]           │                   ├─── Variable: prod
+[line   77]           │                   ╰─── Binary: Star
+[line   77]           │                        ├─── Variable: prod
+[line   77]           │                        ╰─── Variable: p
+[line   80]           ├─── Expression: 
+[line   80]           │    ╰─── Call:
+[line   80]           │         ╰─── Get: "destroy"
+[line   80]           │              ╰─── Variable: arena
+[line   80]           ╰─── Return:
+[line   81]                ╰─── Variable: prod
